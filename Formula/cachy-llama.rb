@@ -1,9 +1,9 @@
 class CachyLlama < Formula
   desc "Persistent KV Cache & MoE Residency LLM Inference Engine"
   homepage "https://github.com/fewtarius/CachyLLama"
-  url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-bin-macos-metal-arm64.tar.gz"
-  version "b1002"
-  sha256 "50ce560eb3f5649850f9b421211f242cd6cc29ad1fca65d7e31cff778e90f30c"
+  url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-bin-macos-metal-arm64.tar.gz"
+  version "1006"
+  sha256 "4bd6a9b17cdfeb6019202c861698f8bb02e0d057efe34005b7f1bca6db959777"
   license "MIT"
 
   livecheck do
@@ -21,25 +21,25 @@ class CachyLlama < Formula
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-bin-ubuntu-cpu-arm64.tar.gz"
-      sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-bin-ubuntu-cpu-arm64.tar.gz"
+      sha256 "21f098a5dc4bb933b092dab59d93bcab148e804f70cb229499f63a90ba11f9cf"
     elsif Hardware::CPU.intel?
       if build.with? "rocm-gfx1151"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-b1001-ubuntu-rocm-gfx1151-x64.zip"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx1151-x64.zip"
       elsif build.with? "rocm-gfx1150"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-b1001-ubuntu-rocm-gfx1150-x64.zip"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx1150-x64.zip"
       elsif build.with? "rocm-gfx120X"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-b1001-ubuntu-rocm-gfx120X-x64.zip"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx120X-x64.zip"
       elsif build.with? "rocm-gfx110X"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-b1001-ubuntu-rocm-gfx110X-x64.zip"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx110X-x64.zip"
       elsif build.with? "rocm-gfx103X"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-b1001-ubuntu-rocm-gfx103X-x64.zip"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx103X-x64.zip"
       elsif build.with? "rocm-gfx90a"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-b1001-ubuntu-rocm-gfx90a-x64.zip"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx90a-x64.zip"
       elsif build.with? "cpu"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-bin-ubuntu-cpu-x64.tar.gz"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-bin-ubuntu-cpu-x64.tar.gz"
       else
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/cachy-llama-bin-ubuntu-vulkan-x64.tar.gz"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-bin-ubuntu-vulkan-x64.tar.gz"
       end
       sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     end
