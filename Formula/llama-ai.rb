@@ -3,7 +3,7 @@ class LlamaAi < Formula
   homepage "https://github.com/fewtarius/llama-ai"
   url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/llama-ai-b1002-macos-arm64.tar.gz"
   version "1002"
-  sha256 "19706aa66c66a33f6d9f0a89d70150937b42f36d3964943fcfd46aa1a62d26f6"
+  sha256 "19706aa66c66a33f6d9f0a89baf228a60b1db7f3f7dc7ae9226e2a6e8272ea34"
   license "GPL-3.0-or-later"
 
   livecheck do
@@ -14,7 +14,7 @@ class LlamaAi < Formula
   on_linux do
     if Hardware::CPU.intel?
       url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/llama-ai-b1002-linux-x64.tar.gz"
-      sha256 "b59bd852aea436003137c7304bf5e08b15d6fa1c0c279c67eb01556214227d82"
+      sha256 "b59bd852aea436003137c730765be962a7838122776a833c8d05bf3ba1e784c0"
     end
   end
 
