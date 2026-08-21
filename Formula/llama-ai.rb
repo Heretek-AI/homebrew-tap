@@ -2,6 +2,7 @@ class LlamaAi < Formula
   desc "Turnkey APU Runner & Optimistic-First Profile Solver for LLMs"
   homepage "https://github.com/fewtarius/llama-ai"
   url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1000/llama-ai-b1000-macos-arm64.tar.gz"
+  version "1.0.0"
   sha256 "a8d0b1a52ce8a031ed62ca1a2b75a39dbce878aec6a4c984aa31521cbed80c29"
   license "GPL-3.0-or-later"
 
