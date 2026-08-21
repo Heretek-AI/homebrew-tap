@@ -16,6 +16,8 @@ class Rocmfpx < Formula
   option "with-gfx90a",  "Build for AMD Instinct MI210 / MI250X"
   option "with-gfx908",  "Build for AMD Instinct MI100"
 
+  depends_on :linux
+
   on_linux do
     if Hardware::CPU.intel?
       if build.with? "gfx1150"

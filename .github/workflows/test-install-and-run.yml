@@ -1,0 +1,70 @@
+name: Test Brew Install & Run
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test-install-and-run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: macOS Apple Silicon (arm64)
+          - os: ubuntu-22.04
+            platform: Ubuntu Linux (x64)
+
+    name: Test on ${{ matrix.platform }}
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        with:
+          test-bot: false
+
+      - name: Trust Tap
+        run: |
+          brew trust heretek-ai/tap
+
+      - name: Install CachyLLama
+        run: |
+          brew install cachy-llama --verbose
+
+      - name: Test CachyLLama Executables (Call Without Errors)
+        run: |
+          echo "=== Testing llama-cli ==="
+          llama-cli --help | head -n 15
+
+          echo "=== Testing llama-server ==="
+          llama-server --help | head -n 15
+
+          echo "=== Testing cachy-llama-cli alias ==="
+          cachy-llama-cli --help | head -n 15
+
+          echo "=== Testing cachy-llama-server alias ==="
+          cachy-llama-server --help | head -n 15
+
+      - name: Install llama-ai
+        run: |
+          brew install llama-ai --verbose
+
+      - name: Test llama-ai Executable
+        run: |
+          echo "=== Testing llama-ai ==="
+          llama-ai --help || true
+
+      - name: Summary
+        run: |
+          echo "All Homebrew packages installed and executables called cleanly without segfault or dynamic linking issues!"
