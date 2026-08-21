@@ -17,27 +17,32 @@ if [ -z "$BREW_BIN" ] || [ ! -x "$BREW_BIN" ]; then
 fi
 
 echo "=========================================="
-echo " Running Homebrew Formula Style Checks"
+echo " 1. Running Homebrew Formula Style Checks"
 echo "=========================================="
 "$BREW_BIN" style "${TAP_DIR}/Formula/"
 
 echo ""
 echo "=========================================="
-echo " Running Homebrew Formula Audit Checks"
+echo " 2. Syncing Local Tap clone"
 echo "=========================================="
-for formula in "${TAP_DIR}"/Formula/*.rb; do
-    echo "[*] Auditing $(basename "$formula")..."
-    "$BREW_BIN" audit --strict "$formula" || echo "Audit completed with warnings"
-done
+TAP_INSTALL_PATH="$("$BREW_BIN" --repository)/Library/Taps/heretek-ai/homebrew-tap"
+if [ -d "$TAP_INSTALL_PATH" ]; then
+    rsync -av --delete --exclude='.git' "${TAP_DIR}/" "$TAP_INSTALL_PATH/"
+fi
 
 echo ""
 echo "=========================================="
-echo " Formula Information Summary"
+echo " 3. Running Homebrew Tap Audit Checks"
 echo "=========================================="
-for formula in "${TAP_DIR}"/Formula/*.rb; do
-    name="$(basename "$formula" .rb)"
-    echo "--- Formula: $name ---"
-    "$BREW_BIN" info "$formula" || true
+"$BREW_BIN" audit --tap=heretek-ai/tap
+
+echo ""
+echo "=========================================="
+echo " 4. Formula Information Summary"
+echo "=========================================="
+for formula in cachy-llama rocmfpx llama-ai; do
+    echo "--- Formula: heretek-ai/tap/${formula} ---"
+    "$BREW_BIN" info "heretek-ai/tap/${formula}"
     echo ""
 done
 

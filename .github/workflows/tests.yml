@@ -1,0 +1,41 @@
+name: Brew CI & Formula Audit
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  style-and-audit:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        with:
+          test-bot: false
+
+      - name: Check Formula Style
+        run: |
+          brew style Formula/
+
+      - name: Tap Current Repository
+        run: |
+          brew tap "${{ github.repository_owner }}/tap" "${GITHUB_WORKSPACE}"
+
+      - name: Audit Formulae
+        run: |
+          brew audit --strict --tap="${{ github.repository_owner }}/tap"
