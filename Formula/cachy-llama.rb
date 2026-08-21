@@ -26,22 +26,29 @@ class CachyLlama < Formula
     elsif Hardware::CPU.intel?
       if build.with? "rocm-gfx1151"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "rocm-gfx1150"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx1150-x64.zip"
+        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "rocm-gfx120X"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx120X-x64.zip"
+        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "rocm-gfx110X"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx110X-x64.zip"
+        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "rocm-gfx103X"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx103X-x64.zip"
+        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "rocm-gfx90a"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-b1001-ubuntu-rocm-gfx90a-x64.zip"
+        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "cpu"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-bin-ubuntu-cpu-x64.tar.gz"
+        sha256 "af0001e6e826666b043828238765df7ad789ae275a308ed731bc015535ae5aaa"
       else
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1006/cachy-llama-bin-ubuntu-vulkan-x64.tar.gz"
+        sha256 "30ec126c68f99307bba0313726322ab80badb1f3e47511504c9e4e7605cb2fee"
       end
-      sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     end
   end
 
