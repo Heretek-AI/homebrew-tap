@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Homebrew
+        id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
         with:
           test-bot: false
@@ -32,10 +33,6 @@ jobs:
         run: |
           brew style Formula/
 
-      - name: Tap Current Repository
-        run: |
-          brew tap "${{ github.repository_owner }}/tap" "${GITHUB_WORKSPACE}"
-
       - name: Audit Formulae
         run: |
-          brew audit --strict --tap="${{ github.repository_owner }}/tap"
+          brew audit --strict --tap="${{ steps.set-up-homebrew.outputs.tap-name || github.repository_owner }}"
