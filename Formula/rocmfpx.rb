@@ -48,10 +48,13 @@ class Rocmfpx < Formula
     libexec.install Dir["*"]
 
     %w[llama-server llama-cli llama-quantize llama-bench llama-perplexity].each do |cmd|
-      if File.exist?(libexec/cmd)
-        (bin/cmd).write_exec_script libexec/cmd
-        (bin/"rocmfpx-#{cmd.sub("llama-", "")}").write_exec_script libexec/cmd
-      end
+      next unless (libexec/cmd).exist?
+
+      bin.write_exec_script (libexec/cmd)
+      (bin/"rocmfpx-#{cmd.delete_prefix("llama-")}").write <<~SH
+        #!/bin/bash
+        exec "#{libexec/cmd}" "$@"
+      SH
     end
   end
 

@@ -57,10 +57,13 @@ class CachyLlama < Formula
 
     # Wrap executables so that $ORIGIN RPATH dynamic libraries inside libexec are discovered cleanly
     %w[llama-cli llama-server llama-quantize llama-bench llama-perplexity].each do |cmd|
-      if File.exist?(libexec/cmd)
-        (bin/cmd).write_exec_script libexec/cmd
-        (bin/"cachy-#{cmd}").write_exec_script libexec/cmd
-      end
+      next unless (libexec/cmd).exist?
+
+      bin.write_exec_script (libexec/cmd)
+      (bin/"cachy-#{cmd}").write <<~SH
+        #!/bin/bash
+        exec "#{libexec/cmd}" "$@"
+      SH
     end
   end
 
