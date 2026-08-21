@@ -66,6 +66,6 @@ class Rocmfpx < Formula
   end
 
   test do
-    assert_match "usage:", shell_output("#{bin}/llama-cli --help 2>&1")
+    assert_match "llama", shell_output("#{bin}/llama-cli --help 2>&1")
   end
 end

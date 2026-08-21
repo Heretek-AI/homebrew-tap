@@ -137,16 +137,20 @@ jobs:
           brew trust heretek-ai/tap
 
       - name: Install Formula
+        id: install
         run: |
           mkdir -p "$HOME/.cache/brew_tmp"
           export HOMEBREW_TEMP="$HOME/.cache/brew_tmp"
           echo "Installing ${{ matrix.formula }} ${{ matrix.flags }}..."
-          brew install ${{ matrix.formula }} ${{ matrix.flags }} --verbose || {
+          if brew install ${{ matrix.formula }} ${{ matrix.flags }} --verbose; then
+            echo "installed=true" >> "$GITHUB_OUTPUT"
+          else
             echo "::warning::Installation skipped or pending release asset for ${{ matrix.name }}"
-            exit 0
-          }
+            echo "installed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Verify Installed Executables
+        if: steps.install.outputs.installed == 'true'
         run: |
           for bin in ${{ matrix.binaries }}; do
             if command -v "$bin" >/dev/null 2>&1; then
@@ -158,5 +162,6 @@ jobs:
           done
 
       - name: Run Formula Audit / Test
+        if: steps.install.outputs.installed == 'true'
         run: |
-          brew test ${{ matrix.formula }} || true
+          brew test ${{ matrix.formula }}
