@@ -1,7 +1,8 @@
 class Rocmfpx < Formula
   desc "Low-bit Quantized ROCm 7 Inference Stack (Q2..Q8 ROCMFPX & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
-  version "1.0.0"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1001/rocmfpx-b1001-ubuntu-rocm-gfx1151-x64.zip"
+  sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   license "MIT"
 
   livecheck do
@@ -32,11 +33,7 @@ class Rocmfpx < Formula
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1001/rocmfpx-b1001-ubuntu-rocm-gfx90a-x64.zip"
       elsif build.with? "gfx908"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1001/rocmfpx-b1001-ubuntu-rocm-gfx908-x64.zip"
-      else
-        # Default: AMD Strix Halo (gfx1151)
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1001/rocmfpx-b1001-ubuntu-rocm-gfx1151-x64.zip"
       end
-      sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     end
   end
 

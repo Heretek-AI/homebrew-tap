@@ -1,7 +1,8 @@
 class CachyLlama < Formula
   desc "Persistent KV Cache & MoE Residency LLM Inference Engine"
   homepage "https://github.com/fewtarius/CachyLLama"
-  version "1.0.0"
+  url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1001/cachy-llama-bin-macos-metal-arm64.tar.gz"
+  sha256 "50ce560eb3f5649850f9b421211f242cd6cc29ad1fca65d7e31cff778e90f30c"
   license "MIT"
 
   livecheck do
@@ -16,13 +17,6 @@ class CachyLlama < Formula
   option "with-rocm-gfx103X", "Install ROCm build optimized for AMD RDNA2 GPUs / Steam Deck"
   option "with-rocm-gfx90a",  "Install ROCm build optimized for AMD Instinct MI210 / MI250X"
   option "with-cpu",          "Install CPU-only baseline build"
-
-  on_macos do
-    if Hardware::CPU.arm?
-      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1001/cachy-llama-bin-macos-metal-arm64.tar.gz"
-      sha256 "50ce560eb3f5649850f9b421211f242cd6cc29ad1fca65d7e31cff778e90f30c"
-    end
-  end
 
   on_linux do
     if Hardware::CPU.arm?
