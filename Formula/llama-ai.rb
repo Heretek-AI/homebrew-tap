@@ -20,7 +20,13 @@ class LlamaAi < Formula
 
   def install
     libexec.install Dir["*"]
-    if (libexec/"llama-run.sh").exist?
+    if (libexec/"bin/llama-cli").exist?
+      bin.write_exec_script (libexec/"bin/llama-cli")
+      (bin/"llama-ai").write <<~SH
+        #!/bin/bash
+        exec "#{libexec}/bin/llama-cli" "$@"
+      SH
+    elsif (libexec/"llama-run.sh").exist?
       bin.write_exec_script (libexec/"llama-run.sh")
       (bin/"llama-ai").write <<~SH
         #!/bin/bash
