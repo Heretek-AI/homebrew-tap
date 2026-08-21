@@ -39,3 +39,18 @@ jobs:
       - name: Audit Formulae
         run: |
           brew audit --strict --tap="${{ steps.set-up-homebrew.outputs.tap-name || github.repository_owner }}"
+
+  test-scripts:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Python Unit Tests
+        run: |
+          python3 -m unittest discover -s tests/ -v

@@ -62,20 +62,54 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
 
     # Clean version string (e.g. b1001 -> 1001 or 1.0.1)
     version_clean = release_tag.lstrip("v").lstrip("b").replace("llama-ai-", "")
-    content = re.sub(r'version ".*?"', f'version "{version_clean}"', content, count=1)
+    content = re.sub(r'version\s+"[^"]+"', f'version "{version_clean}"', content, count=1)
 
-    # Update asset download URLs and SHAs
-    for asset_name, sha in asset_shas.items():
-        # Match URL pattern containing download/TAG/...
-        # Replace download/[^/]+/asset_name with download/release_tag/asset_name
-        pattern = rf'(url "https://github\.com/[^/]+/[^/]+/releases/download/)[^/]+/({re.escape(asset_name)}"\s*\n\s*sha256 ")[a-fA-F0-9]+(")'
+    # Function to find matching asset in asset_shas
+    def find_matching_asset(old_asset_filename: str):
+        # 1. Direct match
+        if old_asset_filename in asset_shas:
+            return old_asset_filename, asset_shas[old_asset_filename]
         
-        def repl(m):
-            return f"{m.group(1)}{release_tag}/{m.group(2)}{sha}{m.group(3)}"
+        # 2. Extract architectural suffix (e.g. ubuntu-rocm-gfx1151-x64.zip or macos-metal-arm64.tar.gz)
+        # Matches patterns like: cachy-llama-b1000-ubuntu-rocm-gfx1151-x64.zip or rocmfpx-b1000-...
+        suffix_match = re.search(r'((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm).*)', old_asset_filename)
+        if suffix_match:
+            suffix = suffix_match.group(1)
+            for asset_name, sha in asset_shas.items():
+                if asset_name.endswith(suffix):
+                    return asset_name, sha
+        
+        # 3. Direct suffix match over all keys
+        for asset_name, sha in asset_shas.items():
+            if asset_name == old_asset_filename or asset_name.endswith(old_asset_filename):
+                return asset_name, sha
 
-        content, count = re.subn(pattern, repl, content)
-        if count > 0:
-            print(f"[+] Updated {asset_name} -> {sha[:12]}...")
+        return None, None
+
+    # Replace URL lines
+    def url_replacer(match):
+        prefix = match.group(1)  # https://github.com/.../download/
+        old_tag = match.group(2)  # b1000
+        old_filename = match.group(3)  # filename
+
+        matched_name, sha = find_matching_asset(old_filename)
+        new_filename = matched_name if matched_name else old_filename
+        return f'url "{prefix}{release_tag}/{new_filename}"'
+
+    content = re.sub(
+        r'url\s+"(https://github\.com/[^/]+/[^/]+/releases/download/)([^/]+)/([^"]+)"',
+        url_replacer,
+        content
+    )
+
+    # Update individual sha256 lines for matched assets
+    for asset_name, sha in asset_shas.items():
+        # Match URL block for this asset or its suffix followed by sha256
+        suffix_match = re.search(r'((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm).*)', asset_name)
+        suffix = suffix_match.group(1) if suffix_match else asset_name
+
+        pattern = rf'(url\s+"https://github\.com/[^/]+/[^/]+/releases/download/[^/]+/[^"]*{re.escape(suffix)}"[^\n]*\n(?:\s*version[^\n]*\n)?\s*sha256\s+")[a-fA-F0-9]+(")'
+        content = re.sub(pattern, rf'\g<1>{sha}\g<2>', content)
 
     if content != original_content:
         if dry_run:
