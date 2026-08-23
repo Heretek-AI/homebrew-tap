@@ -11,6 +11,7 @@ class Rocmfpx < Formula
     regex(%r{href=.*?/tag/v?(b\d+)["' >]}i)
   end
 
+  option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
   option "with-gfx1150", "Build for AMD Strix Point APU (Radeon 890M / 880M)"
   option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
   option "with-gfx110X", "Build for AMD RDNA3 GPUs (RX 7900 / 7800, Radeon 780M)"
@@ -22,7 +23,10 @@ class Rocmfpx < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      if build.with? "gfx1150"
+      if build.with? "multi-arch"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1003/rocmfpx-b1003-ubuntu-rocm-multiarch-x64.zip"
+        sha256 "b3511f579b968322987ac7a7f4da4945a15ee9e4225a5e621019936d53b70563"
+      elsif build.with? "gfx1150"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx1150-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "gfx120X"
@@ -45,15 +49,27 @@ class Rocmfpx < Formula
   end
 
   def install
-    libexec.install Dir["*"]
+    # Multi-arch (--with-multi-arch) archives nest binaries under bin/ with a
+    # sibling .kpack/ directory of GPU kernel packs; rocm_kpack resolves each
+    # library's embedded "../.kpack/<name>_@GFXARCH@.kpack" relative to itself,
+    # so that geometry must survive installation. Older per-target archives are
+    # flat and keep their previous layout.
+    nested = Pathname("bin").directory?
+    base = nested ? libexec/"bin" : libexec
+    if nested
+      (libexec/"bin").install Dir["bin/*"]
+      (libexec/".kpack").install Dir[".kpack/*"]
+    else
+      libexec.install Dir["*"]
+    end
 
     %w[llama-server llama-cli llama-quantize llama-bench llama-perplexity].each do |cmd|
-      next unless (libexec/cmd).exist?
+      next unless (base/cmd).exist?
 
-      bin.write_exec_script (libexec/cmd)
+      bin.write_exec_script (base/cmd)
       (bin/"rocmfpx-#{cmd.delete_prefix("llama-")}").write <<~SH
         #!/bin/bash
-        exec "#{libexec/cmd}" "$@"
+        exec "#{base/cmd}" "$@"
       SH
     end
   end
