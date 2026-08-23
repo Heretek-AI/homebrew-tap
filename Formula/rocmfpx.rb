@@ -1,8 +1,8 @@
 class Rocmfpx < Formula
   desc "Low-bit Quantized ROCm 7 Inference Stack (Q2..Q8 ROCMFPX & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx1151-x64.zip"
-  version "1000"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx1151-x64.zip"
+  version "1002"
   sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   license "MIT"
 
@@ -23,22 +23,22 @@ class Rocmfpx < Formula
   on_linux do
     if Hardware::CPU.intel?
       if build.with? "gfx1150"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx1150-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx1150-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "gfx120X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx120X-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx120X-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "gfx110X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx110X-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx110X-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "gfx103X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx103X-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx103X-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "gfx90a"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx90a-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx90a-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "gfx908"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1000/rocmfpx-b1001-ubuntu-rocm-gfx908-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1002/rocmfpx-b1001-ubuntu-rocm-gfx908-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       end
     end
