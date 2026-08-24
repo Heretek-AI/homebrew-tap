@@ -93,8 +93,13 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
         old_filename = match.group(3)  # filename
 
         matched_name, sha = find_matching_asset(old_filename)
-        new_filename = matched_name if matched_name else old_filename
-        return f'url "{prefix}{release_tag}/{new_filename}"'
+        if not matched_name:
+            # The current release has no asset matching this URL (e.g. an
+            # on-demand multiarch build absent from the nightly matrix).
+            # Retagging would 404, so leave the URL untouched.
+            print(f"[*] No matching asset for {old_filename}; keeping {old_tag} URL")
+            return match.group(0)
+        return f'url "{prefix}{release_tag}/{matched_name}"'
 
     content = re.sub(
         r'url\s+"(https://github\.com/[^/]+/[^/]+/releases/download/)([^/]+)/([^"]+)"',
