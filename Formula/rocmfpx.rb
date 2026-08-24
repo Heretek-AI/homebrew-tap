@@ -1,7 +1,7 @@
 class Rocmfpx < Formula
   desc "Low-bit Quantized ROCm 7 Inference Stack (Q2..Q8 ROCMFPX & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
-  version "1005"
+  version "1008"
   license "MIT"
 
   livecheck do
