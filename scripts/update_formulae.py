@@ -69,17 +69,31 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
         # 1. Direct match
         if old_asset_filename in asset_shas:
             return old_asset_filename, asset_shas[old_asset_filename]
-        
+
         # 2. Extract architectural suffix (e.g. ubuntu-rocm-gfx1151-x64.zip or macos-metal-arm64.tar.gz)
-        # Matches patterns like: cachy-llama-b1000-ubuntu-rocm-gfx1151-x64.zip or rocmfpx-b1000-...
-        suffix_match = re.search(r'((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm).*)', old_asset_filename)
+        # The regex must not start inside the package name ("rocm" in "rocmfpx"),
+        # so require a separator boundary before the platform token.
+        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan)-.*)', old_asset_filename)
         if suffix_match:
             suffix = suffix_match.group(1)
             for asset_name, sha in asset_shas.items():
                 if asset_name.endswith(suffix):
                     return asset_name, sha
-        
-        # 3. Direct suffix match over all keys
+
+        # 3. Tag-agnostic full-name match: rewrite this URL's bXXXX to the new tag
+        stripped = None
+        if re.match(r'^[A-Za-z0-9._-]+?-b\d+', old_asset_filename):
+            stripped = re.sub(r'-b\d+', f'-{release_tag}', old_asset_filename, count=1)
+        if stripped:
+            for asset_name, sha in asset_shas.items():
+                if asset_name == stripped:
+                    return asset_name, sha
+        if stripped:
+            for asset_name, sha in asset_shas.items():
+                if asset_name == stripped:
+                    return asset_name, sha
+
+        # 4. Direct suffix match over all keys
         for asset_name, sha in asset_shas.items():
             if asset_name == old_asset_filename or asset_name.endswith(old_asset_filename):
                 return asset_name, sha
