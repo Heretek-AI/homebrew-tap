@@ -9,6 +9,10 @@ class Rocmfpx < Formula
     regex(%r{href=.*?/tag/v?(b\d+)["' >]}i)
   end
 
+  # Certified model-specific profiles (server-only builds; accelerated routes
+  # are qualified on gfx1151, other families fall back to standard paths)
+  option "with-kairic-edge", "Qwen3.8-27B IU4 Kairic Edge certified runtime (Strix Halo)"
+  option "with-promptforge", "Qwen3.8-27B ActiveFPX PromptForge certified runtime (Strix Halo)"
   option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
   option "with-gfx1150", "Build for AMD Strix Point APU (Radeon 890M / 880M)"
   option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
@@ -24,7 +28,13 @@ class Rocmfpx < Formula
   # leaves URLs untouched when the newest release lacks a matching asset.
   on_linux do
     if Hardware::CPU.intel?
-      if build.with? "multi-arch"
+      if build.with? "kairic-edge"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1006/rocmfpx-b1006-ubuntu-rocm-gfx1151-kairic-edge-x64.zip"
+        sha256 "PLACEHOLDER_FILL_AFTER_FIRST_BUILD"
+      elsif build.with? "promptforge"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1007/rocmfpx-b1007-ubuntu-rocm-gfx1151-promptforge-x64.zip"
+        sha256 "PLACEHOLDER_FILL_AFTER_FIRST_BUILD"
+      elsif build.with? "multi-arch"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1003/rocmfpx-b1003-ubuntu-rocm-multiarch-x64.zip"
         sha256 "b3511f579b968322987ac7a7f4da4945a15ee9e4225a5e621019936d53b70563"
       elsif build.with? "gfx1150"
@@ -87,6 +97,11 @@ class Rocmfpx < Formula
   end
 
   test do
-    assert_match "llama", shell_output("#{bin}/llama-cli --help 2>&1")
+    # Certified profiles (kairic-edge, promptforge) ship only llama-server
+    if (libexec/"llama-server").exist? || (libexec/"bin"/"llama-server").exist?
+      assert_match "llama", shell_output("#{bin}/llama-server --version 2>&1")
+    else
+      assert_match "llama", shell_output("#{bin}/llama-cli --help 2>&1")
+    end
   end
 end
