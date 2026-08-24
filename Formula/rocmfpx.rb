@@ -30,7 +30,7 @@ class Rocmfpx < Formula
     if Hardware::CPU.intel?
       if build.with? "kairic-edge"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1006/rocmfpx-b1006-ubuntu-rocm-gfx1151-kairic-edge-x64.zip"
-        sha256 "PLACEHOLDER_FILL_AFTER_FIRST_BUILD"
+        sha256 "471c83a3055960d689e32491276da88f41acf0d6fba6ae989344562717ccf933"
       elsif build.with? "promptforge"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1007/rocmfpx-b1007-ubuntu-rocm-gfx1151-promptforge-x64.zip"
         sha256 "PLACEHOLDER_FILL_AFTER_FIRST_BUILD"
