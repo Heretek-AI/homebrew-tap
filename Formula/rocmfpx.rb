@@ -33,7 +33,7 @@ class Rocmfpx < Formula
         sha256 "471c83a3055960d689e32491276da88f41acf0d6fba6ae989344562717ccf933"
       elsif build.with? "promptforge"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1007/rocmfpx-b1007-ubuntu-rocm-gfx1151-promptforge-x64.zip"
-        sha256 "PLACEHOLDER_FILL_AFTER_FIRST_BUILD"
+        sha256 "0eb95a4d84098b5a9bb9e65122c430233a72f27950fee26ec0de79f1c00dfd3b"
       elsif build.with? "multi-arch"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1003/rocmfpx-b1003-ubuntu-rocm-multiarch-x64.zip"
         sha256 "b3511f579b968322987ac7a7f4da4945a15ee9e4225a5e621019936d53b70563"
