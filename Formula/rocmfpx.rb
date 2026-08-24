@@ -1,9 +1,7 @@
 class Rocmfpx < Formula
   desc "Low-bit Quantized ROCm 7 Inference Stack (Q2..Q8 ROCMFPX & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx1151-x64.zip"
-  version "1004"
-  sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  version "1005"
   license "MIT"
 
   livecheck do
@@ -21,29 +19,36 @@ class Rocmfpx < Formula
 
   depends_on :linux
 
+  # NOTE: --with-multi-arch is built on demand, not by the nightly matrix, so its
+  # asset only exists under the tag it was dispatched from. The auto-bump script
+  # leaves URLs untouched when the newest release lacks a matching asset.
   on_linux do
     if Hardware::CPU.intel?
       if build.with? "multi-arch"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1003-ubuntu-rocm-multiarch-x64.zip"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1003/rocmfpx-b1003-ubuntu-rocm-multiarch-x64.zip"
         sha256 "b3511f579b968322987ac7a7f4da4945a15ee9e4225a5e621019936d53b70563"
       elsif build.with? "gfx1150"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx1150-x64.zip"
-        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx1150-x64.zip"
+        sha256 "b787971cdf5cfda8b12cfdff3e39c1ea213f758133619088d8fc5c43751ae6af"
       elsif build.with? "gfx120X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx120X-x64.zip"
-        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx120X-x64.zip"
+        sha256 "892d966a691801f60b715d3dd38d5c4c81cefaae7c42e1c9dd52cef28453de6d"
       elsif build.with? "gfx110X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx110X-x64.zip"
-        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx110X-x64.zip"
+        sha256 "93af69a287f92f6d1f05396dcd19d8438bc32f7bb22b6e54242a762ba6b9dd57"
       elsif build.with? "gfx103X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx103X-x64.zip"
-        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx103X-x64.zip"
+        sha256 "500d75db3abc09e017fde5edc9c70933030c4aa1756a3c6955535e4bcc0ab7f9"
       elsif build.with? "gfx90a"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx90a-x64.zip"
-        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx90a-x64.zip"
+        sha256 "760991578941d679f12e45cc653a2670572fdc27f1fa3facd7551894851633c2"
       elsif build.with? "gfx908"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1004/rocmfpx-b1001-ubuntu-rocm-gfx908-x64.zip"
-        sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx908-x64.zip"
+        sha256 "8ade9630d8423b624980c2c0c2905143243e2652b3d3cc01eddf1ddbfb4ab937"
+      else
+        # Default install: Strix Halo gfx1151
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1005/rocmfpx-b1005-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "c31d42f4ab7e24f9e24404a8a96d531028226cfd88a9cbe412ff7541650c32b6"
       end
     end
   end
