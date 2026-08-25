@@ -1,9 +1,9 @@
 class CachyLlama < Formula
   desc "Persistent KV Cache & MoE Residency LLM Inference Engine"
   homepage "https://github.com/fewtarius/CachyLLama"
-  url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1010/cachy-llama-bin-macos-metal-arm64.tar.gz"
-  version "b1010"
-  sha256 "cc26bc1430d9ae3bb73f668a10250101922e223393f7ec6e68092430c5c16674"
+  url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1010/cachy-llama-bin-macos-metal-arm64.tar.gz"
+  version "1010"
+  sha256 "a822b245e4b008919dcc95a2bb0f7966dbf8f0f3c6cf08ed43bf90eac2b565d4"
   license "MIT"
 
   livecheck do
@@ -21,8 +21,8 @@ class CachyLlama < Formula
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1010/cachy-llama-bin-ubuntu-cpu-arm64.tar.gz"
-      sha256 "c84c24016e9d509ca55f88da8bb468d7d9b65ff111ea1f48e5dda0c015f9f28c"
+      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1010/cachy-llama-bin-ubuntu-cpu-arm64.tar.gz"
+      sha256 "68aa2c8e4bfa6acbd8983c061a49015be45092a3d396c4fcb3a991b33ca8d855"
     elsif Hardware::CPU.intel?
       if build.with? "rocm-gfx1151"
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1010/cachy-llama-b1001-ubuntu-rocm-gfx1151-x64.zip"
@@ -43,11 +43,11 @@ class CachyLlama < Formula
         url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1010/cachy-llama-b1001-ubuntu-rocm-gfx90a-x64.zip"
         sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       elsif build.with? "cpu"
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1010/cachy-llama-bin-ubuntu-cpu-x64.tar.gz"
-        sha256 "f06cfecc4b7e132947757ede66df841cc1b249cf3daf76daf76995d1fc47bbe2"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1010/cachy-llama-bin-ubuntu-cpu-x64.tar.gz"
+        sha256 "decce55d9bf22b55504f2f4b7d88f8c66261474de354767fe46dd090e45eee56"
       else
-        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1010/cachy-llama-bin-ubuntu-vulkan-x64.tar.gz"
-        sha256 "df2e0b8445569b128b6af667080ceabc07425dcad71631500515d43414792d1e"
+        url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1010/cachy-llama-bin-ubuntu-vulkan-x64.tar.gz"
+        sha256 "1e3b24b279634fb1e973f61f53772a517d4fac598e36f2dd94cbf1d8e031680f"
       end
     end
   end
