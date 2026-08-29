@@ -2,7 +2,7 @@ class CachyLlama < Formula
   desc "Persistent KV Cache & MoE Residency LLM Inference Engine"
   homepage "https://github.com/fewtarius/CachyLLama"
   url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/b1011/cachy-llama-bin-macos-metal-arm64.tar.gz"
-  version "b1014"
+  version "b1015"
   sha256 "2e93b01acb013f2d00921bff99f2cc59594b1002de644060e13e4248b48afbc3"
   license "MIT"
 
