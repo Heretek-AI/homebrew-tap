@@ -19,6 +19,7 @@ REPOS = {
     "rocmfpx": "Heretek-AI/ROCmFPX-BUILDER",
     "ciru-rocmfpx": "Heretek-AI/ROCmFPX-BUILDER",
     "q38rocm": "Heretek-AI/ROCmFPX-BUILDER",
+    "ember": "Heretek-AI/ember-BUILDER",
 }
 
 
@@ -147,7 +148,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
 
 def main():
     parser = argparse.ArgumentParser(description="Update Homebrew Tap Formulae with new releases")
-    parser.add_argument("--repo", choices=["cachyllama", "rocmfpx", "ciru-rocmfpx", "q38rocm", "all"], default="all", help="Target builder repo")
+    parser.add_argument("--repo", choices=["cachyllama", "rocmfpx", "ciru-rocmfpx", "q38rocm", "ember", "all"], default="all", help="Target builder repo")
     parser.add_argument("--tag", default="latest", help="Specific release tag or 'latest'")
     parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub API token")
     parser.add_argument("--formula-dir", default=os.path.join(os.path.dirname(__file__), "..", "Formula"), help="Path to Formula directory")
@@ -155,7 +156,7 @@ def main():
 
     args = parser.parse_args()
 
-    targets = ["cachyllama", "rocmfpx", "ciru-rocmfpx", "q38rocm"] if args.repo == "all" else [args.repo]
+    targets = ["cachyllama", "rocmfpx", "ciru-rocmfpx", "q38rocm", "ember"] if args.repo == "all" else [args.repo]
 
     for target in targets:
         repo_name = REPOS[target]
@@ -191,6 +192,8 @@ def main():
             formula_files = ["q38rocm.rb"]
         elif target == "ciru-rocmfpx":
             formula_files = ["ciru-rocmfpx.rb"]
+        elif target == "ember":
+            formula_files = ["ember.rb"]
         else:  # rocmfpx
             formula_files = ["rocmfpx.rb"]
 

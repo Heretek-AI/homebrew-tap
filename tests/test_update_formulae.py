@@ -97,6 +97,21 @@ SAMPLE_CIRU_ROCMFPX_FORMULA = """class CiruRocmfpx < Formula
 end
 """
 
+SAMPLE_EMBER_FORMULA = """class Ember < Formula
+  desc "DeepSeek-V4-Flash C Inference Server for AMD Strix Halo (gfx1151)"
+  homepage "https://github.com/otheru-ai/ember"
+  version "1000"
+  license "MIT"
+
+  on_linux do
+    if Hardware::CPU.intel?
+      url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1000/ember-b1000-ubuntu-rocm-gfx1151-x64.zip"
+      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    end
+  end
+end
+"""
+
 
 class TestUpdateFormulae(unittest.TestCase):
     def test_update_formula_content(self):
@@ -191,6 +206,28 @@ class TestUpdateFormulae(unittest.TestCase):
             self.assertIn('version "1009"', updated_content)
             self.assertIn("b1009/ciru-rocmfpx-b1009-ubuntu-rocm-gfx1151-x64.zip", updated_content)
             self.assertIn('sha256 "1234567812345678123456781234567812345678123456781234567812345678"', updated_content)
+
+    def test_update_ember_formula(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = Path(tmpdir) / "ember.rb"
+            formula_file.write_text(SAMPLE_EMBER_FORMULA, encoding="utf-8")
+
+            asset_shas = {
+                "ember-b1002-ubuntu-rocm-gfx1151-x64.zip": "9876543210987654321098765432109876543210987654321098765432109876",
+            }
+
+            changed = update_formulae.update_formula_content(
+                str(formula_file),
+                "b1002",
+                asset_shas,
+                dry_run=False,
+            )
+            self.assertTrue(changed)
+
+            updated_content = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "1002"', updated_content)
+            self.assertIn("b1002/ember-b1002-ubuntu-rocm-gfx1151-x64.zip", updated_content)
+            self.assertIn('sha256 "9876543210987654321098765432109876543210987654321098765432109876"', updated_content)
 
     def test_no_changes_on_same_content(self):
         with tempfile.TemporaryDirectory() as tmpdir:
