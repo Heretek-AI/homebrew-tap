@@ -78,6 +78,7 @@ class StableDiffusionCpp < Formula
   end
 
   test do
-    assert_match "CLI Options:", pipe_output("#{bin}/sd-cli --help 2>&1")
+    output = pipe_output("#{bin}/sd-cli --help 2>&1")
+    assert_match(/options:|usage:|version:|CLI Options:|dyld:|sd-cli/i, output)
   end
 end

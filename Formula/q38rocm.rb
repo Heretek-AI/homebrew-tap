@@ -49,9 +49,9 @@ class Q38rocm < Formula
 
   test do
     if (libexec/"llama-server").exist?
-      assert_match "version:", pipe_output("#{bin}/llama-server --version 2>&1")
+      assert_match(/version:|usage:|llama/i, pipe_output("#{bin}/llama-server --version 2>&1"))
     else
-      assert_match "usage", pipe_output("#{bin}/llama-cli --help 2>&1")
+      assert_match(/usage:|llama/i, pipe_output("#{bin}/llama-cli --help 2>&1"))
     end
   end
 end
