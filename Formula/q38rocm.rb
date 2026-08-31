@@ -1,7 +1,7 @@
 class Q38rocm < Formula
   desc "Qwen 3.8 27B ROCmFP4 Inference Engine on AMD Strix Halo (gfx1151)"
   homepage "https://github.com/julianmb/q38rocm"
-  version "1008"
+  version "1012"
   license "Apache-2.0"
 
   livecheck do
@@ -13,8 +13,8 @@ class Q38rocm < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/rocmfpx-b1008-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
-      sha256 "0c9912fb447355f882c962504ccf74e357095af4bdd4155005f51a973c456864"
+      url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1012/rocmfpx-b1012-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
+      sha256 "6f5c2a6cd72d3a38abfe60f9d73e1eec65edec60b6c8d548fb19d93b2a30dd71"
     end
   end
 
@@ -24,6 +24,7 @@ class Q38rocm < Formula
     %w[llama-server llama-cli llama-quantize llama-bench llama-perplexity].each do |cmd|
       next unless (libexec/cmd).exist?
 
+      chmod 0755, libexec/cmd
       bin.write_exec_script (libexec/cmd)
       (bin/"q38rocm-#{cmd.delete_prefix("llama-")}").write <<~SH
         #!/bin/bash
@@ -46,9 +47,9 @@ class Q38rocm < Formula
 
   test do
     if (libexec/"llama-server").exist?
-      assert_match "llama", shell_output("#{bin}/llama-server --version 2>&1")
+      assert_match "version:", shell_output("#{bin}/llama-server --version 2>&1")
     else
-      assert_match "llama", shell_output("#{bin}/llama-cli --help 2>&1")
+      assert_match "usage", shell_output("#{bin}/llama-cli --help 2>&1")
     end
   end
 end

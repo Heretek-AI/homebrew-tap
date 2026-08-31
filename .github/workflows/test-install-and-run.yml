@@ -29,6 +29,11 @@ jobs:
             os: macos-14
             name: "llama-ai [macOS arm64]"
             binaries: "llama-ai"
+          - formula: stable-diffusion-cpp
+            flags: ""
+            os: macos-14
+            name: "stable-diffusion-cpp [macOS Metal arm64]"
+            binaries: "sd-cli sd-server sd stable-diffusion"
 
           # Linux ARM64
           - formula: cachy-llama
@@ -49,34 +54,39 @@ jobs:
             name: "cachy-llama [Linux CPU x64]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
           - formula: cachy-llama
-            flags: "--with-rocm-gfx1151"
+            flags: "--with-cuda-sm100"
             os: ubuntu-22.04
-            name: "cachy-llama [Linux ROCm gfx1151 Strix Halo]"
+            name: "cachy-llama [Linux CUDA SM100 Blackwell]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
           - formula: cachy-llama
-            flags: "--with-rocm-gfx1150"
+            flags: "--with-cuda-sm120"
             os: ubuntu-22.04
-            name: "cachy-llama [Linux ROCm gfx1150 Strix Point]"
+            name: "cachy-llama [Linux CUDA SM120 Blackwell RTX 50]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
           - formula: cachy-llama
-            flags: "--with-rocm-gfx120X"
+            flags: "--with-cuda-sm90"
             os: ubuntu-22.04
-            name: "cachy-llama [Linux ROCm gfx120X RDNA4]"
+            name: "cachy-llama [Linux CUDA SM90 Hopper]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
           - formula: cachy-llama
-            flags: "--with-rocm-gfx110X"
+            flags: "--with-cuda-sm89"
             os: ubuntu-22.04
-            name: "cachy-llama [Linux ROCm gfx110X RDNA3]"
+            name: "cachy-llama [Linux CUDA SM89 Ada Lovelace]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
           - formula: cachy-llama
-            flags: "--with-rocm-gfx103X"
+            flags: "--with-cuda-sm86"
             os: ubuntu-22.04
-            name: "cachy-llama [Linux ROCm gfx103X RDNA2]"
+            name: "cachy-llama [Linux CUDA SM86 Ampere]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
           - formula: cachy-llama
-            flags: "--with-rocm-gfx90a"
+            flags: "--with-cuda-sm80"
             os: ubuntu-22.04
-            name: "cachy-llama [Linux ROCm gfx90a CDNA2]"
+            name: "cachy-llama [Linux CUDA SM80 Ampere A100]"
+            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
+          - formula: cachy-llama
+            flags: "--with-cuda-sm75"
+            os: ubuntu-22.04
+            name: "cachy-llama [Linux CUDA SM75 Turing]"
             binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
 
           # Linux x64 (ROCmFPX variants)
@@ -86,9 +96,9 @@ jobs:
             name: "rocmfpx [Linux ROCm gfx1151 Default]"
             binaries: "llama-cli llama-server rocmfpx-cli rocmfpx-server"
           - formula: rocmfpx
-            flags: "--with-q38rocm"
+            flags: "--with-multi-arch"
             os: ubuntu-22.04
-            name: "rocmfpx [Linux ROCm gfx1151 q38rocm]"
+            name: "rocmfpx [Linux ROCm Multi-Arch gfx1100+gfx1151]"
             binaries: "llama-cli llama-server rocmfpx-cli rocmfpx-server"
           - formula: rocmfpx
             flags: "--with-gfx1150"
@@ -151,6 +161,23 @@ jobs:
             os: ubuntu-22.04
             name: "llama-ai [Linux x64 Turnkey Bundle]"
             binaries: "llama-ai"
+
+          # Linux x64 (stable-diffusion-cpp)
+          - formula: stable-diffusion-cpp
+            flags: ""
+            os: ubuntu-22.04
+            name: "stable-diffusion-cpp [Linux Vulkan RADV]"
+            binaries: "sd-cli sd-server sd stable-diffusion"
+          - formula: stable-diffusion-cpp
+            flags: "--with-cpu"
+            os: ubuntu-22.04
+            name: "stable-diffusion-cpp [Linux CPU x64]"
+            binaries: "sd-cli sd-server sd stable-diffusion"
+          - formula: stable-diffusion-cpp
+            flags: "--with-rocm"
+            os: ubuntu-22.04
+            name: "stable-diffusion-cpp [Linux ROCm]"
+            binaries: "sd-cli sd-server sd stable-diffusion"
 
     name: ${{ matrix.name }}
     steps:

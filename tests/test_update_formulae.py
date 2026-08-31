@@ -112,6 +112,36 @@ SAMPLE_EMBER_FORMULA = """class Ember < Formula
 end
 """
 
+SAMPLE_SD_FORMULA = """class StableDiffusionCpp < Formula
+  desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
+  homepage "https://github.com/leejet/stable-diffusion.cpp"
+  version "840"
+  license "MIT"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-840-0000000/sd-master-0000000-bin-Darwin-macOS-26.5.2-arm64.zip"
+      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.intel?
+      if build.with? "rocm"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-840-0000000/sd-master-0000000-bin-Linux-Ubuntu-24.04-x86_64-rocm-7.14.0.zip"
+        sha256 "1111111111111111111111111111111111111111111111111111111111111111"
+      elsif build.with? "cpu"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-840-0000000/sd-master-0000000-bin-Linux-Ubuntu-24.04-x86_64.zip"
+        sha256 "2222222222222222222222222222222222222222222222222222222222222222"
+      else
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-840-0000000/sd-master-0000000-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip"
+        sha256 "3333333333333333333333333333333333333333333333333333333333333333"
+      end
+    end
+  end
+end
+"""
+
 
 class TestUpdateFormulae(unittest.TestCase):
     def test_update_formula_content(self):
@@ -229,6 +259,59 @@ class TestUpdateFormulae(unittest.TestCase):
             self.assertIn("b1002/ember-b1002-ubuntu-rocm-gfx1151-x64.zip", updated_content)
             self.assertIn('sha256 "9876543210987654321098765432109876543210987654321098765432109876"', updated_content)
 
+    def test_update_sd_formula(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = Path(tmpdir) / "stable-diffusion-cpp.rb"
+            formula_file.write_text(SAMPLE_SD_FORMULA, encoding="utf-8")
+
+            fake_release = {
+                "tag_name": "master-841-6b3edaa",
+                "name": "master-841-6b3edaa",
+                "assets": [
+                    {
+                        "name": "sd-master-6b3edaa-bin-Darwin-macOS-26.5.2-arm64.zip",
+                        "browser_download_url": "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Darwin-macOS-26.5.2-arm64.zip",
+                        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    },
+                    {
+                        "name": "sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64-rocm-7.14.0.zip",
+                        "browser_download_url": "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64-rocm-7.14.0.zip",
+                        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+                    },
+                    {
+                        "name": "sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64.zip",
+                        "browser_download_url": "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64.zip",
+                        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+                    },
+                    {
+                        "name": "sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip",
+                        "browser_download_url": "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip",
+                        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+                    },
+                ],
+            }
+
+            from unittest.mock import patch
+            with patch("update_formulae.get_latest_release", return_value=fake_release):
+                changed = update_formulae.update_rolling_release_formula(
+                    str(formula_file),
+                    "leejet/stable-diffusion.cpp",
+                    dry_run=False,
+                )
+
+            self.assertTrue(changed)
+
+            updated_content = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "841"', updated_content)
+            self.assertIn("master-841-6b3edaa/sd-master-6b3edaa-bin-Darwin-macOS-26.5.2-arm64.zip", updated_content)
+            self.assertIn('sha256 "1111111111111111111111111111111111111111111111111111111111111111"', updated_content)
+            self.assertIn("master-841-6b3edaa/sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64-rocm-7.14.0.zip", updated_content)
+            self.assertIn('sha256 "2222222222222222222222222222222222222222222222222222222222222222"', updated_content)
+            self.assertIn("master-841-6b3edaa/sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64.zip", updated_content)
+            self.assertIn('sha256 "3333333333333333333333333333333333333333333333333333333333333333"', updated_content)
+            self.assertIn("master-841-6b3edaa/sd-master-6b3edaa-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip", updated_content)
+            self.assertIn('sha256 "4444444444444444444444444444444444444444444444444444444444444444"', updated_content)
+
     def test_no_changes_on_same_content(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             formula_file = Path(tmpdir) / "cachy-llama.rb"
@@ -246,3 +329,4 @@ class TestUpdateFormulae(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

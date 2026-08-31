@@ -67,6 +67,7 @@ class CiruRocmfpx < Formula
     %w[llama-server llama-cli llama-quantize llama-bench llama-perplexity].each do |cmd|
       next unless (base/cmd).exist?
 
+      chmod 0755, base/cmd
       bin.write_exec_script (base/cmd)
       (bin/"ciru-fpx-#{cmd.delete_prefix("llama-")}").write <<~SH
         #!/bin/bash
@@ -103,9 +104,9 @@ class CiruRocmfpx < Formula
 
   test do
     if (libexec/"llama-server").exist? || (libexec/"bin"/"llama-server").exist?
-      assert_match "llama", shell_output("#{bin}/llama-server --version 2>&1")
+      assert_match "version:", shell_output("#{bin}/llama-server --version 2>&1")
     else
-      assert_match "llama", shell_output("#{bin}/llama-cli --help 2>&1")
+      assert_match "usage", shell_output("#{bin}/llama-cli --help 2>&1")
     end
   end
 end

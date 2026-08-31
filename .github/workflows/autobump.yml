@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       target_builder:
-        description: 'Target to sync (cachyllama, rocmfpx, ciru-rocmfpx, q38rocm, ember, shimmy, prima-cpp, or all)'
+        description: 'Target to sync (cachyllama, rocmfpx, ciru-rocmfpx, q38rocm, ember, shimmy, prima-cpp, stable-diffusion-cpp, or all)'
         required: false
         default: 'all'
       release_tag:
@@ -16,6 +16,9 @@ on:
         default: 'latest'
   repository_dispatch:
     types: [builder-release]
+
+permissions:
+  contents: write
 
 jobs:
   bump-formulae:

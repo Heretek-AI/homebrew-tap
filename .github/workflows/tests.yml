@@ -38,7 +38,7 @@ jobs:
 
       - name: Audit Formulae
         run: |
-          brew audit --strict --tap="${{ steps.set-up-homebrew.outputs.tap-name || github.repository_owner }}"
+          brew audit --strict --online --tap="${{ steps.set-up-homebrew.outputs.tap-name || github.repository }}"
 
   test-scripts:
     runs-on: ubuntu-22.04

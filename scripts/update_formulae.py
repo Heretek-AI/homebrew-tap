@@ -53,6 +53,13 @@ CONFIG = {
         "formulae": ["shimmy.rb"],
     },
 
+    # Upstream rolling release tracking (stable-diffusion.cpp)
+    "stable-diffusion-cpp": {
+        "type": "rolling_release",
+        "repo": "leejet/stable-diffusion.cpp",
+        "formulae": ["stable-diffusion-cpp.rb"],
+    },
+
     # Upstream rolling commit tracking
     "prima-cpp": {
         "type": "upstream_commit",
@@ -275,6 +282,105 @@ def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "
         return False
 
 
+def update_rolling_release_formula(formula_path: str, repo: str, token: str = None, tag: str = "latest", dry_run: bool = False) -> bool:
+    if not os.path.exists(formula_path):
+        print(f"[-] Formula not found: {formula_path}")
+        return False
+
+    rel = get_latest_release(repo, token, tag)
+    tag_name = rel.get("tag_name", "")
+    if not tag_name:
+        print(f"[-] No release tag found for {repo}")
+        return False
+
+    print(f"[+] Found rolling release: {tag_name} ({rel.get('name', '')})")
+
+    version_match = re.search(r'master-(\d+)', tag_name)
+    version_str = version_match.group(1) if version_match else tag_name
+
+    asset_map = {}
+    for asset in rel.get("assets", []):
+        name = asset.get("name", "")
+        dl_url = asset.get("browser_download_url", "")
+        role = None
+        if ("Darwin" in name or "macOS" in name) and "arm64" in name:
+            role = "darwin_arm64"
+        elif "Linux" in name and "rocm" in name:
+            role = "linux_rocm"
+        elif "Linux" in name and "vulkan" in name:
+            role = "linux_vulkan"
+        elif "Linux" in name and not ("rocm" in name or "vulkan" in name) and ("x86_64" in name or "x64" in name):
+            role = "linux_cpu"
+
+        if role:
+            digest = asset.get("digest")
+            if digest and digest.startswith("sha256:"):
+                sha = digest.split("sha256:")[1]
+            else:
+                print(f"[*] Downloading {name} to compute SHA256...")
+                try:
+                    sha = download_and_compute_sha256(dl_url, token)
+                except Exception as ex:
+                    print(f"[-] Error downloading {name}: {ex}")
+                    continue
+            asset_map[role] = {"name": name, "url": dl_url, "sha256": sha}
+
+    with open(formula_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    original_content = content
+
+    content = re.sub(r'version\s+"[^"]+"', f'version "{version_str}"', content, count=1)
+
+    if "darwin_arm64" in asset_map:
+        info = asset_map["darwin_arm64"]
+        content = re.sub(
+            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Darwin[^"]+"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
+            f'url "{info["url"]}"\n      sha256 "{info["sha256"]}"',
+            content,
+        )
+
+    if "linux_rocm" in asset_map:
+        info = asset_map["linux_rocm"]
+        content = re.sub(
+            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Linux[^"]+rocm[^"]+"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
+            f'url "{info["url"]}"\n        sha256 "{info["sha256"]}"',
+            content,
+        )
+
+    if "linux_cpu" in asset_map:
+        info = asset_map["linux_cpu"]
+        content = re.sub(
+            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Linux[^"]+x86_64\.zip"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
+            f'url "{info["url"]}"\n        sha256 "{info["sha256"]}"',
+            content,
+        )
+
+    if "linux_vulkan" in asset_map:
+        info = asset_map["linux_vulkan"]
+        content = re.sub(
+            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Linux[^"]+vulkan\.zip"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
+            f'url "{info["url"]}"\n        sha256 "{info["sha256"]}"',
+            content,
+        )
+
+    if content != original_content:
+        if dry_run:
+            print(f"[DRY-RUN] Rolling release formula {formula_path} has updates -> tag: {tag_name}")
+        else:
+            with open(formula_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            print(f"[✓] Updated {formula_path} to {tag_name}")
+        return True
+    else:
+        print(f"[*] No changes needed for {formula_path} (already at {tag_name})")
+        return False
+
+
+# Backward compatibility alias
+update_formula_content = update_builder_formula_content
+
+
 def main():
     parser = argparse.ArgumentParser(description="Update Homebrew Tap Formulae with new releases and commits")
     parser.add_argument(
@@ -336,6 +442,12 @@ def main():
                     update_upstream_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
                 except Exception as e:
                     print(f"[-] Failed to update upstream release formula {formula_file}: {e}")
+
+            elif target_type == "rolling_release":
+                try:
+                    update_rolling_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
+                except Exception as e:
+                    print(f"[-] Failed to update rolling release formula {formula_file}: {e}")
 
             elif target_type == "upstream_commit":
                 branch = cfg.get("branch", "main")

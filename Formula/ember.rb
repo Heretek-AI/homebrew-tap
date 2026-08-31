@@ -31,6 +31,7 @@ class Ember < Formula
     %w[ember-dflash ember-token-dump ember-dspark-main-bench ember-dspark-xdna-diff].each do |cmd|
       next unless (base/cmd).exist?
 
+      chmod 0755, base/cmd
       bin.write_exec_script (base/cmd)
     end
 
