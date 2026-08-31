@@ -58,19 +58,39 @@ end
 """
 
 SAMPLE_ROCMFPX_FORMULA = """class Rocmfpx < Formula
-  desc "Low-bit Quantized ROCm 7 Inference Stack (Q2..Q8 ROCMFPX & DualView)"
+  desc "High-Performance AMD ROCm 7 llama.cpp Inference Stack (Upstream)"
+  homepage "https://github.com/charlie12345/ROCmFPX"
+  version "1008"
+  license "MIT"
+
+  on_linux do
+    if Hardware::CPU.intel?
+      if build.with? "gfx1150"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/rocmfpx-b1008-ubuntu-rocm-gfx1150-x64.zip"
+        sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      else
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/rocmfpx-b1008-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "1111111111111111111111111111111111111111111111111111111111111111"
+      end
+    end
+  end
+end
+"""
+
+SAMPLE_CIRU_ROCMFPX_FORMULA = """class CiruRocmfpx < Formula
+  desc "Low-Bit Quantized ROCm 7 Inference Stack (ROCmFP2..FP8 & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
   version "1008"
   license "MIT"
 
   on_linux do
     if Hardware::CPU.intel?
-      if build.with? "q38rocm"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/rocmfpx-b1008-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
+      if build.with? "kairic-edge"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1006/rocmfpx-b1006-ubuntu-rocm-gfx1151-kairic-edge-x64.zip"
         sha256 "0000000000000000000000000000000000000000000000000000000000000000"
       else
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/rocmfpx-b1008-ubuntu-rocm-gfx1151-x64.zip"
-        sha256 "1111111111111111111111111111111111111111111111111111111111111111"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/ciru-rocmfpx-b1008-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "2222222222222222222222222222222222222222222222222222222222222222"
       end
     end
   end
@@ -125,13 +145,13 @@ class TestUpdateFormulae(unittest.TestCase):
             self.assertIn("b1009/rocmfpx-b1009-ubuntu-rocm-gfx1151-q38rocm-x64.zip", updated_content)
             self.assertIn('sha256 "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"', updated_content)
 
-    def test_update_rocmfpx_with_q38rocm(self):
+    def test_update_rocmfpx_formula(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             formula_file = Path(tmpdir) / "rocmfpx.rb"
             formula_file.write_text(SAMPLE_ROCMFPX_FORMULA, encoding="utf-8")
 
             asset_shas = {
-                "rocmfpx-b1009-ubuntu-rocm-gfx1151-q38rocm-x64.zip": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+                "rocmfpx-b1009-ubuntu-rocm-gfx1150-x64.zip": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
                 "rocmfpx-b1009-ubuntu-rocm-gfx1151-x64.zip": "cafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeef",
             }
 
@@ -145,10 +165,32 @@ class TestUpdateFormulae(unittest.TestCase):
 
             updated_content = formula_file.read_text(encoding="utf-8")
             self.assertIn('version "1009"', updated_content)
-            self.assertIn("b1009/rocmfpx-b1009-ubuntu-rocm-gfx1151-q38rocm-x64.zip", updated_content)
+            self.assertIn("b1009/rocmfpx-b1009-ubuntu-rocm-gfx1150-x64.zip", updated_content)
             self.assertIn('sha256 "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"', updated_content)
             self.assertIn("b1009/rocmfpx-b1009-ubuntu-rocm-gfx1151-x64.zip", updated_content)
             self.assertIn('sha256 "cafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeef"', updated_content)
+
+    def test_update_ciru_rocmfpx_formula(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = Path(tmpdir) / "ciru-rocmfpx.rb"
+            formula_file.write_text(SAMPLE_CIRU_ROCMFPX_FORMULA, encoding="utf-8")
+
+            asset_shas = {
+                "ciru-rocmfpx-b1009-ubuntu-rocm-gfx1151-x64.zip": "1234567812345678123456781234567812345678123456781234567812345678",
+            }
+
+            changed = update_formulae.update_formula_content(
+                str(formula_file),
+                "b1009",
+                asset_shas,
+                dry_run=False,
+            )
+            self.assertTrue(changed)
+
+            updated_content = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "1009"', updated_content)
+            self.assertIn("b1009/ciru-rocmfpx-b1009-ubuntu-rocm-gfx1151-x64.zip", updated_content)
+            self.assertIn('sha256 "1234567812345678123456781234567812345678123456781234567812345678"', updated_content)
 
     def test_no_changes_on_same_content(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -17,6 +17,7 @@ GITHUB_API_BASE = "https://api.github.com/repos"
 REPOS = {
     "cachyllama": "Heretek-AI/CachyLLama-BUILDER",
     "rocmfpx": "Heretek-AI/ROCmFPX-BUILDER",
+    "ciru-rocmfpx": "Heretek-AI/ROCmFPX-BUILDER",
     "q38rocm": "Heretek-AI/ROCmFPX-BUILDER",
 }
 
@@ -61,7 +62,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
 
     original_content = content
 
-    # Clean version string (e.g. b1001 -> 1001 or 1.0.1)
+    # Clean release tag (e.g. b1002 -> 1002, v1.0.0 -> 1.0.0)
     version_clean = release_tag.lstrip("v").lstrip("b").replace("llama-ai-", "")
     content = re.sub(r'version\s+"[^"]+"', f'version "{version_clean}"', content, count=1)
 
@@ -71,23 +72,27 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
         if old_asset_filename in asset_shas:
             return old_asset_filename, asset_shas[old_asset_filename]
 
-        # 2. Extract architectural suffix (e.g. ubuntu-rocm-gfx1151-x64.zip or macos-metal-arm64.tar.gz)
-        # The regex must not start inside the package name ("rocm" in "rocmfpx"),
-        # so require a separator boundary before the platform token.
-        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|q38rocm)-.*)', old_asset_filename)
-        if suffix_match:
-            suffix = suffix_match.group(1)
-            for asset_name, sha in asset_shas.items():
-                if asset_name.endswith(suffix):
-                    return asset_name, sha
-
-        # 3. Tag-agnostic full-name match: rewrite this URL's bXXXX to the new tag
+        # 2. Tag-agnostic exact-name match: rewrite this URL's bXXXX to the new tag
         stripped = None
         if re.match(r'^[A-Za-z0-9._-]+?-b\d+', old_asset_filename):
             stripped = re.sub(r'-b\d+', f'-{release_tag}', old_asset_filename, count=1)
-        if stripped:
+        if stripped and stripped in asset_shas:
+            return stripped, asset_shas[stripped]
+
+        # 3. Extract architectural suffix with prefix awareness
+        prefix_match = re.match(r'^([a-zA-Z0-9._-]+?)-b\d+', old_asset_filename)
+        expected_prefix = prefix_match.group(1) if prefix_match else ""
+
+        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|q38rocm)-.*)', old_asset_filename)
+        if suffix_match:
+            suffix = suffix_match.group(1)
+            # Try to match both prefix and suffix first
             for asset_name, sha in asset_shas.items():
-                if asset_name == stripped:
+                if expected_prefix and asset_name.startswith(expected_prefix) and asset_name.endswith(suffix):
+                    return asset_name, sha
+            # Fallback to suffix match
+            for asset_name, sha in asset_shas.items():
+                if asset_name.endswith(suffix):
                     return asset_name, sha
 
         # 4. Direct suffix match over all keys
@@ -105,8 +110,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
 
         matched_name, sha = find_matching_asset(old_filename)
         if not matched_name:
-            # The current release has no asset matching this URL (e.g. an
-            # on-demand multiarch build absent from the nightly matrix).
+            # The current release has no asset matching this URL
             # Retagging would 404, so leave the URL untouched.
             print(f"[*] No matching asset for {old_filename}; keeping {old_tag} URL")
             return match.group(0)
@@ -143,7 +147,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
 
 def main():
     parser = argparse.ArgumentParser(description="Update Homebrew Tap Formulae with new releases")
-    parser.add_argument("--repo", choices=["cachyllama", "rocmfpx", "q38rocm", "all"], default="all", help="Target builder repo")
+    parser.add_argument("--repo", choices=["cachyllama", "rocmfpx", "ciru-rocmfpx", "q38rocm", "all"], default="all", help="Target builder repo")
     parser.add_argument("--tag", default="latest", help="Specific release tag or 'latest'")
     parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub API token")
     parser.add_argument("--formula-dir", default=os.path.join(os.path.dirname(__file__), "..", "Formula"), help="Path to Formula directory")
@@ -151,7 +155,7 @@ def main():
 
     args = parser.parse_args()
 
-    targets = ["cachyllama", "rocmfpx", "q38rocm"] if args.repo == "all" else [args.repo]
+    targets = ["cachyllama", "rocmfpx", "ciru-rocmfpx", "q38rocm"] if args.repo == "all" else [args.repo]
 
     for target in targets:
         repo_name = REPOS[target]
@@ -184,9 +188,11 @@ def main():
         if target == "cachyllama":
             formula_files = ["cachy-llama.rb", "llama-ai.rb"]
         elif target == "q38rocm":
-            formula_files = ["q38rocm.rb", "rocmfpx.rb"]
+            formula_files = ["q38rocm.rb"]
+        elif target == "ciru-rocmfpx":
+            formula_files = ["ciru-rocmfpx.rb"]
         else:  # rocmfpx
-            formula_files = ["rocmfpx.rb", "q38rocm.rb"]
+            formula_files = ["rocmfpx.rb"]
 
         for formula_file in formula_files:
             formula_path = os.path.join(args.formula_dir, formula_file)

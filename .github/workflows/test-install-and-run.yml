@@ -128,6 +128,23 @@ jobs:
             name: "q38rocm [Linux ROCm gfx1151 Strix Halo]"
             binaries: "llama-cli llama-server q38rocm q38rocm-server q38rocm-cli"
 
+          # Linux x64 (ciru-rocmfpx dedicated formula)
+          - formula: ciru-rocmfpx
+            flags: ""
+            os: ubuntu-22.04
+            name: "ciru-rocmfpx [Linux ROCm gfx1151 Default]"
+            binaries: "llama-cli llama-server ciru-rocmfpx ciru-fpx-server ciru-fpx-cli"
+          - formula: ciru-rocmfpx
+            flags: "--with-kairic-edge"
+            os: ubuntu-22.04
+            name: "ciru-rocmfpx [Linux ROCm gfx1151 Kairic Edge]"
+            binaries: "llama-server ciru-rocmfpx ciru-fpx-server"
+          - formula: ciru-rocmfpx
+            flags: "--with-promptforge"
+            os: ubuntu-22.04
+            name: "ciru-rocmfpx [Linux ROCm gfx1151 PromptForge]"
+            binaries: "llama-server ciru-rocmfpx ciru-fpx-server"
+
           # Linux x64 (llama-ai)
           - formula: llama-ai
             flags: ""

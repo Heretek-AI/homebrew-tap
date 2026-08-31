@@ -1,6 +1,6 @@
-class Rocmfpx < Formula
-  desc "High-Performance AMD ROCm 7 llama.cpp Inference Stack (Upstream)"
-  homepage "https://github.com/charlie12345/ROCmFPX"
+class CiruRocmfpx < Formula
+  desc "Low-Bit Quantized ROCm 7 Inference Stack (ROCmFP2..FP8 & DualView)"
+  homepage "https://github.com/ciru-ai/ROCmFPX"
   version "1011"
   license "MIT"
 
@@ -9,7 +9,8 @@ class Rocmfpx < Formula
     regex(%r{href=.*?/tag/v?(b\d+)["' >]}i)
   end
 
-  option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
+  option "with-kairic-edge", "Qwen3.8-27B IU4 Kairic Edge certified runtime (Strix Halo)"
+  option "with-promptforge", "Qwen3.8-27B ActiveFPX PromptForge certified runtime (Strix Halo)"
   option "with-gfx1150", "Build for AMD Strix Point APU (Radeon 890M / 880M)"
   option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
   option "with-gfx110X", "Build for AMD RDNA3 GPUs (RX 7900 / 7800, Radeon 780M)"
@@ -21,9 +22,12 @@ class Rocmfpx < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      if build.with? "multi-arch"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-multiarch-x64.zip"
-        sha256 "7a02b638b7425b5e59168e5ac135e3ffb72f845d336243b84cce05cdda0afe4b"
+      if build.with? "kairic-edge"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1006/rocmfpx-b1006-ubuntu-rocm-gfx1151-kairic-edge-x64.zip"
+        sha256 "471c83a3055960d689e32491276da88f41acf0d6fba6ae989344562717ccf933"
+      elsif build.with? "promptforge"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1007/rocmfpx-b1007-ubuntu-rocm-gfx1151-promptforge-x64.zip"
+        sha256 "0eb95a4d84098b5a9bb9e65122c430233a72f27950fee26ec0de79f1c00dfd3b"
       elsif build.with? "gfx1150"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-gfx1150-x64.zip"
         sha256 "54e1224b6e2a18ab2677f6249060e7d238484d71d92f8084e1c5710ef4de66d4"
@@ -64,7 +68,11 @@ class Rocmfpx < Formula
       next unless (base/cmd).exist?
 
       bin.write_exec_script (base/cmd)
-      (bin/"rocmfpx-#{cmd.delete_prefix("llama-")}").write <<~SH
+      (bin/"ciru-fpx-#{cmd.delete_prefix("llama-")}").write <<~SH
+        #!/bin/bash
+        exec "#{base/cmd}" "$@"
+      SH
+      (bin/"ciru-rocmfpx-#{cmd.delete_prefix("llama-")}").write <<~SH
         #!/bin/bash
         exec "#{base/cmd}" "$@"
       SH
@@ -72,7 +80,7 @@ class Rocmfpx < Formula
 
     return unless (base/"llama-server").exist?
 
-    (bin/"rocmfpx").write <<~SH
+    (bin/"ciru-rocmfpx").write <<~SH
       #!/bin/bash
       exec "#{base/"llama-server"}" "$@"
     SH
@@ -80,18 +88,17 @@ class Rocmfpx < Formula
 
   def caveats
     <<~EOS
-      This formula distributes canonical upstream ROCmFPX (charlie12345/ROCmFPX).
-      For Ciru's specialized research fork (DualView Q7, PromptForge, Kairic Edge),
-      install:
-        brew install ciru-rocmfpx
+      This formula distributes Ciru-AI ROCmFPX (ciru-ai/ROCmFPX).
+      Certified profiles (kairic-edge, promptforge) require sidecar weight files.
+      See: https://github.com/ciru-ai/ROCmFPX
     EOS
   end
 
   service do
-    run [opt_bin/"llama-server", "--host", "0.0.0.0", "--port", "8080"]
+    run [opt_bin/"ciru-rocmfpx", "--host", "0.0.0.0", "--port", "8080"]
     keep_alive true
-    log_path var/"log/rocmfpx.log"
-    error_log_path var/"log/rocmfpx.error.log"
+    log_path var/"log/ciru-rocmfpx.log"
+    error_log_path var/"log/ciru-rocmfpx.error.log"
   end
 
   test do
