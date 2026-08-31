@@ -1,7 +1,9 @@
 class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
+  url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Darwin-macOS-26.5.2-arm64.zip"
   version "841"
+  sha256 "1c7d0ddc18752cd88c084e0a636444697a0caea96763dcebdc08089ecf57b72f"
   license "MIT"
 
   livecheck do
@@ -44,9 +46,12 @@ class StableDiffusionCpp < Formula
       libexec.install Dir["*"]
     end
 
+    chmod 0755, Dir[libexec/"*"]
+
     %w[sd-cli sd-server sd].each do |cmd|
       next unless (libexec/cmd).exist?
 
+      chmod 0755, libexec/cmd
       bin.write_exec_script (libexec/cmd)
     end
 
@@ -73,6 +78,6 @@ class StableDiffusionCpp < Formula
   end
 
   test do
-    assert_match "sd-cli", shell_output("#{bin}/sd-cli --help 2>&1")
+    assert_match "CLI Options:", pipe_output("#{bin}/sd-cli --help 2>&1")
   end
 end

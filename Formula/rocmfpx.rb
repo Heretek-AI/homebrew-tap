@@ -1,7 +1,9 @@
 class Rocmfpx < Formula
   desc "High-Performance AMD ROCm 7 llama.cpp Inference Stack (Upstream)"
   homepage "https://github.com/charlie12345/ROCmFPX"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-gfx1151-x64.zip"
   version "1011"
+  sha256 "69762f1a7ca4835edbbd3f9febb41695926a6f1113f882dbc92ccc8a8c796fd6"
   license "MIT"
 
   livecheck do
@@ -42,10 +44,6 @@ class Rocmfpx < Formula
       elsif build.with? "gfx908"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-gfx908-x64.zip"
         sha256 "5ffc9eb70c029d5ba434b3fea115ac73506e7fa0da683dfb7578d9a755f32bd5"
-      else
-        # Default install: Strix Halo gfx1151
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-gfx1151-x64.zip"
-        sha256 "69762f1a7ca4835edbbd3f9febb41695926a6f1113f882dbc92ccc8a8c796fd6"
       end
     end
   end
@@ -97,9 +95,9 @@ class Rocmfpx < Formula
 
   test do
     if (libexec/"llama-server").exist? || (libexec/"bin"/"llama-server").exist?
-      assert_match "version:", shell_output("#{bin}/llama-server --version 2>&1")
+      assert_match "version:", pipe_output("#{bin}/llama-server --version 2>&1")
     else
-      assert_match "usage", shell_output("#{bin}/llama-cli --help 2>&1")
+      assert_match "usage", pipe_output("#{bin}/llama-cli --help 2>&1")
     end
   end
 end

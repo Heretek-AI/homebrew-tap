@@ -24,6 +24,6 @@ class Shimmy < Formula
   end
 
   test do
-    assert_match "shimmy", shell_output("#{bin}/shimmy --version 2>&1")
+    assert_match "shimmy", pipe_output("#{bin}/shimmy --version 2>&1")
   end
 end

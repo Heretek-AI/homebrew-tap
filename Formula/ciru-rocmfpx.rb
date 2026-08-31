@@ -1,7 +1,9 @@
 class CiruRocmfpx < Formula
   desc "Low-Bit Quantized ROCm 7 Inference Stack (ROCmFP2..FP8 & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-gfx1151-x64.zip"
   version "1011"
+  sha256 "69762f1a7ca4835edbbd3f9febb41695926a6f1113f882dbc92ccc8a8c796fd6"
   license "MIT"
 
   livecheck do
@@ -104,9 +106,9 @@ class CiruRocmfpx < Formula
 
   test do
     if (libexec/"llama-server").exist? || (libexec/"bin"/"llama-server").exist?
-      assert_match "version:", shell_output("#{bin}/llama-server --version 2>&1")
+      assert_match "version:", pipe_output("#{bin}/llama-server --version 2>&1")
     else
-      assert_match "usage", shell_output("#{bin}/llama-cli --help 2>&1")
+      assert_match "usage", pipe_output("#{bin}/llama-cli --help 2>&1")
     end
   end
 end

@@ -1,7 +1,9 @@
 class Ember < Formula
   desc "DeepSeek-V4-Flash C Inference Server for AMD Strix Halo (gfx1151)"
   homepage "https://github.com/otheru-ai/ember"
+  url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1000/ember-b1000-ubuntu-rocm-gfx1151-x64.zip"
   version "1000"
+  sha256 "fcc910d8fed4ffe2da2426df0b09a4aba7afe085e3249c655c0b032fc82b7a46"
   license "MIT"
 
   livecheck do
@@ -66,9 +68,9 @@ class Ember < Formula
 
   test do
     if (libexec/"ember-dflash").exist? || (libexec/"bin"/"ember-dflash").exist?
-      assert_match "Usage:", shell_output("#{bin}/ember-dflash --help 2>&1")
+      assert_match "Usage:", pipe_output("#{bin}/ember-dflash --help 2>&1")
     else
-      assert_match "Usage:", shell_output("#{bin}/ember --help 2>&1")
+      assert_match "Usage:", pipe_output("#{bin}/ember --help 2>&1")
     end
   end
 end

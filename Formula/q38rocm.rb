@@ -1,7 +1,9 @@
 class Q38rocm < Formula
   desc "Qwen 3.8 27B ROCmFP4 Inference Engine on AMD Strix Halo (gfx1151)"
   homepage "https://github.com/julianmb/q38rocm"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1012/rocmfpx-b1012-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
   version "1012"
+  sha256 "6f5c2a6cd72d3a38abfe60f9d73e1eec65edec60b6c8d548fb19d93b2a30dd71"
   license "Apache-2.0"
 
   livecheck do
@@ -47,9 +49,9 @@ class Q38rocm < Formula
 
   test do
     if (libexec/"llama-server").exist?
-      assert_match "version:", shell_output("#{bin}/llama-server --version 2>&1")
+      assert_match "version:", pipe_output("#{bin}/llama-server --version 2>&1")
     else
-      assert_match "usage", shell_output("#{bin}/llama-cli --help 2>&1")
+      assert_match "usage", pipe_output("#{bin}/llama-cli --help 2>&1")
     end
   end
 end

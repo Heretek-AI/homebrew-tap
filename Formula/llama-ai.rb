@@ -20,6 +20,10 @@ class LlamaAi < Formula
 
   def install
     libexec.install Dir["*"]
+    chmod 0755, Dir[libexec/"bin/*"] if (libexec/"bin").directory?
+    chmod 0755, Dir[libexec/"*.sh"]
+    chmod 0755, libexec/"llama-ai" if (libexec/"llama-ai").exist?
+
     if (libexec/"bin/llama-cli").exist?
       bin.write_exec_script (libexec/"bin/llama-cli")
       (bin/"llama-ai").write <<~SH
@@ -38,6 +42,6 @@ class LlamaAi < Formula
   end
 
   test do
-    assert_match "llama", shell_output("#{bin}/llama-ai --help 2>&1")
+    assert_match "llama", pipe_output("#{bin}/llama-ai --help 2>&1")
   end
 end

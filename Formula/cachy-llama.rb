@@ -63,6 +63,7 @@ class CachyLlama < Formula
     %w[llama-cli llama-server llama-quantize llama-bench llama-perplexity].each do |cmd|
       next unless (libexec/cmd).exist?
 
+      chmod 0755, libexec/cmd
       bin.write_exec_script (libexec/cmd)
       (bin/"cachy-#{cmd}").write <<~SH
         #!/bin/bash
@@ -79,6 +80,6 @@ class CachyLlama < Formula
   end
 
   test do
-    assert_match "llama", shell_output("#{bin}/llama-cli --help 2>&1")
+    assert_match "llama", pipe_output("#{bin}/llama-cli --help 2>&1")
   end
 end
