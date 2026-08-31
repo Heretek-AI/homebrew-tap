@@ -14,7 +14,7 @@ class Ember < Formula
   on_linux do
     if Hardware::CPU.intel?
       url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1000/ember-b1000-ubuntu-rocm-gfx1151-x64.zip"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      sha256 "fcc910d8fed4ffe2da2426df0b09a4aba7afe085e3249c655c0b032fc82b7a46"
     end
   end
 
