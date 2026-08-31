@@ -17,6 +17,7 @@ GITHUB_API_BASE = "https://api.github.com/repos"
 REPOS = {
     "cachyllama": "Heretek-AI/CachyLLama-BUILDER",
     "rocmfpx": "Heretek-AI/ROCmFPX-BUILDER",
+    "q38rocm": "Heretek-AI/ROCmFPX-BUILDER",
 }
 
 
@@ -73,7 +74,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
         # 2. Extract architectural suffix (e.g. ubuntu-rocm-gfx1151-x64.zip or macos-metal-arm64.tar.gz)
         # The regex must not start inside the package name ("rocm" in "rocmfpx"),
         # so require a separator boundary before the platform token.
-        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan)-.*)', old_asset_filename)
+        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|q38rocm)-.*)', old_asset_filename)
         if suffix_match:
             suffix = suffix_match.group(1)
             for asset_name, sha in asset_shas.items():
@@ -84,10 +85,6 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
         stripped = None
         if re.match(r'^[A-Za-z0-9._-]+?-b\d+', old_asset_filename):
             stripped = re.sub(r'-b\d+', f'-{release_tag}', old_asset_filename, count=1)
-        if stripped:
-            for asset_name, sha in asset_shas.items():
-                if asset_name == stripped:
-                    return asset_name, sha
         if stripped:
             for asset_name, sha in asset_shas.items():
                 if asset_name == stripped:
@@ -124,7 +121,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
     # Update individual sha256 lines for matched assets
     for asset_name, sha in asset_shas.items():
         # Match URL block for this asset or its suffix followed by sha256
-        suffix_match = re.search(r'((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm).*)', asset_name)
+        suffix_match = re.search(r'((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm|q38rocm).*)', asset_name)
         suffix = suffix_match.group(1) if suffix_match else asset_name
 
         pattern = rf'(url\s+"https://github\.com/[^/]+/[^/]+/releases/download/[^/]+/[^"]*{re.escape(suffix)}"[^\n]*\n(?:\s*version[^\n]*\n)?\s*sha256\s+")[a-fA-F0-9]+(")'
@@ -146,7 +143,7 @@ def update_formula_content(formula_path: str, release_tag: str, asset_shas: dict
 
 def main():
     parser = argparse.ArgumentParser(description="Update Homebrew Tap Formulae with new releases")
-    parser.add_argument("--repo", choices=["cachyllama", "rocmfpx", "all"], default="all", help="Target builder repo")
+    parser.add_argument("--repo", choices=["cachyllama", "rocmfpx", "q38rocm", "all"], default="all", help="Target builder repo")
     parser.add_argument("--tag", default="latest", help="Specific release tag or 'latest'")
     parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub API token")
     parser.add_argument("--formula-dir", default=os.path.join(os.path.dirname(__file__), "..", "Formula"), help="Path to Formula directory")
@@ -154,11 +151,11 @@ def main():
 
     args = parser.parse_args()
 
-    targets = ["cachyllama", "rocmfpx"] if args.repo == "all" else [args.repo]
+    targets = ["cachyllama", "rocmfpx", "q38rocm"] if args.repo == "all" else [args.repo]
 
     for target in targets:
         repo_name = REPOS[target]
-        print(f"\n[>] Checking releases for {repo_name}...")
+        print(f"\n[>] Checking releases for {repo_name} (target: {target})...")
         try:
             rel = get_latest_release(repo_name, args.token, args.tag)
         except Exception as e:
@@ -184,9 +181,17 @@ def main():
                     continue
             asset_shas[name] = sha
 
-        formula_file = "cachy-llama.rb" if target == "cachyllama" else "rocmfpx.rb"
-        formula_path = os.path.join(args.formula_dir, formula_file)
-        update_formula_content(formula_path, tag_name, asset_shas, args.dry_run)
+        if target == "cachyllama":
+            formula_files = ["cachy-llama.rb", "llama-ai.rb"]
+        elif target == "q38rocm":
+            formula_files = ["q38rocm.rb", "rocmfpx.rb"]
+        else:  # rocmfpx
+            formula_files = ["rocmfpx.rb", "q38rocm.rb"]
+
+        for formula_file in formula_files:
+            formula_path = os.path.join(args.formula_dir, formula_file)
+            if os.path.exists(formula_path):
+                update_formula_content(formula_path, tag_name, asset_shas, args.dry_run)
 
 
 if __name__ == "__main__":

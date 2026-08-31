@@ -86,6 +86,11 @@ jobs:
             name: "rocmfpx [Linux ROCm gfx1151 Default]"
             binaries: "llama-cli llama-server rocmfpx-cli rocmfpx-server"
           - formula: rocmfpx
+            flags: "--with-q38rocm"
+            os: ubuntu-22.04
+            name: "rocmfpx [Linux ROCm gfx1151 q38rocm]"
+            binaries: "llama-cli llama-server rocmfpx-cli rocmfpx-server"
+          - formula: rocmfpx
             flags: "--with-gfx1150"
             os: ubuntu-22.04
             name: "rocmfpx [Linux ROCm gfx1150 Strix Point]"
@@ -115,6 +120,13 @@ jobs:
             os: ubuntu-22.04
             name: "rocmfpx [Linux ROCm gfx908 CDNA1]"
             binaries: "llama-cli llama-server rocmfpx-cli rocmfpx-server"
+
+          # Linux x64 (q38rocm dedicated formula)
+          - formula: q38rocm
+            flags: ""
+            os: ubuntu-22.04
+            name: "q38rocm [Linux ROCm gfx1151 Strix Halo]"
+            binaries: "llama-cli llama-server q38rocm q38rocm-server q38rocm-cli"
 
           # Linux x64 (llama-ai)
           - formula: llama-ai

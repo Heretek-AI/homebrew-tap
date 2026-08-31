@@ -13,6 +13,7 @@ class Rocmfpx < Formula
   # are qualified on gfx1151, other families fall back to standard paths)
   option "with-kairic-edge", "Qwen3.8-27B IU4 Kairic Edge certified runtime (Strix Halo)"
   option "with-promptforge", "Qwen3.8-27B ActiveFPX PromptForge certified runtime (Strix Halo)"
+  option "with-q38rocm", "Qwen3.8-27B ROCmFP4 tuned runtime (Strix Halo gfx1151)"
   option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
   option "with-gfx1150", "Build for AMD Strix Point APU (Radeon 890M / 880M)"
   option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
@@ -34,6 +35,9 @@ class Rocmfpx < Formula
       elsif build.with? "promptforge"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1007/rocmfpx-b1007-ubuntu-rocm-gfx1151-promptforge-x64.zip"
         sha256 "0eb95a4d84098b5a9bb9e65122c430233a72f27950fee26ec0de79f1c00dfd3b"
+      elsif build.with? "q38rocm"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1008/rocmfpx-b1008-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
+        sha256 "0c9912fb447355f882c962504ccf74e357095af4bdd4155005f51a973c456864"
       elsif build.with? "multi-arch"
         url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1011/rocmfpx-b1011-ubuntu-rocm-multiarch-x64.zip"
         sha256 "7a02b638b7425b5e59168e5ac135e3ffb72f845d336243b84cce05cdda0afe4b"

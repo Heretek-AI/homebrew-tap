@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       target_builder:
-        description: 'Builder repository to sync (cachyllama, rocmfpx, or all)'
+        description: 'Builder repository to sync (cachyllama, rocmfpx, q38rocm, or all)'
         required: false
         default: 'all'
       release_tag:
