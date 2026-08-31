@@ -2,7 +2,7 @@ class PrimaCpp < Formula
   desc "Distributed LLM inference on heterogeneous and low-resource home clusters"
   homepage "https://github.com/OpenCPIL/prima.cpp"
   url "https://github.com/OpenCPIL/prima.cpp/archive/6f9b7c40962d777d1726456b4359340d932bef12.tar.gz"
-  version "2026.08.30"
+  version "2026.06.30"
   sha256 "ce07af86a1972d3a9094f7ea69c55a06b64020bf16b3811591292a4b51e91c75"
   license "MIT"
 
