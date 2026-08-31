@@ -1,9 +1,9 @@
 class Ember < Formula
   desc "DeepSeek-V4-Flash C Inference Server for AMD Strix Halo (gfx1151)"
   homepage "https://github.com/otheru-ai/ember"
-  url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1000/ember-b1000-ubuntu-rocm-gfx1151-x64.zip"
-  version "1000"
-  sha256 "fcc910d8fed4ffe2da2426df0b09a4aba7afe085e3249c655c0b032fc82b7a46"
+  url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1001/ember-b1001-ubuntu-rocm-gfx1151-x64.zip"
+  version "1001"
+  sha256 "cc0b345f8d7b4e47a1a95eee00ed84fbc512816d1ebb2d847948aebd7029d5d6"
   license "MIT"
 
   livecheck do
@@ -15,8 +15,8 @@ class Ember < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1000/ember-b1000-ubuntu-rocm-gfx1151-x64.zip"
-      sha256 "fcc910d8fed4ffe2da2426df0b09a4aba7afe085e3249c655c0b032fc82b7a46"
+      url "https://github.com/Heretek-AI/ember-BUILDER/releases/download/b1001/ember-b1001-ubuntu-rocm-gfx1151-x64.zip"
+      sha256 "cc0b345f8d7b4e47a1a95eee00ed84fbc512816d1ebb2d847948aebd7029d5d6"
     end
   end
 
