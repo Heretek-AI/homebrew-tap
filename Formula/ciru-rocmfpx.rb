@@ -1,9 +1,9 @@
 class CiruRocmfpx < Formula
   desc "Low-Bit Quantized ROCm 7 Inference Stack (ROCmFP2..FP8 & DualView)"
   homepage "https://github.com/ciru-ai/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1012/q38rocm-b1012-ubuntu-rocm-gfx1151-x64.zip"
-  version "1014"
-  sha256 "a36582326c7e17b8103b359ffee1a2d6bf483f1141edb18863748d1b61e1803f"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1015/q38rocm-b1015-ubuntu-rocm-gfx1151-x64.zip"
+  version "1015"
+  sha256 "bf1c622497e48217e0d92d041e4004d77b4f7807bbd2721d050034d66c930331"
   license "MIT"
 
   livecheck do
@@ -50,8 +50,8 @@ class CiruRocmfpx < Formula
         sha256 "bceabe6e21c4ca58408e4729b4048ab5d514ff287bc5f9a2ad363f26b7252aa2"
       else
         # Default install: Strix Halo gfx1151
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1012/q38rocm-b1012-ubuntu-rocm-gfx1151-x64.zip"
-        sha256 "a36582326c7e17b8103b359ffee1a2d6bf483f1141edb18863748d1b61e1803f"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1015/q38rocm-b1015-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "bf1c622497e48217e0d92d041e4004d77b4f7807bbd2721d050034d66c930331"
       end
     end
   end
