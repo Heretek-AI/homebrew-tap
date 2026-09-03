@@ -2,7 +2,7 @@ class LlamaAi < Formula
   desc "Turnkey APU Runner & Optimistic-First Profile Solver for LLMs"
   homepage "https://github.com/fewtarius/llama-ai"
   url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1002/llama-ai-b1002-macos-arm64.tar.gz"
-  version "1024"
+  version "b1025"
   sha256 "19706aa66c66a33f6d9f0a89baf228a60b1db7f3f7dc7ae9226e2a6e8272ea34"
   license "GPL-3.0-or-later"
 
@@ -13,8 +13,8 @@ class LlamaAi < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1023/llama-ai-b1023-linux-x64.tar.gz"
-      sha256 "a2c280f7470fdb47b4ff38b86845a73ef56720571cebf40912da54cb068880dd"
+      url "https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/download/llama-ai-b1025/llama-ai-b1025-linux-x64.tar.gz"
+      sha256 "2c35ae19fcc3da6c307465ea1b1ca6fb1c9c395198d78720cb27aa08ad84b0ec"
     end
   end
 
