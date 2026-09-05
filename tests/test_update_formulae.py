@@ -112,6 +112,41 @@ SAMPLE_EMBER_FORMULA = """class Ember < Formula
 end
 """
 
+SAMPLE_KINGJONES_FORMULA = """class KingjonesRocmfpx < Formula
+  desc "ROCmFPX Inference Stack with 7 Extended Architectures (Mellum, Instella, Qwen4Exp)"
+  homepage "https://github.com/kingjones30/ROCmFPX"
+  version "1012"
+  license "MIT"
+
+  on_linux do
+    if Hardware::CPU.intel?
+      if build.with? "multi-arch"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1012/kingjones-rocmfpx-b1012-ubuntu-rocm-multiarch-x64.zip"
+        sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      else
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1012/kingjones-rocmfpx-b1012-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      end
+    end
+  end
+end
+"""
+
+SAMPLE_ENGRAMHALO_FORMULA = """class Engramhalo < Formula
+  desc "Tuned llama.cpp for Qwen 3.8 Flash-Next on AMD Strix Halo (gfx1151)"
+  homepage "https://github.com/Aristo94/EngramHalo.cpp"
+  version "1000"
+  license "MIT"
+
+  on_linux do
+    if Hardware::CPU.intel?
+      url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1000/engramhalo-b1000-ubuntu-rocm-gfx1151-x64.zip"
+      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    end
+  end
+end
+"""
+
 SAMPLE_SD_FORMULA = """class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
@@ -258,6 +293,53 @@ class TestUpdateFormulae(unittest.TestCase):
             self.assertIn('version "1002"', updated_content)
             self.assertIn("b1002/ember-b1002-ubuntu-rocm-gfx1151-x64.zip", updated_content)
             self.assertIn('sha256 "9876543210987654321098765432109876543210987654321098765432109876"', updated_content)
+
+    def test_update_kingjones_formula(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = Path(tmpdir) / "kingjones-rocmfpx.rb"
+            formula_file.write_text(SAMPLE_KINGJONES_FORMULA, encoding="utf-8")
+
+            asset_shas = {
+                "kingjones-rocmfpx-b1013-ubuntu-rocm-gfx1151-x64.zip": "aaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd",
+                "kingjones-rocmfpx-b1013-ubuntu-rocm-multiarch-x64.zip": "1111222233334444111122223333444411112222333344441111222233334444",
+            }
+
+            changed = update_formulae.update_formula_content(
+                str(formula_file),
+                "b1013",
+                asset_shas,
+                dry_run=False,
+            )
+            self.assertTrue(changed)
+
+            updated_content = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "1013"', updated_content)
+            self.assertIn("b1013/kingjones-rocmfpx-b1013-ubuntu-rocm-gfx1151-x64.zip", updated_content)
+            self.assertIn('sha256 "aaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd"', updated_content)
+            self.assertIn("b1013/kingjones-rocmfpx-b1013-ubuntu-rocm-multiarch-x64.zip", updated_content)
+            self.assertIn('sha256 "1111222233334444111122223333444411112222333344441111222233334444"', updated_content)
+
+    def test_update_engramhalo_formula(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = Path(tmpdir) / "engramhalo.rb"
+            formula_file.write_text(SAMPLE_ENGRAMHALO_FORMULA, encoding="utf-8")
+
+            asset_shas = {
+                "engramhalo-b1001-ubuntu-rocm-gfx1151-x64.zip": "deadbeef11223344deadbeef11223344deadbeef11223344deadbeef11223344",
+            }
+
+            changed = update_formulae.update_formula_content(
+                str(formula_file),
+                "b1001",
+                asset_shas,
+                dry_run=False,
+            )
+            self.assertTrue(changed)
+
+            updated_content = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "1001"', updated_content)
+            self.assertIn("b1001/engramhalo-b1001-ubuntu-rocm-gfx1151-x64.zip", updated_content)
+            self.assertIn('sha256 "deadbeef11223344deadbeef11223344deadbeef11223344deadbeef11223344"', updated_content)
 
     def test_update_sd_formula(self):
         with tempfile.TemporaryDirectory() as tmpdir:

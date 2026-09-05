@@ -40,6 +40,16 @@ CONFIG = {
         "repo": "Heretek-AI/ROCmFPX-BUILDER",
         "formulae": ["q38rocm.rb"],
     },
+    "kingjones-rocmfpx": {
+        "type": "builder",
+        "repo": "Heretek-AI/ROCmFPX-BUILDER",
+        "formulae": ["kingjones-rocmfpx.rb"],
+    },
+    "engramhalo": {
+        "type": "builder",
+        "repo": "Heretek-AI/EngramHalo-BUILDER",
+        "formulae": ["engramhalo.rb"],
+    },
     "ember": {
         "type": "builder",
         "repo": "Heretek-AI/ember-BUILDER",

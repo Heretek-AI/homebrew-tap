@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       target_builder:
-        description: 'Target to sync (cachyllama, rocmfpx, ciru-rocmfpx, q38rocm, ember, shimmy, prima-cpp, stable-diffusion-cpp, or all)'
+        description: 'Target to sync (cachyllama, rocmfpx, ciru-rocmfpx, q38rocm, kingjones-rocmfpx, engramhalo, ember, shimmy, prima-cpp, stable-diffusion-cpp, or all)'
         required: false
         default: 'all'
       release_tag:

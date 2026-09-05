@@ -40,7 +40,7 @@ echo ""
 echo "=========================================="
 echo " 4. Formula Information Summary"
 echo "=========================================="
-for formula in cachy-llama rocmfpx ciru-rocmfpx q38rocm llama-ai stable-diffusion-cpp; do
+for formula in cachy-llama rocmfpx ciru-rocmfpx kingjones-rocmfpx engramhalo q38rocm ember llama-ai stable-diffusion-cpp; do
     echo "--- Formula: heretek-ai/tap/${formula} ---"
     "$BREW_BIN" info "heretek-ai/tap/${formula}"
     echo ""
