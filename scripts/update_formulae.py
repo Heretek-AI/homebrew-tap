@@ -141,7 +141,7 @@ def update_builder_formula_content(formula_path: str, release_tag: str, asset_sh
         prefix_match = re.match(r'^([a-zA-Z0-9._-]+?)-b\d+', old_asset_filename)
         expected_prefix = prefix_match.group(1) if prefix_match else ""
 
-        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|q38rocm)-.*)', old_asset_filename)
+        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm|q38rocm)-.*)', old_asset_filename)
         if suffix_match:
             suffix = suffix_match.group(1)
             for asset_name, sha in asset_shas.items():
