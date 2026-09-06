@@ -3,7 +3,7 @@ class Engramhalo < Formula
   homepage "https://github.com/Aristo94/EngramHalo.cpp"
   url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1000/engramhalo-b1000-ubuntu-rocm-gfx1151-x64.zip"
   version "1000"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "5cb335146dd1ed8d2e47daa583dd98e7f201bc7ce2c5e7e7d6e81d6027a9c5e1"
   license "MIT"
 
   livecheck do
@@ -16,7 +16,7 @@ class Engramhalo < Formula
   on_linux do
     if Hardware::CPU.intel?
       url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1000/engramhalo-b1000-ubuntu-rocm-gfx1151-x64.zip"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      sha256 "5cb335146dd1ed8d2e47daa583dd98e7f201bc7ce2c5e7e7d6e81d6027a9c5e1"
     end
   end
 
