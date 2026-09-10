@@ -1,9 +1,9 @@
 class KingjonesRocmfpx < Formula
   desc "ROCmFPX Inference Stack with 7 Extended Architectures"
   homepage "https://github.com/kingjones30/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx1151-x64.zip"
-  version "1034"
-  sha256 "d0806237c3a19280371cc78605702ed2fc132190e661b285d221e8f923fd22f3"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx1151-x64.zip"
+  version "1036"
+  sha256 "a7e5034ba2dcb40aa8cd9651de687eb54ef0484ffc8812dab0ca504fa2e72d74"
   license "MIT"
 
   livecheck do
@@ -24,30 +24,30 @@ class KingjonesRocmfpx < Formula
   on_linux do
     if Hardware::CPU.intel?
       if build.with? "multi-arch"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-multiarch-x64.zip"
-        sha256 "37dabda7d65f3b34f09bebf77a3872031c7e274396851e3573b8ff3876e51311"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-multiarch-x64.zip"
+        sha256 "3a0379e1a2a5ace1b6fac6475b472f6a7899461fdf9723f0f92e48c8b4066bf3"
       elsif build.with? "gfx1150"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx1150-x64.zip"
-        sha256 "5bfc6bfe0453e062f61b76102fe1b321cc8c698f2df959147aeff1f898ddd5d6"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx1150-x64.zip"
+        sha256 "a7a3e993cb05be672230c6fa498e54220e827bf72fb06d70a434b2047c51945a"
       elsif build.with? "gfx120X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx120X-x64.zip"
-        sha256 "7e60dfbaaef557377d353a26ea0db79ca8d833f7c94957fa9ca01607e2609081"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx120X-x64.zip"
+        sha256 "194df9ab5ecefe0f3ba8d2a9d09a0842a08a3e7e83bb22ab7f9dc33f6aedafd2"
       elsif build.with? "gfx110X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx110X-x64.zip"
-        sha256 "0310a6562297f2bc8d4661e43a3f17cb1dcf470af8314a0e4bc8955d5dd78744"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx110X-x64.zip"
+        sha256 "417f2e82abebd679bc5470c00164d2415a27d7510cb4c8cd65834a24325fec93"
       elsif build.with? "gfx103X"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx103X-x64.zip"
-        sha256 "02f0bb863645d95a47d3d72bbffcb1a5f52a13f0e665c238fcd302095614847b"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx103X-x64.zip"
+        sha256 "08554391ab35d50cc333b008be6e32fe851a5545f32551ebd64a8318b2b3c19e"
       elsif build.with? "gfx90a"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx90a-x64.zip"
-        sha256 "49e427527d1f1f8eae2bbd24403d4f3931a25786e74cfae0ded0caff0523e089"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx90a-x64.zip"
+        sha256 "c377f31a7e7ea0750f567dbde415db8b8116a8bf04a152205b0137e595c1f580"
       elsif build.with? "gfx908"
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx908-x64.zip"
-        sha256 "cf0817d2358d39d33804c37c944ebaf700f5d97799c180ef7888ec376d6446c5"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx908-x64.zip"
+        sha256 "ceff412146db82e57591f08c7549c450d8e0e203cae66af450b911515aded001"
       else
         # Default install: Strix Halo gfx1151
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1034/kingjones-rocmfpx-b1034-ubuntu-rocm-gfx1151-x64.zip"
-        sha256 "d0806237c3a19280371cc78605702ed2fc132190e661b285d221e8f923fd22f3"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1036/kingjones-rocmfpx-b1036-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "a7e5034ba2dcb40aa8cd9651de687eb54ef0484ffc8812dab0ca504fa2e72d74"
       end
     end
   end
