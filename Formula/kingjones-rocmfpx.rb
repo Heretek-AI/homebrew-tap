@@ -1,9 +1,9 @@
 class KingjonesRocmfpx < Formula
   desc "ROCmFPX Inference Stack with 7 Extended Architectures"
   homepage "https://github.com/kingjones30/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1039/kingjones-rocmfpx-b1039-ubuntu-rocm-gfx1151-x64.zip"
-  version "1039"
-  sha256 "57d057593ab40c538e3a12605335719e9e07ca079df2fbfb674a980f1b777b6e"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1040/q38rocm-b1040-ubuntu-rocm-gfx1151-x64.zip"
+  version "1040"
+  sha256 "0c2eb1719b978a94f18078742121fa23c7316577010b7aebbcd23d7ca8af0616"
   license "MIT"
 
   livecheck do
@@ -46,8 +46,8 @@ class KingjonesRocmfpx < Formula
         sha256 "443079c66fb9c7a1c9a119d1123773bb204791baa32203606d63956d19b7a844"
       else
         # Default install: Strix Halo gfx1151
-        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1039/kingjones-rocmfpx-b1039-ubuntu-rocm-gfx1151-x64.zip"
-        sha256 "57d057593ab40c538e3a12605335719e9e07ca079df2fbfb674a980f1b777b6e"
+        url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1040/q38rocm-b1040-ubuntu-rocm-gfx1151-x64.zip"
+        sha256 "0c2eb1719b978a94f18078742121fa23c7316577010b7aebbcd23d7ca8af0616"
       end
     end
   end
