@@ -2,7 +2,7 @@ class Q38rocm < Formula
   desc "Qwen 3.8 27B ROCmFP4 Inference Engine on AMD Strix Halo (gfx1151)"
   homepage "https://github.com/julianmb/q38rocm"
   url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1046/rocmfpx-b1046-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
-  version "1047"
+  version "1050"
   sha256 "5f05b06a00d9ebde8923dbc2ac5687d1aba28b8be79abfca240de0b729362168"
   license "Apache-2.0"
 
