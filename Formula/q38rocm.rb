@@ -1,9 +1,9 @@
 class Q38rocm < Formula
   desc "Qwen 3.8 27B ROCmFP4 Inference Engine on AMD Strix Halo (gfx1151)"
   homepage "https://github.com/julianmb/q38rocm"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1053/rocmfpx-b1053-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
-  version "1092"
-  sha256 "b6490fa6516ed57ae1755eecb02dccb5dd1f097bf2dd29f756279f58680ba77d"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1093/rocmfpx-b1093-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
+  version "1093"
+  sha256 "0af116a45d312b27589ef36a5874b7960ba66c9f9b77b558b8f9d55dff003456"
   license "Apache-2.0"
 
   livecheck do
@@ -15,8 +15,8 @@ class Q38rocm < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1053/rocmfpx-b1053-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
-      sha256 "b6490fa6516ed57ae1755eecb02dccb5dd1f097bf2dd29f756279f58680ba77d"
+      url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1093/rocmfpx-b1093-ubuntu-rocm-gfx1151-q38rocm-x64.zip"
+      sha256 "0af116a45d312b27589ef36a5874b7960ba66c9f9b77b558b8f9d55dff003456"
     end
   end
 
