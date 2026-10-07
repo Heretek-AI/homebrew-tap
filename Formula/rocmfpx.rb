@@ -1,9 +1,9 @@
 class Rocmfpx < Formula
   desc "High-Performance AMD ROCm 7 llama.cpp Inference Stack (Upstream)"
   homepage "https://github.com/charlie12345/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1093/q38rocm-b1093-ubuntu-rocm-gfx1151-x64.zip"
-  version "1102"
-  sha256 "097996125f04be7f38bf5e84f548c747b15504a3c371c24b0083b57a1f91f2b4"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1103/q38rocm-b1103-ubuntu-rocm-gfx1151-x64.zip"
+  version "1103"
+  sha256 "3f61ab8aba94c10b61e2f20db97a1dc77500a028203ccffee9ca78dfc0b9d387"
   license "MIT"
 
   livecheck do
