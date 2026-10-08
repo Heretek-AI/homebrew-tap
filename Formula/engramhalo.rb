@@ -1,9 +1,9 @@
 class Engramhalo < Formula
   desc "Tuned llama.cpp for Qwen 3.8 Flash-Next on AMD Strix Halo (gfx1151)"
   homepage "https://github.com/Aristo94/EngramHalo.cpp"
-  url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1031/engramhalo-b1031-ubuntu-rocm-gfx1151-x64.zip"
-  version "1031"
-  sha256 "170be7e39c8a4b743faaa5c9fe51ccc5a8bb6fed036104970ea8abd424a03729"
+  url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1032/engramhalo-b1032-ubuntu-rocm-gfx1151-x64.zip"
+  version "1032"
+  sha256 "3174a1498e5d7ec187105fe0d6cd10276235e4405ed79d680d69402910dbbfe0"
   license "MIT"
 
   livecheck do
@@ -15,8 +15,8 @@ class Engramhalo < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1031/engramhalo-b1031-ubuntu-rocm-gfx1151-x64.zip"
-      sha256 "170be7e39c8a4b743faaa5c9fe51ccc5a8bb6fed036104970ea8abd424a03729"
+      url "https://github.com/Heretek-AI/EngramHalo-BUILDER/releases/download/b1032/engramhalo-b1032-ubuntu-rocm-gfx1151-x64.zip"
+      sha256 "3174a1498e5d7ec187105fe0d6cd10276235e4405ed79d680d69402910dbbfe0"
     end
   end
 
