@@ -2,7 +2,7 @@ class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
   url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Darwin-macOS-26.5.2-arm64.zip"
-  version "946"
+  version "948"
   sha256 "1c7d0ddc18752cd88c084e0a636444697a0caea96763dcebdc08089ecf57b72f"
   license "MIT"
 
@@ -16,23 +16,23 @@ class StableDiffusionCpp < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-946-a4a9669/sd-master-a4a9669-bin-Darwin-macOS-26.6.2-arm64.zip"
-      sha256 "6cf4af591b6c5330a9289a4f11d4bcab26e00b6c39c09d10ef7ed0f17f556c5d"
+      url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-948-228c707/sd-master-228c707-bin-Darwin-macOS-26.6.2-arm64.zip"
+      sha256 "08d4a902e674b3355fb01e58f8f456c050406cdf6004052563807011610be626"
     end
   end
 
   on_linux do
     if Hardware::CPU.intel?
       if build.with? "rocm"
-        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-946-a4a9669/sd-master-a4a9669-bin-Linux-Ubuntu-24.04-x86_64-rocm-7.14.0.zip"
-        sha256 "fe020a04093c9843129bca6fbceaff624e0aea08a7eab34729d37f365585b9d6"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-948-228c707/sd-master-228c707-bin-Linux-Ubuntu-24.04-x86_64-rocm-7.14.0.zip"
+        sha256 "e71f7b07735ec50e0b47709933a61a2ee97f7655aacd2fd00501566be219ba09"
       elsif build.with? "cpu"
-        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-946-a4a9669/sd-master-a4a9669-bin-Linux-Ubuntu-24.04-x86_64.zip"
-        sha256 "3424b2d6e85a5dfd9c2bd6fc3af6b5e481092a2a66b6aafbbb39380440008106"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-948-228c707/sd-master-228c707-bin-Linux-Ubuntu-24.04-x86_64.zip"
+        sha256 "2ab14f12ad2ffd76ac30fb78537e535195f5e04a2d9110677cd849fc44ed8199"
       else
         # Default: Mesa RADV / Vulkan universal acceleration
-        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-946-a4a9669/sd-master-a4a9669-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip"
-        sha256 "8d127feedb0288085075f6a271bfc19b81c62e4335a2d82fb2ef1c4782e50cdb"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-948-228c707/sd-master-228c707-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip"
+        sha256 "2948aadae5d32250b883ce0f3ed36c8c45029d3f856be2fc3096f11a129e723d"
       end
     end
   end
