@@ -12,7 +12,7 @@ class Gufetto < Formula
   end
 
   option "with-bf16-k-control", "Enable experimental bf16/q8_0-rotated and bf16/q4_0-rotated KV cache modes"
-  option "without-npu", "Disable experimental AMD XDNA 2 NPU runtime support (dlopen libxrt_coreutil.so.2)"
+  option "with-npu", "Enable experimental AMD XDNA 2 NPU runtime support (requires XRT SDK)"
   option "with-tools", "Build and install developer tools (simple_chat, bench_q8_1, tune_hipblaslt)"
   option "with-znver4", "Compile host code with -march=znver4 + AVX-512 instead of -march=znver5"
 
@@ -78,7 +78,7 @@ class Gufetto < Formula
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
       -DGUFO_ENABLE_SANITIZERS=OFF
-      -DGUFO_ENABLE_NPU=#{build.without?("npu") ? "OFF" : "ON"}
+      -DGUFO_ENABLE_NPU=#{build.with?("npu") ? "ON" : "OFF"}
       -DGUFO_ENABLE_BF16_K_CONTROL=#{build.with?("bf16-k-control") ? "ON" : "OFF"}
       -DGUFO_ENABLE_TOOLS=#{build.with?("tools") ? "ON" : "OFF"}
       -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib

@@ -56,7 +56,7 @@ class Hyperqwen < Formula
     resource("xgrammar").stage xgrammar_dir
 
     # 3. Build liblsa.so for sm_80, sm_86, sm_89, sm_120 if nvcc is present
-    if have_nvcc
+    if have_nvcc && File.exist?("lsa/lsa.cu")
       (libexec/"lib").mkpath
       system nvcc, "-O3",
              "-gencode=arch=compute_80,code=sm_80",
@@ -71,7 +71,7 @@ class Hyperqwen < Formula
     python3 = formula_opt_bin("python@3.12")/"python3.12"
     system python3, "-m", "venv", libexec/"venv"
 
-    libexec.install "bench.py", "patches", "entrypoint.sh", "pthfa", "fa2"
+    libexec.install "bench.py", "patches", "entrypoint.sh", "pthfa", "fa2", "lsa"
 
     (bin/"hyperqwen").write <<~EOS
       #!/usr/bin/env bash
