@@ -55,11 +55,22 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h
 
-      - name: Provision AMD TheRock ROCm 7+ SDK (gfx1151 / gfx1100 / gfx1201)
+      - name: Provision AMD TheRock ROCm SDK (ROCm 7+ / 10.1+)
         if: steps.filter.outputs.skip != 'true'
         run: |
-          THEROCK_VER="7.10.0a20251021"
-          URL="https://rocm.nightlies.amd.com/tarball-multi-arch/therock-dist-linux-gfx1151-${THEROCK_VER}.tar.gz"
+          base_url="https://rocm.nightlies.amd.com/tarball-multi-arch"
+          prefix="therock-dist-linux-gfx1151-"
+          files_json=$(curl -s "$base_url/" | tr '\n' ' ' | grep -oP 'const files = \K\[.*?\](?=\s*;)')
+          if [ -n "$files_json" ]; then
+            latest_file=$(echo "$files_json" | jq -r --arg p "$prefix" \
+              '[.[] | select(.name | test("^" + $p + "[0-9]+\\.[0-9]+\\.[0-9]+(a|rc)[0-9]+\\.tar\\.gz$"))] | sort_by(.name | capture("(?<d>[0-9]{8})\\.tar\\.gz$").d) | last | .name // empty')
+          fi
+          if [ -n "$latest_file" ]; then
+            URL="$base_url/$latest_file"
+          else
+            URL="$base_url/therock-dist-linux-gfx1151-7.15.0a20260728.tar.gz"
+          fi
+          echo "Provisioning latest ROCm SDK from $URL"
           sudo mkdir -p /opt/rocm
           curl -sL --retry 3 "$URL" | sudo tar -xz -C /opt/rocm
           echo "ROCM_PATH=/opt/rocm" >> "$GITHUB_ENV"

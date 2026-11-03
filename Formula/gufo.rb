@@ -35,7 +35,7 @@ class Gufo < Formula
   def install
     rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
     unless Dir.exist?(rocm_path)
-      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK."
+      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+)."
     end
 
     # 1. Prevent embedding versioned Cellar/ffmpeg/<ver> paths via file(REAL_PATH)

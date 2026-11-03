@@ -1,5 +1,5 @@
 class Rocmfpx < Formula
-  desc "High-Performance AMD ROCm 7 llama.cpp Inference Stack (Upstream)"
+  desc "High-Performance AMD ROCm llama.cpp Inference Stack (Upstream)"
   homepage "https://github.com/charlie12345/ROCmFPX"
   url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1134/kingjones-rocmfpx-b1134-ubuntu-rocm-gfx1151-x64.zip"
   version "1134"
@@ -80,7 +80,7 @@ class Rocmfpx < Formula
   def caveats
     <<~EOS
       This formula distributes canonical upstream ROCmFPX (charlie12345/ROCmFPX)
-      with bundled AMD ROCm 7 runtimes.
+      with bundled AMD ROCm runtimes (supporting ROCm 7+ and 10.1+).
     EOS
   end
 

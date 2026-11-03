@@ -6,7 +6,7 @@
 [![Auto-Bump Formulae](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/autobump.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/autobump.yml)
 [![Build ROCmFPX](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![AMD ROCm 7.0](https://img.shields.io/badge/AMD%20ROCm-7.0%20Built--in-blue?logo=amd&logoColor=white)](https://github.com/ROCm/ROCm)
+[![AMD ROCm 7+ / 10.1+](https://img.shields.io/badge/AMD%20ROCm-7%2B%20%2F%2010.1%2B%20Built--in-blue?logo=amd&logoColor=white)](https://github.com/ROCm/ROCm)
 [![Apple Metal](https://img.shields.io/badge/Apple-Metal%20Accelerated-000000?logo=apple&logoColor=white)](https://developer.apple.com/metal/)
 [![Mesa RADV Vulkan](https://img.shields.io/badge/Vulkan-Mesa%20RADV%20Wave64-FF5722?logo=vulkan&logoColor=white)](https://mesa3d.org)
 
@@ -27,7 +27,7 @@ brew tap Heretek-AI/tap
 
 # 2. Install your desired inference engine:
 # --- Canonical Engines ---
-brew install rocmfpx              # Canonical ROCm 7 llama.cpp stack (AMD RDNA2..RDNA4 / CDNA)
+brew install rocmfpx              # Canonical ROCm (7+ / 10.1+) llama.cpp stack (AMD RDNA2..RDNA4 / CDNA)
 brew install stable-diffusion-cpp # Fast SD, SDXL, Flux, SD3 & Wan image/video inference
 brew install shimmy               # Pure-Rust WebGPU & CUDA LLM engine
 
@@ -53,8 +53,8 @@ brew services start rocmfpx
 
 > [!IMPORTANT]
 > **⚡ Zero-Dependency Precompiled Runtimes vs. Source Builds**:  
-> - **Precompiled Packages & Bottles (`rocmfpx`, `stable-diffusion-cpp`, and prebuilt bottles):** Bundle complete AMD ROCm 7 runtime libraries (`libhipblas.so`, `librocblas.so`, `libamdhip64.so`, `libhipblaslt.so`) linked via portable `$ORIGIN` RPATHs.
-> - **Source Builds (`gufo`, `gufetto`, `strixite`, `strata`, `project-maya`, `kyojin`):** Building from source requires an AMD ROCm 7+ SDK installation at `/opt/rocm` (or specified via `ROCM_PATH`).
+> - **Precompiled Packages & Bottles (`rocmfpx`, `stable-diffusion-cpp`, and prebuilt bottles):** Bundle complete AMD ROCm runtime libraries (supporting ROCm 7.x and ROCm 10.1+ nightly releases: `libhipblas.so`, `librocblas.so`, `libamdhip64.so`, `libhipblaslt.so`) linked via portable `$ORIGIN` RPATHs.
+> - **Source Builds (`gufo`, `gufetto`, `strixite`, `strata`, `project-maya`, `kyojin`):** Building from source requires an AMD ROCm SDK (ROCm 7+ or ROCm 10.1+ TheRock nightlies) installed at `/opt/rocm` (or specified via `ROCM_PATH`).
 
 ---
 
@@ -62,7 +62,7 @@ brew services start rocmfpx
 
 | Formula | Upstream Source | Primary Languages & Build System | Primary Focus & Models | Default Backend | Port | Binary Aliases & CLI Tools |
 | :--- | :--- | :--- | :--- | :--- | :---: | :--- |
-| [**`rocmfpx`**](#-rocmfpx) | [`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX) | C/C++ (CMake + ROCm 7) | General GGUF LLMs (`llama.cpp` upstream fork) | AMD ROCm 7 (`gfx1151` default) | `8080` | `rocmfpx`, `rocmfpx-cli`, `rocmfpx-server` |
+| [**`rocmfpx`**](#-rocmfpx) | [`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX) | C/C++ (CMake + ROCm 7+ / 10.1+) | General GGUF LLMs (`llama.cpp` upstream fork) | AMD ROCm (`gfx1151` default) | `8080` | `rocmfpx`, `rocmfpx-cli`, `rocmfpx-server` |
 | [**`stable-diffusion-cpp`**](#-stable-diffusion-cpp) | [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) | C/C++ (CMake) | Image & video diffusion (SD, SDXL, Flux, SD3, Wan 2.1) | Vulkan RADV / Metal / ROCm | `8080` | `sd`, `sd-server` |
 | [**`shimmy`**](#-shimmy) | [`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy) | Rust (Cargo) | Ultra-lightweight GGUF server (<1s cold boot, ~50MB RAM) | WebGPU / Vulkan / Metal / CUDA | `11434` | `shimmy` |
 | [**`gufo`**](#-gufo) | [`gufo-org/gufo`](https://github.com/gufo-org/gufo) | C11, C++20, HIP (CMake + Ninja) | Upstream Strix Halo runtime, `gufo speak` (voice), `gufo decide`, WebSockets | AMD ROCm HIP (`gfx1151` strictly enforced) | `8080` | `gufo`, `gufo-server` |
@@ -116,7 +116,7 @@ brew services start rocmfpx
 ## 📦 Detailed Formula Guide
 
 ### ⚡ `rocmfpx`
-The canonical upstream **ROCmFPX** project maintained by Charlie ([`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX)), built directly in this repository with bundled AMD ROCm 7 runtime libraries.
+The canonical upstream **ROCmFPX** project maintained by Charlie ([`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX)), built directly in this repository with bundled AMD ROCm runtime libraries (supporting ROCm 7.x and ROCm 10.1+ nightly releases).
 
 ```bash
 # Default: Optimized for AMD Strix Halo (gfx1151)
@@ -145,7 +145,7 @@ Fast, lightweight image and video generation engine based on [`leejet/stable-dif
 brew install stable-diffusion-cpp
 
 # On Linux, optional acceleration flags:
-brew install stable-diffusion-cpp --with-rocm   # AMD ROCm 7 GPU acceleration
+brew install stable-diffusion-cpp --with-rocm   # AMD ROCm GPU acceleration (ROCm 7+ / 10.1+)
 brew install stable-diffusion-cpp --with-cpu    # CPU-only baseline
 
 # Run text-to-image generation:
@@ -229,7 +229,7 @@ maya-cli --model glm51 --port 8095
 ---
 
 ### 🥋 `kyojin` (ExLlamaV3 Strix Halo & RDNA4 MoE Suite)
-Python + C++20/HIP fork of ExLlamaV3 by Yamz Labs ([`Yamz-Labs/kyojin`](https://github.com/Yamz-Labs/kyojin)) featuring 5 specialized model servers (`qwen`, `glm`, `mimo`, `ds41`, `flint`) with automatic Strix Halo ROCm 7 runtime environment configuration.
+Python + C++20/HIP fork of ExLlamaV3 by Yamz Labs ([`Yamz-Labs/kyojin`](https://github.com/Yamz-Labs/kyojin)) featuring 5 specialized model servers (`qwen`, `glm`, `mimo`, `ds41`, `flint`) with automatic Strix Halo ROCm runtime environment configuration.
 
 ```bash
 brew install kyojin
@@ -257,8 +257,8 @@ hyperqwen-serve
 
 All builder workflows are consolidated directly into this repository:
 
-- **`.github/workflows/build-bottles.yml`**: Nightly and dispatch builds of Linux x86_64 bottles across all 11 formulas with AMD TheRock ROCm 7 runtime packaging.
-- **`.github/workflows/build-rocmfpx.yml`**: Nightly and dispatch builds of `charlie12345/ROCmFPX` across Ubuntu & Windows with ROCm 7 runtime packaging.
+- **`.github/workflows/build-bottles.yml`**: Nightly and dispatch builds of Linux x86_64 bottles across all 11 formulas with AMD TheRock ROCm runtime packaging (dynamic auto-resolution of latest ROCm 7+ / 10.1+ SDK).
+- **`.github/workflows/build-rocmfpx.yml`**: Nightly and dispatch builds of `charlie12345/ROCmFPX` across Ubuntu & Windows with ROCm runtime packaging (dynamic auto-resolution of latest ROCm 7+ / 10.1+ SDK).
 - **`.github/workflows/autobump.yml`**: Scheduled synchronization for upstream releases, commit SHAs, and formula checksums.
 - **`.github/workflows/test-install-and-run.yml`**: Multi-OS install and binary validation suite.
 
