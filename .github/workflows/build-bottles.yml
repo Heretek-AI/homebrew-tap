@@ -1,0 +1,112 @@
+name: Build & Publish Linux Bottles (x86_64_linux)
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: "Formula name to bottle (or 'all-rocm' for gufetto/gufo/gufo-franzmoca/strixite/strata/project-maya)"
+        required: true
+        default: "all-rocm"
+  push:
+    branches: [main]
+    paths:
+      - "Formula/gufetto.rb"
+      - "Formula/gufo.rb"
+      - "Formula/gufo-franzmoca.rb"
+      - "Formula/strixite.rb"
+      - "Formula/strata.rb"
+      - "Formula/project-maya.rb"
+      - "Formula/kyojin.rb"
+
+permissions:
+  contents: write
+
+jobs:
+  build-bottles:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        formula:
+          - gufetto
+          - gufo
+          - gufo-franzmoca
+          - strixite
+          - strata
+          - project-maya
+    steps:
+      - name: Checkout Tap Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip if single formula requested and not matching matrix
+        id: filter
+        run: |
+          if [ "${{ github.event.inputs.formula }}" != "" ] && \
+             [ "${{ github.event.inputs.formula }}" != "all-rocm" ] && \
+             [ "${{ github.event.inputs.formula }}" != "${{ matrix.formula }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Free Runner Disk Space
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - name: Provision AMD TheRock ROCm 7+ SDK (gfx1151 / gfx1100 / gfx1201)
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          THEROCK_VER="7.10.0a20251021"
+          URL="https://rocm.nightlies.amd.com/tarball-multi-arch/therock-dist-linux-gfx1151-${THEROCK_VER}.tar.gz"
+          sudo mkdir -p /opt/rocm
+          curl -sL --retry 3 "$URL" | sudo tar -xz -C /opt/rocm
+          echo "ROCM_PATH=/opt/rocm" >> "$GITHUB_ENV"
+          echo "/opt/rocm/bin" >> "$GITHUB_PATH"
+          echo "/opt/rocm/llvm/bin" >> "$GITHUB_PATH"
+
+      - name: Set up Homebrew
+        if: steps.filter.outputs.skip != 'true'
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Configure Tap & Audit Formula Style
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          TAP_DIR="$(brew --repository)/Library/Taps/heretek-ai/homebrew-tap"
+          mkdir -p "$(dirname "$TAP_DIR")"
+          ln -sfn "$GITHUB_WORKSPACE" "$TAP_DIR"
+          brew style "Formula/${{ matrix.formula }}.rb"
+          brew audit --strict "heretek-ai/tap/${{ matrix.formula }}"
+
+      - name: Build Formula from Source & Package Bottle
+        if: steps.filter.outputs.skip != 'true'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+          ROCM_PATH: "/opt/rocm"
+        run: |
+          EXTRA_FLAGS=""
+          case "${{ matrix.formula }}" in
+            gufo|gufo-franzmoca|gufetto)
+              EXTRA_FLAGS="--with-znver4"
+              ;;
+            strixite)
+              EXTRA_FLAGS="--with-portable-cpu"
+              ;;
+          esac
+          brew install --build-bottle $EXTRA_FLAGS "heretek-ai/tap/${{ matrix.formula }}"
+          brew test "heretek-ai/tap/${{ matrix.formula }}"
+          brew bottle --force-core-tap --root-url="https://github.com/${{ github.repository }}/releases/download/bottles-${{ matrix.formula }}" "heretek-ai/tap/${{ matrix.formula }}"
+          for f in *--*.bottle.*.tar.gz; do
+            mv "$f" "${f/--/-}"
+          done
+
+      - name: Upload Bottle Artifact
+        if: steps.filter.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottle-${{ matrix.formula }}
+          path: "*.bottle.*.tar.gz"

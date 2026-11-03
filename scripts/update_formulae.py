@@ -40,6 +40,56 @@ CONFIG = {
         "repo": "leejet/stable-diffusion.cpp",
         "formulae": ["stable-diffusion-cpp.rb"],
     },
+
+    # Local LLM engines & inference runtimes
+    "gufetto": {
+        "type": "upstream_commit",
+        "repo": "fewtarius/gufetto",
+        "branch": "main",
+        "formulae": ["gufetto.rb"],
+    },
+    "gufo": {
+        "type": "upstream_commit",
+        "repo": "gufo-org/gufo",
+        "branch": "main",
+        "formulae": ["gufo.rb"],
+    },
+    "gufo-franzmoca": {
+        "type": "upstream_commit",
+        "repo": "franzmoca/gufo",
+        "branch": "main",
+        "formulae": ["gufo-franzmoca.rb"],
+    },
+    "strixite": {
+        "type": "upstream_commit",
+        "repo": "shawnshekari/strixite",
+        "branch": "main",
+        "formulae": ["strixite.rb"],
+    },
+    "strata": {
+        "type": "upstream_commit",
+        "repo": "Niko1221/Strata",
+        "branch": "main",
+        "formulae": ["strata.rb"],
+    },
+    "project-maya": {
+        "type": "upstream_commit",
+        "repo": "mw00/project-maya",
+        "branch": "main",
+        "formulae": ["project-maya.rb"],
+    },
+    "kyojin": {
+        "type": "upstream_commit",
+        "repo": "Yamz-Labs/kyojin",
+        "branch": "master",
+        "formulae": ["kyojin.rb"],
+    },
+    "hyperqwen": {
+        "type": "upstream_commit",
+        "repo": "syv-ai/HyperQwen",
+        "branch": "main",
+        "formulae": ["hyperqwen.rb"],
+    },
 }
 
 

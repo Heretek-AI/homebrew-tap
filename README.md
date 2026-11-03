@@ -135,6 +135,90 @@ brew services start shimmy
 
 ---
 
+### 🦉 `gufo` / `gufo-franzmoca` / `gufetto` (AMD Strix Halo gfx1151 Native Engines)
+
+Pure C11/C++20/C++23/HIP inference engines built specifically for the AMD Ryzen AI Max+ 395 ("Strix Halo", `gfx1151`) APU:
+
+- **`gufo`** ([`gufo-org/gufo`](https://github.com/gufo-org/gufo)): Modular Source Extension Architecture, `gufo speak` (voice assistant), `gufo decide`, `/v1/realtime` WebSockets, and Qwen-Image-2.1-Turbo.
+- **`gufo-franzmoca`** ([`franzmoca/gufo`](https://github.com/franzmoca/gufo)): 763B DeepSeek-V4.1-Flash (at up to 1M context with NVMe `--stream-experts` and dual-SSD split streaming) + Gemma 4 (26B-A4B & 31B) with MTP speculative decoding.
+- **`gufetto`** ([`fewtarius/gufetto`](https://github.com/fewtarius/gufetto)): C++23 runtime with Flash-Next rotated Q4/Q8 KV cache, multi-prefix pinning (`--pin-prefix-dir`), and Measured Model Admission Planner (`gufo diagnose --plan`).
+
+```bash
+# Install canonical upstream gufo:
+brew install gufo
+
+# Or install franzmoca's DeepSeek-V4.1-Flash & Gemma 4 engine:
+brew install gufo-franzmoca
+
+# Or install fewtarius's rotated KV cache & multi-prefix pinning runtime:
+brew install gufetto
+
+# Start OpenAI-compatible server on port 8080:
+gufo serve --host 127.0.0.1 --port 8080
+```
+
+---
+
+### ⚡ `strixite` (Zero-Dependency Qwen3.8-Flash-Next Strix Halo Engine)
+From-scratch C++20/HIP inference runtime by Shawn Shekari ([`shawnshekari/strixite`](https://github.com/shawnshekari/strixite)) for Strix Halo (`gfx1151`). Converts safetensors directly to `.strixw` v2 weights with zero external library dependencies.
+
+```bash
+brew install strixite
+
+# Convert HuggingFace safetensors:
+convert_qwen4exp /path/to/hf-weights /path/to/strixw --int4-shared
+
+# Launch server on port 5300:
+strix_server --model /path/to/strixw --port 5300 --kv-mode fp8 --mtp-draft 3
+```
+
+---
+
+### 🏔️ `strata` & `project-maya` (Tiered MoE Multi-Model Engines)
+Hybrid C++/Python engines designed for tiered GPU/CPU MoE inference across Strix Halo, discrete AMD RDNA3/RDNA4 GPUs, Apple Silicon Metal, and NVIDIA CUDA:
+
+- **`strata`** ([`Niko1221/Strata`](https://github.com/Niko1221/Strata)): Tiered inference for Qwen3.8-Flash-Next, Qwen3.6-35B-A3B, and DeepSeek-V4.1-Flash with multi-GPU splitting (`strata-split-2/3/4`).
+- **`project-maya`** ([`mw00/project-maya`](https://github.com/mw00/project-maya)): Tiered inference for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1-Flash, and MiniMax-M3.1-Flash with runtime CPUID AVX-512 expert kernels.
+
+```bash
+# Install Strata:
+brew install strata
+
+# Install Project Maya:
+brew install project-maya
+
+# Launch servers:
+strata-cli --model qwen38 --port 8095
+maya-cli --model glm51 --port 8095
+```
+
+---
+
+### 🥋 `kyojin` (ExLlamaV3 Strix Halo & RDNA4 MoE Suite)
+Python + C++20/HIP fork of ExLlamaV3 by Yamz Labs ([`Yamz-Labs/kyojin`](https://github.com/Yamz-Labs/kyojin)) featuring 5 specialized model servers (`qwen`, `glm`, `mimo`, `ds41`, `flint`) with automatic Strix Halo ROCm 7 runtime environment configuration.
+
+```bash
+brew install kyojin
+
+# Start dedicated server:
+kyojin-serve qwen -m /path/to/qwen-exl3 --mtp --port 8000
+kyojin-serve ds41 -m /path/to/dsv41-gguf --ngram --port 8000
+```
+
+---
+
+### 🚀 `hyperqwen` (NVIDIA CUDA 13.0 Qwen3.8-27B Appliance)
+Turnkey NVIDIA CUDA 13.0 (`sm_80`/`sm_86`/`sm_89`/`sm_120`) appliance by Syv AI ([`syv-ai/HyperQwen`](https://github.com/syv-ai/HyperQwen)) wrapping a patched vLLM 0.32.0 distribution with custom inline PTX Flash Attention and Local Symbol Acceleration (`liblsa.so`).
+
+```bash
+brew install hyperqwen
+
+# Start OpenAI-compatible vLLM server on port 18020:
+hyperqwen-serve
+```
+
+---
+
 ## 🛠️ In-Repo Automated Building & Maintenance
 
 All builder workflows are consolidated directly into this repository:
