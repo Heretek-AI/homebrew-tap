@@ -86,8 +86,15 @@ class Gufetto < Formula
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
 
+    prefix_paths = [
+      rocm_path,
+      HOMEBREW_PREFIX,
+      formula_opt_prefix("icu4c"),
+      formula_opt_prefix("openssl@3"),
+    ].join(";")
+
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
-           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX};#{formula_opt_prefix("icu4c")};#{formula_opt_prefix("openssl@3")}"
+           "-DCMAKE_PREFIX_PATH=#{prefix_paths}"
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 
