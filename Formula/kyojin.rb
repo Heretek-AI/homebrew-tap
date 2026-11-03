@@ -11,7 +11,7 @@ class Kyojin < Formula
   option "with-cuda", "Build for NVIDIA CUDA (sm_80+) instead of AMD ROCm"
 
   depends_on "ninja" => :build
-  depends_on "pkg-config" => :build
+  depends_on "pkgconf" => :build
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "python@3.12"
@@ -35,7 +35,7 @@ class Kyojin < Formula
       ENV["PYTORCH_ROCM_ARCH"] = build.with?("rdna4") ? "gfx1151;gfx1150;gfx1200;gfx1201" : "gfx1151"
       ENV.prepend_path "PATH", "#{rocm_path}/bin"
 
-      torch_index = ENV.fetch("KYOJI_TORCH_INDEX_URL", "https://download.pytorch.org/whl/nightly/rocm7.1")
+      torch_index = ENV.fetch("KYOJIN_TORCH_INDEX_URL", "https://download.pytorch.org/whl/nightly/rocm7.1")
       system pip, "install", "--pre", "torch", "torchvision", "pytorch-triton-rocm", "--index-url", torch_index
     end
 

@@ -280,9 +280,15 @@ def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "
         f'url "{tarball_url}"',
         content,
     )
+    current_ver_match = re.search(r'version\s+"([^"]+)"', content)
+    base_version = "0.0.0"
+    if current_ver_match:
+        base_version = current_ver_match.group(1).split("-git")[0]
+    new_version = f"{base_version}-git{commit_sha[:7]}"
+
     content = re.sub(
         r'version\s+"[^"]+"',
-        f'version "{commit_date}"',
+        f'version "{new_version}"',
         content,
         count=1,
     )

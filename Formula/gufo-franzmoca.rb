@@ -1,5 +1,5 @@
 class GufoFranzmoca < Formula
-  desc "Strix Halo (gfx1151) inference engine with DeepSeek-V4.1-Flash (763B) & Gemma 4 MTP"
+  desc "Strix Halo engine with DeepSeek-V4.1-Flash (763B) & Gemma 4 MTP"
   homepage "https://github.com/franzmoca/gufo"
   url "https://github.com/franzmoca/gufo/archive/01fb6f4e39464003efffd97d79607005146280f0.tar.gz"
   version "0.28.1-franzmoca-git01fb6f4"
@@ -7,12 +7,16 @@ class GufoFranzmoca < Formula
   license "Apache-2.0"
   head "https://github.com/franzmoca/gufo.git", branch: "main"
 
+  livecheck do
+    skip "Tracks upstream commit"
+  end
+
   option "without-tools", "Skip building DeepSeek-V4.1-Flash & Gemma 4 verification/streaming tools"
   option "with-znver4", "Compile host code with -march=znver4 + AVX-512 instead of -march=znver5"
 
   depends_on "cmake" => :build
   depends_on "ninja" => :build
-  depends_on "pkg-config" => :build
+  depends_on "pkgconf" => :build
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"

@@ -1,11 +1,15 @@
 class Hyperqwen < Formula
-  desc "NVIDIA CUDA 13.0 patched vLLM 0.32.0 appliance for Qwen3.8-27B-AWQ with custom PTX FA & LSA"
+  desc "NVIDIA CUDA 13.0 patched vLLM 0.32.0 appliance for Qwen3.8-27B-AWQ"
   homepage "https://github.com/syv-ai/HyperQwen"
   url "https://github.com/syv-ai/HyperQwen/archive/6ab9bd05cb84b538a6595d634f3e337ac8a80856.tar.gz"
   version "0.1.0"
   sha256 "679dcdcf4a95781eb827291469f7c5fa072f5a1bef880daf7e9b95595706ff1a"
   license :cannot_represent
   head "https://github.com/syv-ai/HyperQwen.git", branch: "main"
+
+  livecheck do
+    skip "Tracks upstream commit"
+  end
 
   depends_on "cmake" => :build
   depends_on "git" => :build
@@ -81,7 +85,7 @@ class Hyperqwen < Formula
       MODEL="${HYPERQWEN_MODEL:-QuantTrio/Qwen3.8-27B-AWQ}"
       PORT="${HYPERQWEN_PORT:-18020}"
       exec "#{libexec}/venv/bin/vllm" serve "${MODEL}" \\
-        --host 0.0.0.0 \\
+        --host 127.0.0.1 \\
         --port "${PORT}" \\
         --trust-remote-code \\
         --quantization awq_marlin \\

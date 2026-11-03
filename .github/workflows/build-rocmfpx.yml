@@ -776,7 +776,7 @@ jobs:
         existing_tags=$(gh release list --limit 1000 --json tagName --jq '.[].tagName' | grep -E '^b[0-9]{4}$' | sort -V || echo "")
         
         if [ -z "$existing_tags" ]; then
-          next_number=1000
+          next_number=1135
         else
           highest_tag=$(echo "$existing_tags" | tail -n 1)
           highest_number=$(echo "$highest_tag" | sed 's/^b//')

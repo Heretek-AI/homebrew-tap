@@ -1,5 +1,5 @@
 class Strixite < Formula
-  desc "Zero-dependency C++20/HIP inference engine for Qwen3.8-Flash-Next on AMD Strix Halo (gfx1151)"
+  desc "Zero-dependency C++20/HIP inference engine for AMD Strix Halo (gfx1151)"
   homepage "https://github.com/shawnshekari/strixite"
   url "https://github.com/shawnshekari/strixite/archive/b455955a89683a16d0b71db0fd20b9f369d524d9.tar.gz"
   version "0.5.0"
@@ -7,10 +7,14 @@ class Strixite < Formula
   license "AGPL-3.0-only"
   head "https://github.com/shawnshekari/strixite.git", branch: "main"
 
+  livecheck do
+    skip "Tracks upstream commit"
+  end
+
   option "with-portable-cpu", "Compile host code with -march=x86-64-v3 instead of -march=znver5"
 
   depends_on "cmake" => :build
-  depends_on "gcc" => :build
+  depends_on "gcc"
   depends_on "lld" => :build
   depends_on "ninja" => :build
   depends_on :linux
@@ -54,6 +58,7 @@ class Strixite < Formula
     bin.install "build/check_stream_calls"
 
     (etc/"strixite").install "strix_server.example.conf"
+    (etc/"strixite/strix_server.conf").write (etc/"strixite/strix_server.example.conf").read unless (etc/"strixite/strix_server.conf").exist?
     doc.install "README.md", "docs"
   end
 

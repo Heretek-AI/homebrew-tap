@@ -1,13 +1,17 @@
 class ProjectMaya < Formula
   include Language::Python::Virtualenv
 
-  desc "Tiered MoE inference engine for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1 & MiniMax-M3.1"
+  desc "Tiered MoE engine for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1 & MiniMax"
   homepage "https://github.com/mw00/project-maya"
   url "https://github.com/mw00/project-maya/archive/3c935e411cd6625a9af0f292dd0af52598e866d8.tar.gz"
   version "1.1.52"
   sha256 "739cbbf961339961314f6902962b2ffd65ac9179b3150712ddf123c3aee4b733"
   license :cannot_represent
   head "https://github.com/mw00/project-maya.git", branch: "main"
+
+  livecheck do
+    skip "Tracks upstream commit"
+  end
 
   option "with-wave64", "Compile HIP kernels for AMD Wave64 CDNA/Vega GPUs (gfx906;gfx908;gfx942;gfx950)"
   option "with-cuda", "Build with NVIDIA CUDA backend instead of AMD ROCm/HIP"

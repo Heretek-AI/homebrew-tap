@@ -8,8 +8,7 @@ class Gufo < Formula
   head "https://github.com/gufo-org/gufo.git", branch: "main"
 
   livecheck do
-    url :stable
-    strategy :github_latest
+    skip "Tracks upstream commit"
   end
 
   option "with-tools", "Build and install developer tools (simple_chat, bench_q8_1, tune_hipblaslt, verify_*)"
@@ -17,7 +16,7 @@ class Gufo < Formula
 
   depends_on "cmake" => :build
   depends_on "ninja" => :build
-  depends_on "pkg-config" => :build
+  depends_on "pkgconf" => :build
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"

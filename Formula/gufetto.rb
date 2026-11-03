@@ -1,11 +1,15 @@
 class Gufetto < Formula
-  desc "C11/C++23/HIP Strix Halo (gfx1151) runtime with rotated Q4/Q8 KV cache & multi-prefix pinning"
+  desc "C11/C++23/HIP Strix Halo runtime with rotated KV cache & prefix pinning"
   homepage "https://github.com/fewtarius/gufetto"
   url "https://github.com/fewtarius/gufetto/archive/64f5d1afb0d4b60780b0ccc285a1d11e47e56800.tar.gz"
   version "0.26.0-gufetto-git64f5d1a"
   sha256 "3fa73c3b7e508aaec42b830bb756821cda42169773718245f78efb2a50615952"
   license "Apache-2.0"
   head "https://github.com/fewtarius/gufetto.git", branch: "main"
+
+  livecheck do
+    skip "Tracks upstream commit"
+  end
 
   option "with-bf16-k-control", "Enable experimental bf16/q8_0-rotated and bf16/q4_0-rotated KV cache modes"
   option "without-npu", "Disable experimental AMD XDNA 2 NPU runtime support (dlopen libxrt_coreutil.so.2)"
@@ -14,7 +18,7 @@ class Gufetto < Formula
 
   depends_on "cmake" => :build
   depends_on "ninja" => :build
-  depends_on "pkg-config" => :build
+  depends_on "pkgconf" => :build
   depends_on "giflib"
   depends_on "jpeg-turbo"
   depends_on "libpng"

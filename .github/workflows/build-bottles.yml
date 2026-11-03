@@ -68,7 +68,7 @@ jobs:
 
       - name: Set up Homebrew
         if: steps.filter.outputs.skip != 'true'
-        uses: Homebrew/actions/setup-homebrew@master
+        uses: Homebrew/actions/setup-homebrew@main
 
       - name: Configure Tap & Audit Formula Style
         if: steps.filter.outputs.skip != 'true'

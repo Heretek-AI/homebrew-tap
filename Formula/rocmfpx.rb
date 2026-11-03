@@ -1,14 +1,14 @@
 class Rocmfpx < Formula
   desc "High-Performance AMD ROCm 7 llama.cpp Inference Stack (Upstream)"
   homepage "https://github.com/charlie12345/ROCmFPX"
-  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1121/q38rocm-b1121-ubuntu-rocm-gfx1151-x64.zip"
+  url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1134/kingjones-rocmfpx-b1134-ubuntu-rocm-gfx1151-x64.zip"
   version "1134"
-  sha256 "862e80da5c1e2c936b2b8ec2475ed4170eea1d9b9c691328c0c9cc1c1de4217f"
+  sha256 "cafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeef"
   license "MIT"
 
   livecheck do
     url :stable
-    regex(%r{href=.*?/tag/v?(b\d+)["' >]}i)
+    regex(%r{href=.*?/tag/v?b?(\d+)["' >]}i)
   end
 
   option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
@@ -85,7 +85,7 @@ class Rocmfpx < Formula
   end
 
   service do
-    run [opt_bin/"llama-server", "--host", "0.0.0.0", "--port", "8080"]
+    run [opt_bin/"llama-server", "--host", "127.0.0.1", "--port", "8080"]
     keep_alive true
     log_path var/"log/rocmfpx.log"
     error_log_path var/"log/rocmfpx.error.log"

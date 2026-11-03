@@ -1,13 +1,17 @@
 class Strata < Formula
   include Language::Python::Virtualenv
 
-  desc "Tiered MoE inference engine for Qwen3.8-Flash-Next, Qwen3.6-35B & DeepSeek-V4.1-Flash"
+  desc "Tiered MoE engine for Qwen3.8-Flash-Next, Qwen3.6 & DeepSeek-V4.1"
   homepage "https://github.com/Niko1221/Strata"
   url "https://github.com/Niko1221/Strata/archive/ffa80d73133ea5c548aefe57889a16e8085a938f.tar.gz"
   version "0.2.10"
   sha256 "0ea269d1961646ad7574965044ecd04bdc75af27f535e4c2a81ca902a7eec584"
   license :cannot_represent
   head "https://github.com/Niko1221/Strata.git", branch: "main"
+
+  livecheck do
+    skip "Tracks upstream commit"
+  end
 
   option "with-all-amdgpu", "Compile HIP kernels for all supported AMD GPUs (gfx906..gfx1201)"
   option "with-cuda", "Build with NVIDIA CUDA backend instead of AMD ROCm/HIP"

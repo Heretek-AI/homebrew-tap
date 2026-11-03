@@ -17,7 +17,7 @@ class Shimmy < Formula
   end
 
   service do
-    run [opt_bin/"shimmy", "serve", "--port", "11434", "--host", "0.0.0.0"]
+    run [opt_bin/"shimmy", "serve", "--port", "11434", "--host", "127.0.0.1"]
     keep_alive true
     log_path var/"log/shimmy.log"
     error_log_path var/"log/shimmy.error.log"

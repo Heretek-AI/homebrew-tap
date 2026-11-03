@@ -52,8 +52,9 @@ brew services start rocmfpx
 ```
 
 > [!IMPORTANT]
-> **⚡ Zero-Dependency Guarantee — Built-in ROCm™ 7 Runtimes**:  
-> Linux ROCm packages bundle AMD ROCm 7 runtime libraries (`libhipblas.so`, `librocblas.so`, `libamdhip64.so`, `libhipblaslt.so`, and BLAS kernel packages) linked via portable `$ORIGIN` RPATHs.
+> **⚡ Zero-Dependency Precompiled Runtimes vs. Source Builds**:  
+> - **Precompiled Packages & Bottles (`rocmfpx`, `stable-diffusion-cpp`, and prebuilt bottles):** Bundle complete AMD ROCm 7 runtime libraries (`libhipblas.so`, `librocblas.so`, `libamdhip64.so`, `libhipblaslt.so`) linked via portable `$ORIGIN` RPATHs.
+> - **Source Builds (`gufo`, `gufetto`, `strixite`, `strata`, `project-maya`, `kyojin`):** Building from source requires an AMD ROCm 7+ SDK installation at `/opt/rocm` (or specified via `ROCM_PATH`).
 
 ---
 

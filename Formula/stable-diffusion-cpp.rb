@@ -1,14 +1,14 @@
 class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
-  url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-841-6b3edaa/sd-master-6b3edaa-bin-Darwin-macOS-26.5.2-arm64.zip"
+  url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-975-95b3090/sd-master-95b3090-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip"
   version "975"
-  sha256 "1c7d0ddc18752cd88c084e0a636444697a0caea96763dcebdc08089ecf57b72f"
+  sha256 "703f547a0bbe254979940ec6142a87b4af6acbc01d34e37358f4feabb430a225"
   license "MIT"
 
   livecheck do
     url :stable
-    regex(%r{href=.*?/tag/v?master[._-](\d+)[._-]([a-f0-9]+)["' >]}i)
+    regex(%r{href=.*?/tag/v?master[._-](\d+)[._-][a-f0-9]+["' >]}i)
   end
 
   option "with-rocm", "Install AMD ROCm GPU accelerated build"
@@ -71,7 +71,7 @@ class StableDiffusionCpp < Formula
   end
 
   service do
-    run [opt_bin/"sd-server", "--host", "0.0.0.0", "--port", "8080"]
+    run [opt_bin/"sd-server", "--host", "127.0.0.1", "--port", "8080"]
     keep_alive true
     log_path var/"log/stable-diffusion-cpp.log"
     error_log_path var/"log/stable-diffusion-cpp.error.log"
