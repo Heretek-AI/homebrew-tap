@@ -125,11 +125,11 @@ class ProjectMaya < Formula
         strata-plan strata-device strata-gguf strata-dequant
         strata-load strata-concurrent strata-overlap
       ].each do |tool|
-        if File.exist?("build/#{tool}")
-          (libexec/"build").install "build/#{tool}"
-          alias_name = tool.start_with?("strata-") ? tool.sub("strata-", "maya-") : "maya-#{tool.tr("_", "-")}"
-          bin.install_symlink libexec/"build/#{tool}" => alias_name
-        end
+        next unless File.exist?("build/#{tool}")
+
+        (libexec/"build").install "build/#{tool}"
+        alias_name = tool.start_with?("strata-") ? tool.sub("strata-", "maya-") : "maya-#{tool.tr("_", "-")}"
+        bin.install_symlink libexec/"build/#{tool}" => alias_name
       end
       if File.exist?("build/vision/maya-vision")
         (libexec/"build").install "build/vision/maya-vision"
@@ -180,6 +180,6 @@ class ProjectMaya < Formula
 
   test do
     assert_match "MAYA", shell_output("#{bin}/maya-cli --help")
-    assert_match "GPU", shell_output("#{bin}/maya-device 2>&1", 0) if File.exist?(bin/"maya-device")
+    assert_match "GPU", shell_output("#{bin}/maya-device 2>&1") if File.exist?(bin/"maya-device")
   end
 end

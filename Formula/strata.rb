@@ -92,7 +92,7 @@ class Strata < Formula
       system "cmake", "-S", ".", "-B", "build", *args, *std_cmake_args
       system "cmake", "--build", "build"
 
-      vision_target = (!build.with?("cuda") && !build.with?("sycl")) ? "strata-vision-hip" : "strata-vision"
+      vision_target = (build.without?("cuda") && build.without?("sycl")) ? "strata-vision-hip" : "strata-vision"
       vision_args = %W[
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release
@@ -134,16 +134,16 @@ class Strata < Formula
         strata-device strata-plan strata-gguf strata-dequant
         strata-load strata-concurrent strata-overlap
       ].each do |b|
-        if File.exist?("build/#{b}")
-          (libexec/"build").install "build/#{b}"
-          bin.install_symlink libexec/"build/#{b}" => b
-        end
+        next unless File.exist?("build/#{b}")
+
+        (libexec/"build").install "build/#{b}"
+        bin.install_symlink libexec/"build/#{b}" => b
       end
       %w[strata-vision-hip strata-vision].each do |vb|
-        if File.exist?("build/vision/#{vb}")
-          (libexec/"build").install "build/vision/#{vb}"
-          bin.install_symlink libexec/"build/#{vb}" => vb
-        end
+        next unless File.exist?("build/vision/#{vb}")
+
+        (libexec/"build").install "build/vision/#{vb}"
+        bin.install_symlink libexec/"build/#{vb}" => vb
       end
     end
 
@@ -190,6 +190,6 @@ class Strata < Formula
 
   test do
     assert_match "STRATA", shell_output("#{bin}/strata-cli --help")
-    assert_match "GPU", shell_output("#{bin}/strata-device 2>&1", 0) if File.exist?(bin/"strata-device")
+    assert_match "GPU", shell_output("#{bin}/strata-device 2>&1") if File.exist?(bin/"strata-device")
   end
 end

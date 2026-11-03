@@ -12,14 +12,14 @@ class Kyojin < Formula
 
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on :linux
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "python@3.12"
-  depends_on :linux
 
   def install
     rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-    python3 = Formula["python@3.12"].opt_bin/"python3.12"
+    python3 = formula_opt_bin("python@3.12")/"python3.12"
 
     system python3, "-m", "venv", libexec/"venv"
     pip = libexec/"venv/bin/pip"

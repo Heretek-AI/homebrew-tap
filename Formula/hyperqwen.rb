@@ -14,8 +14,8 @@ class Hyperqwen < Formula
   depends_on "cmake" => :build
   depends_on "git" => :build
   depends_on "ninja" => :build
-  depends_on "python@3.12"
   depends_on :linux
+  depends_on "python@3.12"
 
   resource "cutlass" do
     url "https://github.com/NVIDIA/cutlass/archive/refs/tags/v4.2.1.tar.gz"
@@ -45,7 +45,7 @@ class Hyperqwen < Formula
     resource("cutlass").stage cutlass_dir
     ENV["CUTLASS_DIR"] = cutlass_dir.to_s
     inreplace "fa2/setup.py",
-              'cmake_args = [',
+              "cmake_args = [",
               "cmake_args = [\"-DCUTLASS_DIR=#{cutlass_dir}\","
 
     # 2. Stage xgrammar offline and patch patches/apply.py to use local checkout
@@ -64,7 +64,7 @@ class Hyperqwen < Formula
            "lsa/lsa.cu", "-o", libexec/"lib/liblsa.so", "-lcuda"
 
     # 4. Create isolated Python 3.12 virtualenv and install vLLM + custom extensions + 61 patches
-    python3 = Formula["python@3.12"].opt_bin/"python3.12"
+    python3 = formula_opt_bin("python@3.12")/"python3.12"
     system python3, "-m", "venv", libexec/"venv"
     pip = libexec/"venv/bin/pip"
     system pip, "install", "--upgrade", "pip", "setuptools", "wheel", "ninja", "cmake", "pybind11"

@@ -19,18 +19,20 @@ class Gufetto < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on :linux
   depends_on "giflib"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "webp"
-  depends_on :linux
 
   conflicts_with "gufo", because: "both install `gufo` and `gufo-server` binaries"
   conflicts_with "gufo-franzmoca", because: "both install `gufo` and `gufo-server` binaries"
 
   def install
     rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-    odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK." unless Dir.exist?(rocm_path)
+    unless Dir.exist?(rocm_path)
+      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK."
+    end
 
     if File.exist?("tools/tune_hipblaslt.cpp")
       inreplace "tools/tune_hipblaslt.cpp",

@@ -14,23 +14,25 @@ class Strixite < Formula
   option "with-portable-cpu", "Compile host code with -march=x86-64-v3 instead of -march=znver5"
 
   depends_on "cmake" => :build
-  depends_on "gcc"
   depends_on "lld" => :build
   depends_on "ninja" => :build
   depends_on :linux
+  depends_on "gcc"
 
   def install
     rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-    odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK." unless Dir.exist?(rocm_path)
+    unless Dir.exist?(rocm_path)
+      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK."
+    end
 
-    ENV.prepend_path "PATH", Formula["lld"].opt_bin
+    ENV.prepend_path "PATH", formula_opt_bin("lld")
     ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin" if Dir.exist?("#{rocm_path}/llvm/bin")
 
     # Dynamically detect the GCC installation directory containing crtbeginS.o & libstdc++ headers
     gcc_major = Formula["gcc"].any_installed_version.major
-    gxx_bin = Formula["gcc"].opt_bin/"g++-#{gcc_major}"
+    gxx_bin = formula_opt_bin("gcc")/"g++-#{gcc_major}"
     gcc_install_dir = Utils.safe_popen_read(gxx_bin.to_s, "-print-search-dirs")[/^install:\s*(.+)$/, 1]&.strip
-    gcc_install_dir = Formula["gcc"].opt_prefix.to_s if gcc_install_dir.blank?
+    gcc_install_dir = formula_opt_prefix("gcc").to_s if gcc_install_dir.blank?
 
     host_arch = build.with?("portable-cpu") ? "x86-64-v3" : "znver5"
 
@@ -42,7 +44,7 @@ class Strixite < Formula
       -DSTRIX_ROCM_ROOT=#{rocm_path}
       -DSTRIX_GCC_INSTALL_DIR=#{gcc_install_dir}
       -DSTRIX_HOST_ARCH=#{host_arch}
-      -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{Formula["gcc"].opt_lib}/gcc/current
+      -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{formula_opt_lib("gcc")}/gcc/current
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
 
@@ -58,7 +60,8 @@ class Strixite < Formula
     bin.install "build/check_stream_calls"
 
     (etc/"strixite").install "strix_server.example.conf"
-    (etc/"strixite/strix_server.conf").write (etc/"strixite/strix_server.example.conf").read unless (etc/"strixite/strix_server.conf").exist?
+    default_conf = etc/"strixite/strix_server.conf"
+    default_conf.write (etc/"strixite/strix_server.example.conf").read unless default_conf.exist?
     doc.install "README.md", "docs"
   end
 

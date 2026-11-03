@@ -17,6 +17,7 @@ class Gufo < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on :linux
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"
@@ -27,14 +28,15 @@ class Gufo < Formula
   depends_on "libsoxr"
   depends_on "openssl@3"
   depends_on "webp"
-  depends_on :linux
 
   conflicts_with "gufo-franzmoca", because: "both install `gufo` and `gufo-server` binaries"
   conflicts_with "gufetto", because: "both install `gufo` and `gufo-server` binaries"
 
   def install
     rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-    odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK." unless Dir.exist?(rocm_path)
+    unless Dir.exist?(rocm_path)
+      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm 7+ SDK."
+    end
 
     # 1. Prevent embedding versioned Cellar/ffmpeg/<ver> paths via file(REAL_PATH)
     if File.exist?("src/models/embedding_gemma2/CMakeLists.txt")
@@ -57,15 +59,15 @@ class Gufo < Formula
                 'set(GUFO_MARCH_FLAG "-march=znver4 -mavx512f -mavx512bf16 -mavx512bw -mavx512dq -mavx512vl")'
     end
 
-    ENV.prepend_path "PKG_CONFIG_PATH", "#{Formula["icu4c"].opt_lib}/pkgconfig"
-    ENV.prepend_path "PKG_CONFIG_PATH", "#{Formula["openssl@3"].opt_lib}/pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
 
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
       -DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}
       -DCMAKE_HIP_ARCHITECTURES=gfx1151
-      -DGUFO_FFMPEG_LIBDIR=#{Formula["ffmpeg"].opt_lib}
+      -DGUFO_FFMPEG_LIBDIR=#{formula_opt_lib("ffmpeg")}
       -DGUFO_BUILD_TESTS=OFF
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
