@@ -3,7 +3,7 @@ class Rocmfpx < Formula
   homepage "https://github.com/charlie12345/ROCmFPX"
   url "https://github.com/Heretek-AI/ROCmFPX-BUILDER/releases/download/b1134/kingjones-rocmfpx-b1134-ubuntu-rocm-gfx1151-x64.zip"
   version "1134"
-  sha256 "cafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeefcafebeef"
+  sha256 "30aa8da078bc78c719277b12cd9cc464a5a37032c653e5052ef24d12c9b07abd"
   license "MIT"
 
   livecheck do

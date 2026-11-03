@@ -149,8 +149,7 @@ jobs:
             flags: ""
             os: ubuntu-24.04
             name: "hyperqwen [Linux CUDA sm_80+]"
-            binaries: "hyperqwen-bench"
-            continue_on_error: true
+            binaries: "hyperqwen hyperqwen-serve hyperqwen-bench"
 
     name: ${{ matrix.name }}
     continue-on-error: ${{ matrix.continue_on_error || false }}
@@ -176,9 +175,26 @@ jobs:
           echo "Provisioning latest ROCm SDK from $URL"
           sudo mkdir -p /opt/rocm
           curl -sL --retry 3 "$URL" | sudo tar -xz -C /opt/rocm
+          if [ -d /opt/rocm/lib/llvm ] && [ ! -d /opt/rocm/llvm ]; then
+            sudo ln -sf /opt/rocm/lib/llvm /opt/rocm/llvm
+          fi
+          if [ -f /opt/rocm/lib/llvm/bin/clang++ ]; then
+            sudo mkdir -p /opt/rocm/bin
+            [ ! -f /opt/rocm/bin/hipcc ] && sudo ln -sf /opt/rocm/lib/llvm/bin/clang++ /opt/rocm/bin/hipcc
+            [ ! -f /opt/rocm/bin/amdclang++ ] && sudo ln -sf /opt/rocm/lib/llvm/bin/clang++ /opt/rocm/bin/amdclang++
+          fi
           echo "ROCM_PATH=/opt/rocm" >> "$GITHUB_ENV"
+          echo "HIP_PATH=/opt/rocm" >> "$GITHUB_ENV"
           echo "/opt/rocm/bin" >> "$GITHUB_PATH"
+          echo "/opt/rocm/lib/llvm/bin" >> "$GITHUB_PATH"
           echo "/opt/rocm/llvm/bin" >> "$GITHUB_PATH"
+
+      - name: Provision NVIDIA CUDA Toolkit
+        if: runner.os == 'Linux' && contains(matrix.name, 'CUDA')
+        uses: Jimver/cuda-toolkit@v0.2.34
+        with:
+          cuda: '12.8.0'
+          method: 'network'
 
       - name: Set up Homebrew
         id: set-up-homebrew

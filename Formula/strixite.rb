@@ -25,8 +25,26 @@ class Strixite < Formula
       odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+)."
     end
 
+    ENV["ROCM_PATH"] = rocm_path
+    ENV["HIP_PATH"] = rocm_path
     ENV.prepend_path "PATH", formula_opt_bin("lld")
-    ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin" if Dir.exist?("#{rocm_path}/llvm/bin")
+    ENV.prepend_path "PATH", "#{rocm_path}/bin"
+    ENV.prepend_path "PATH", "#{rocm_path}/lib/llvm/bin"
+    ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
+
+    clangxx = [
+      "#{rocm_path}/lib/llvm/bin/clang++",
+      "#{rocm_path}/llvm/bin/clang++",
+      "#{rocm_path}/bin/amdclang++",
+      "#{rocm_path}/bin/clang++",
+    ].find { |c| File.executable?(c) } || "#{rocm_path}/llvm/bin/clang++"
+
+    clang = [
+      "#{rocm_path}/lib/llvm/bin/clang",
+      "#{rocm_path}/llvm/bin/clang",
+      "#{rocm_path}/bin/amdclang",
+      "#{rocm_path}/bin/clang",
+    ].find { |c| File.executable?(c) } || "#{rocm_path}/llvm/bin/clang"
 
     # Dynamically detect the GCC installation directory containing crtbeginS.o & libstdc++ headers
     gcc_major = Formula["gcc"].any_installed_version.major
@@ -39,8 +57,11 @@ class Strixite < Formula
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_CXX_COMPILER=#{rocm_path}/llvm/bin/clang++
-      -DCMAKE_C_COMPILER=#{rocm_path}/llvm/bin/clang
+      -DCMAKE_CXX_COMPILER=#{clangxx}
+      -DCMAKE_C_COMPILER=#{clang}
+      -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
+      -DHIP_ROOT_DIR=#{rocm_path}
+      -DHIP_PATH=#{rocm_path}
       -DSTRIX_ROCM_ROOT=#{rocm_path}
       -DSTRIX_GCC_INSTALL_DIR=#{gcc_install_dir}
       -DSTRIX_HOST_ARCH=#{host_arch}
@@ -48,7 +69,8 @@ class Strixite < Formula
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
 
-    system "cmake", "-S", ".", "-B", "build", *args, *std_cmake_args
+    system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
+           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
     system "cmake", "--build", "build"
 
     bin.install "build/strix_server"

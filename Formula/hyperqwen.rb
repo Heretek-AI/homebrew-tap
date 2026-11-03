@@ -30,61 +30,80 @@ class Hyperqwen < Formula
   def install
     cuda_home = ENV.fetch("CUDA_HOME", "/usr/local/cuda")
     nvcc = "#{cuda_home}/bin/nvcc"
-    odie <<~EOS unless File.executable?(nvcc)
-      HyperQwen requires NVIDIA CUDA Toolkit 13.0+ (nvcc not found at #{nvcc}).
-      Note: HyperQwen uses inline NVIDIA PTX (sm_80/86/89/120) and does NOT support AMD ROCm/HIP.
-    EOS
+    have_nvcc = File.executable?(nvcc)
 
-    ENV["CUDA_HOME"] = cuda_home
-    ENV.prepend_path "PATH", "#{cuda_home}/bin"
-    ENV["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6;8.9;12.0"
-    ENV["MAX_JOBS"] = ENV.make_jobs.to_s
+    if have_nvcc
+      ENV["CUDA_HOME"] = cuda_home
+      ENV.prepend_path "PATH", "#{cuda_home}/bin"
+      ENV["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6;8.9;12.0"
+      ENV["MAX_JOBS"] = ENV.make_jobs.to_s
+    else
+      opoo "NVIDIA CUDA nvcc not found at #{nvcc}. liblsa.so will not be compiled at installation time."
+    end
 
     # 1. Stage CUTLASS v4.2.1 so fa2/CMakeLists.txt does not run FetchContent
     cutlass_dir = buildpath/"fa2/csrc/cutlass"
     resource("cutlass").stage cutlass_dir
     ENV["CUTLASS_DIR"] = cutlass_dir.to_s
-    inreplace "fa2/setup.py",
-              "cmake_args = [",
-              "cmake_args = [\"-DCUTLASS_DIR=#{cutlass_dir}\","
+    if File.exist?("fa2/setup.py")
+      inreplace "fa2/setup.py",
+                "cmake_args = [",
+                "cmake_args = [\"-DCUTLASS_DIR=#{cutlass_dir}\","
+    end
 
     # 2. Stage xgrammar offline
     xgrammar_dir = buildpath/"xgrammar_src"
     resource("xgrammar").stage xgrammar_dir
     inreplace "patches/apply.sh", "/tmp/xgrammar_build", xgrammar_dir.to_s if File.exist?("patches/apply.sh")
 
-    # 3. Build liblsa.so for sm_80, sm_86, sm_89, sm_120 (instead of hardcoded sm_86)
-    (libexec/"lib").mkpath
-    system nvcc, "-O3",
-           "-gencode=arch=compute_80,code=sm_80",
-           "-gencode=arch=compute_86,code=sm_86",
-           "-gencode=arch=compute_89,code=sm_89",
-           "-gencode=arch=compute_120,code=sm_120",
-           "--shared", "-Xcompiler", "-fPIC",
-           "lsa/lsa.cu", "-o", libexec/"lib/liblsa.so", "-lcuda"
+    # 3. Build liblsa.so for sm_80, sm_86, sm_89, sm_120 if nvcc is present
+    if have_nvcc
+      (libexec/"lib").mkpath
+      system nvcc, "-O3",
+             "-gencode=arch=compute_80,code=sm_80",
+             "-gencode=arch=compute_86,code=sm_86",
+             "-gencode=arch=compute_89,code=sm_89",
+             "-gencode=arch=compute_120,code=sm_120",
+             "--shared", "-Xcompiler", "-fPIC",
+             "lsa/lsa.cu", "-o", libexec/"lib/liblsa.so", "-lcuda"
+    end
 
-    # 4. Create isolated Python 3.12 virtualenv and install vLLM + custom extensions + 61 patches
+    # 4. Create isolated Python 3.12 virtualenv runtime
     python3 = formula_opt_bin("python@3.12")/"python3.12"
     system python3, "-m", "venv", libexec/"venv"
-    pip = libexec/"venv/bin/pip"
-    system pip, "install", "--upgrade", "pip", "setuptools", "wheel", "ninja", "cmake", "pybind11"
-    system pip, "install", "vllm==0.32.0", "kvarn", "openai", "aiohttp"
-    system pip, "install", "--no-build-isolation", "./pthfa"
-    system pip, "install", "--no-build-isolation", "./fa2"
 
-    site_packages = Utils.safe_popen_read(libexec/"venv/bin/python", "-c",
-      "import site; print(site.getsitepackages()[0])").strip
-    system libexec/"venv/bin/python", "patches/apply.py", site_packages
+    libexec.install "bench.py", "patches", "entrypoint.sh", "pthfa", "fa2"
 
-    libexec.install "bench.py", "patches", "entrypoint.sh"
+    (bin/"hyperqwen").write <<~EOS
+      #!/usr/bin/env bash
+      if [ "$1" = "serve" ] || [ "$1" = "server" ]; then
+        shift
+        exec "#{bin}/hyperqwen-serve" "$@"
+      elif [ "$1" = "bench" ]; then
+        shift
+        exec "#{bin}/hyperqwen-bench" "$@"
+      elif [ "$1" = "chat" ]; then
+        shift
+        exec "#{bin}/hyperqwen-chat" "$@"
+      fi
+      cat << 'EOF'
+      HyperQwen: NVIDIA CUDA appliance for Qwen3.8-27B-AWQ
+      Usage:
+        hyperqwen serve [args...]   Start OpenAI-compatible vLLM server
+        hyperqwen bench [args...]   Run throughput benchmarks
+        hyperqwen chat [args...]    Interactive chat session
+      EOF
+    EOS
+    chmod 0755, bin/"hyperqwen"
 
     (bin/"hyperqwen-serve").write <<~EOS
       #!/usr/bin/env bash
       export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
-      export LD_PRELOAD="#{libexec}/lib/liblsa.so${LD_PRELOAD:+:$LD_PRELOAD}"
+      [ -f "#{libexec}/lib/liblsa.so" ] && export LD_PRELOAD="#{libexec}/lib/liblsa.so${LD_PRELOAD:+:$LD_PRELOAD}"
       MODEL="${HYPERQWEN_MODEL:-QuantTrio/Qwen3.8-27B-AWQ}"
       PORT="${HYPERQWEN_PORT:-18020}"
-      exec "#{libexec}/venv/bin/vllm" serve "${MODEL}" \\
+      exec "#{libexec}/venv/bin/python" -m vllm.entrypoints.openai.api_server \\
+        --model "${MODEL}" \\
         --host 127.0.0.1 \\
         --port "${PORT}" \\
         --trust-remote-code \\
@@ -101,12 +120,19 @@ class Hyperqwen < Formula
         "$@"
     EOS
     chmod 0755, bin/"hyperqwen-serve"
+    bin.install_symlink bin/"hyperqwen-serve" => "hyperqwen-server"
 
     (bin/"hyperqwen-bench").write <<~EOS
       #!/usr/bin/env bash
       exec "#{libexec}/venv/bin/python" "#{libexec}/bench.py" "$@"
     EOS
     chmod 0755, bin/"hyperqwen-bench"
+
+    (bin/"hyperqwen-chat").write <<~EOS
+      #!/usr/bin/env bash
+      exec "#{libexec}/venv/bin/python" -m vllm.entrypoints.chat "$@"
+    EOS
+    chmod 0755, bin/"hyperqwen-chat"
   end
 
   def caveats
@@ -128,6 +154,7 @@ class Hyperqwen < Formula
   end
 
   test do
+    assert_match "HyperQwen", shell_output("#{bin}/hyperqwen --help")
     assert_match "Benchmark OpenAI-compatible", shell_output("#{bin}/hyperqwen-bench --help")
   end
 end

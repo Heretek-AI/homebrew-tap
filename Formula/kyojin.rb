@@ -34,6 +34,10 @@ class Kyojin < Formula
       ENV["HIP_PATH"] = rocm_path
       ENV["PYTORCH_ROCM_ARCH"] = build.with?("rdna4") ? "gfx1151;gfx1150;gfx1200;gfx1201" : "gfx1151"
       ENV.prepend_path "PATH", "#{rocm_path}/bin"
+      ENV.prepend_path "PATH", "#{rocm_path}/lib/llvm/bin"
+      ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
+      ENV.append "CPATH", "#{rocm_path}/include"
+      ENV.append "LDFLAGS", "-L#{rocm_path}/lib"
 
       torch_index = ENV.fetch("KYOJIN_TORCH_INDEX_URL", "https://download.pytorch.org/whl/nightly/rocm7.1")
       system pip, "install", "--pre", "torch", "torchvision", "pytorch-triton-rocm", "--index-url", torch_index
@@ -54,8 +58,8 @@ class Kyojin < Formula
            "jinja2>=3.1.0"
 
     # Enable AVX2/FMA/F16C SIMD kernels in cpu_IQ1_M.cpp and quantize_row_q8_K
-    ENV["CFLAGS"] = "-O3 -mavx2 -mfma -mf16c"
-    ENV["CXXFLAGS"] = "-O3 -mavx2 -mfma -mf16c"
+    ENV["CFLAGS"] = "-O3 -mavx2 -mfma -mf16c -I#{rocm_path}/include"
+    ENV["CXXFLAGS"] = "-O3 -mavx2 -mfma -mf16c -I#{rocm_path}/include"
     ENV["MAX_JOBS"] = ENV.make_jobs.to_s
 
     # AOT-compile exllamav3_ext C++/HIP extension into libexec/venv

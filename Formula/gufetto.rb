@@ -34,6 +34,19 @@ class Gufetto < Formula
       odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+)."
     end
 
+    ENV["ROCM_PATH"] = rocm_path
+    ENV["HIP_PATH"] = rocm_path
+    ENV.prepend_path "PATH", "#{rocm_path}/bin"
+    ENV.prepend_path "PATH", "#{rocm_path}/lib/llvm/bin"
+    ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
+
+    hip_compiler = [
+      "#{rocm_path}/bin/hipcc",
+      "#{rocm_path}/lib/llvm/bin/clang++",
+      "#{rocm_path}/llvm/bin/clang++",
+      "#{rocm_path}/bin/clang++",
+    ].find { |c| File.executable?(c) }
+
     if File.exist?("tools/tune_hipblaslt.cpp")
       inreplace "tools/tune_hipblaslt.cpp",
                 'GUFO_SOURCE_DIR "/share/gufo/hipblaslt_tuning.txt"',
@@ -49,8 +62,10 @@ class Gufetto < Formula
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}
       -DCMAKE_HIP_ARCHITECTURES=gfx1151
+      -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
+      -DHIP_ROOT_DIR=#{rocm_path}
+      -DHIP_PATH=#{rocm_path}
       -DGUFO_BUILD_TESTS=OFF
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
@@ -61,8 +76,10 @@ class Gufetto < Formula
       -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
+    args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
 
-    system "cmake", "-S", ".", "-B", "build", *args, *std_cmake_args
+    system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
+           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 
