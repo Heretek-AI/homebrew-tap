@@ -1,11 +1,11 @@
 class Gufetto < Formula
   desc "C11/C++23/HIP Strix Halo runtime with rotated KV cache & prefix pinning"
-  homepage "https://github.com/fewtarius/gufetto"
-  url "https://github.com/fewtarius/gufetto/archive/64f5d1afb0d4b60780b0ccc285a1d11e47e56800.tar.gz"
+  homepage "https://github.com/community-token-labs/gufetto"
+  url "https://github.com/community-token-labs/gufetto/archive/64f5d1afb0d4b60780b0ccc285a1d11e47e56800.tar.gz"
   version "0.26.0-gufetto-git64f5d1a"
   sha256 "3fa73c3b7e508aaec42b830bb756821cda42169773718245f78efb2a50615952"
   license "Apache-2.0"
-  head "https://github.com/fewtarius/gufetto.git", branch: "main"
+  head "https://github.com/community-token-labs/gufetto.git", branch: "main"
 
   livecheck do
     skip "Tracks upstream commit"
