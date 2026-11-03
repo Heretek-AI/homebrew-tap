@@ -51,6 +51,11 @@ class Strixite < Formula
     gxx_bin = formula_opt_bin("gcc")/"g++-#{gcc_major}"
     gcc_install_dir = Utils.safe_popen_read(gxx_bin.to_s, "-print-search-dirs")[/^install:\s*(.+)$/, 1]&.strip
     gcc_install_dir = formula_opt_prefix("gcc").to_s if gcc_install_dir.blank?
+    gcc_lib_dir = formula_opt_lib("gcc")/"gcc/current"
+
+    linker_flags = "-L#{gcc_install_dir} -L#{gcc_lib_dir} -L#{formula_opt_lib("gcc")} -L#{HOMEBREW_PREFIX}/lib"
+    linker_flags += " -L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu" if OS.linux?
+    ENV.append "LDFLAGS", linker_flags
 
     host_arch = build.with?("portable-cpu") ? "x86-64-v3" : "znver5"
 
@@ -65,6 +70,9 @@ class Strixite < Formula
       -DSTRIX_ROCM_ROOT=#{rocm_path}
       -DSTRIX_GCC_INSTALL_DIR=#{gcc_install_dir}
       -DSTRIX_HOST_ARCH=#{host_arch}
+      -DCMAKE_EXE_LINKER_FLAGS=#{linker_flags}
+      -DCMAKE_SHARED_LINKER_FLAGS=#{linker_flags}
+      -DCMAKE_MODULE_LINKER_FLAGS=#{linker_flags}
       -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{formula_opt_lib("gcc")}/gcc/current
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]

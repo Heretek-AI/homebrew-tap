@@ -52,9 +52,8 @@ class Hyperqwen < Formula
     end
 
     # 2. Stage xgrammar offline
-    xgrammar_dir = buildpath/"xgrammar_src"
+    xgrammar_dir = libexec/"xgrammar_src"
     resource("xgrammar").stage xgrammar_dir
-    inreplace "patches/apply.sh", "/tmp/xgrammar_build", xgrammar_dir.to_s if File.exist?("patches/apply.sh")
 
     # 3. Build liblsa.so for sm_80, sm_86, sm_89, sm_120 if nvcc is present
     if have_nvcc

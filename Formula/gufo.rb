@@ -45,21 +45,27 @@ class Gufo < Formula
     ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
 
     hip_compiler = [
-      "#{rocm_path}/bin/hipcc",
       "#{rocm_path}/lib/llvm/bin/clang++",
       "#{rocm_path}/llvm/bin/clang++",
+      "#{rocm_path}/bin/amdclang++",
       "#{rocm_path}/bin/clang++",
     ].find { |c| File.executable?(c) }
 
     # 1. Prevent embedding versioned Cellar/ffmpeg/<ver> paths via file(REAL_PATH)
-    if File.exist?("src/models/embedding_gemma2/CMakeLists.txt")
-      inreplace "src/models/embedding_gemma2/CMakeLists.txt",
-                'file(REAL_PATH "${_resolved}" _soname)',
-                'set(_soname "${_resolved}")'
+    ["src/models/embedding_gemma2/CMakeLists.txt", "src/models/embedding_gemma2/extension.cmake"].each do |f|
+      next unless File.exist?(f)
+
+      content = File.read(f)
+      if content.include?('file(REAL_PATH "${_resolved}" _soname)')
+        inreplace f, 'file(REAL_PATH "${_resolved}" _soname)', 'set(_soname "${_resolved}")'
+      elsif content.include?('file(REAL_PATH "${GUFO_${upper}_LIBRARY}" runtime)')
+        inreplace f, 'file(REAL_PATH "${GUFO_${upper}_LIBRARY}" runtime)', 'set(runtime "${GUFO_${upper}_LIBRARY}")'
+      end
     end
 
     # 2. Prevent embedding temporary buildpath in tune_hipblaslt if --with-tools is active
-    if File.exist?("tools/tune_hipblaslt.cpp")
+    if File.exist?("tools/tune_hipblaslt.cpp") &&
+       File.read("tools/tune_hipblaslt.cpp").include?('GUFO_SOURCE_DIR "/share/gufo/hipblaslt_tuning.txt"')
       inreplace "tools/tune_hipblaslt.cpp",
                 'GUFO_SOURCE_DIR "/share/gufo/hipblaslt_tuning.txt"',
                 "\"#{pkgshare}/hipblaslt_tuning.txt\""
@@ -94,7 +100,7 @@ class Gufo < Formula
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
 
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
-           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
+           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX};#{formula_opt_prefix("icu4c")};#{formula_opt_prefix("openssl@3")}"
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 

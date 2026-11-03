@@ -69,9 +69,9 @@ class ProjectMaya < Formula
         ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
 
         hip_compiler = [
-          "#{rocm_path}/bin/hipcc",
           "#{rocm_path}/lib/llvm/bin/clang++",
           "#{rocm_path}/llvm/bin/clang++",
+          "#{rocm_path}/bin/amdclang++",
           "#{rocm_path}/bin/clang++",
         ].find { |c| File.executable?(c) }
 

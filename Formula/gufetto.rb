@@ -19,10 +19,15 @@ class Gufetto < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on "curl"
   depends_on "giflib"
+  depends_on "icu4c"
   depends_on "jpeg-turbo"
   depends_on "libpng"
+  depends_on "libsndfile"
+  depends_on "libsoxr"
   depends_on :linux
+  depends_on "openssl@3"
   depends_on "webp"
 
   conflicts_with "gufo", because: "both install `gufo` and `gufo-server` binaries"
@@ -41,9 +46,9 @@ class Gufetto < Formula
     ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
 
     hip_compiler = [
-      "#{rocm_path}/bin/hipcc",
       "#{rocm_path}/lib/llvm/bin/clang++",
       "#{rocm_path}/llvm/bin/clang++",
+      "#{rocm_path}/bin/amdclang++",
       "#{rocm_path}/bin/clang++",
     ].find { |c| File.executable?(c) }
 
@@ -58,6 +63,9 @@ class Gufetto < Formula
                 'set(GUFO_MARCH_FLAG "-march=znver5")',
                 'set(GUFO_MARCH_FLAG "-march=znver4 -mavx512f -mavx512bf16 -mavx512bw -mavx512dq -mavx512vl")'
     end
+
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
 
     args = %W[
       -G Ninja
@@ -79,7 +87,7 @@ class Gufetto < Formula
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
 
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
-           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
+           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX};#{formula_opt_prefix("icu4c")};#{formula_opt_prefix("openssl@3")}"
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 
