@@ -12,9 +12,9 @@ class Kyojin < Formula
 
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
-  depends_on :linux
   depends_on "jpeg-turbo"
   depends_on "libpng"
+  depends_on :linux
   depends_on "python@3.12"
 
   def install

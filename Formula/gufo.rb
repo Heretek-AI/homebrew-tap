@@ -17,7 +17,6 @@ class Gufo < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
-  depends_on :linux
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"
@@ -26,6 +25,7 @@ class Gufo < Formula
   depends_on "libpng"
   depends_on "libsndfile"
   depends_on "libsoxr"
+  depends_on :linux
   depends_on "openssl@3"
   depends_on "webp"
 

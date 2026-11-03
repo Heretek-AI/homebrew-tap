@@ -16,8 +16,8 @@ class Strixite < Formula
   depends_on "cmake" => :build
   depends_on "lld" => :build
   depends_on "ninja" => :build
-  depends_on :linux
   depends_on "gcc"
+  depends_on :linux
 
   def install
     rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")

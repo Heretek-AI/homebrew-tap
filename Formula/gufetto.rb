@@ -19,10 +19,10 @@ class Gufetto < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
-  depends_on :linux
   depends_on "giflib"
   depends_on "jpeg-turbo"
   depends_on "libpng"
+  depends_on :linux
   depends_on "webp"
 
   conflicts_with "gufo", because: "both install `gufo` and `gufo-server` binaries"
