@@ -1,17 +1,18 @@
-# 🍺 Heretek-AI Homebrew Tap: High-Performance llama.cpp Forks & LLM Inference Engines
+# 🍺 Heretek-AI Homebrew Tap: High-Performance GPU Inference Engines
 
 <div align="center">
 
 [![Brew CI & Formula Audit](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml)
 [![Auto-Bump Formulae](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/autobump.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/autobump.yml)
+[![Build ROCmFPX](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![AMD ROCm 7.0](https://img.shields.io/badge/AMD%20ROCm-7.0%20Built--in-blue?logo=amd&logoColor=white)](https://github.com/ROCm/ROCm)
 [![Apple Metal](https://img.shields.io/badge/Apple-Metal%20Accelerated-000000?logo=apple&logoColor=white)](https://developer.apple.com/metal/)
 [![Mesa RADV Vulkan](https://img.shields.io/badge/Vulkan-Mesa%20RADV%20Wave64-FF5722?logo=vulkan&logoColor=white)](https://mesa3d.org)
 
 <p align="center">
-  <b>Zero-dependency, turnkey Homebrew tap delivering pre-compiled, GPU-accelerated builds of specialized <a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a> forks and LLM inference engines:</b><br/>
-  <b><a href="#-rocmfpx-upstream">rocmfpx</a></b> (Canonical Upstream Engine), <b><a href="#-ciru-rocmfpx">ciru-rocmfpx</a></b> (DualView Q7 & PromptForge), <b><a href="#-q38rocm">q38rocm</a></b> (Qwen 3.8 27B @ 36 tok/s), <b><a href="#-cachyllama">CachyLLama</a></b> (Persistent KV & MoE Residency), and <b><a href="#-llama-ai">llama-ai</a></b> (Turnkey APU Solver).
+  <b>Zero-dependency, turnkey Homebrew tap delivering pre-compiled, GPU-accelerated builds of high-performance inference engines:</b><br/>
+  <b><a href="#-rocmfpx-upstream">rocmfpx</a></b> (Canonical ROCm 7 llama.cpp Engine), <b><a href="#-stable-diffusion-cpp">stable-diffusion-cpp</a></b> (Diffusion Image & Video Inference), and <b><a href="#-shimmy">shimmy</a></b> (Pure-Rust WebGPU/CUDA Inference).
 </p>
 
 </div>
@@ -25,27 +26,16 @@
 brew tap Heretek-AI/tap
 
 # 2. Install your desired inference engine:
-brew install rocmfpx              # Canonical upstream ROCmFPX (charlie12345)
-brew install ciru-rocmfpx         # Ciru-AI research fork (DualView Q7, ActiveFPX)
-brew install kingjones-rocmfpx    # kingjones30 fork (7 extended architectures, Mellum, Instella)
-brew install engramhalo           # Aristo94/EngramHalo.cpp (Qwen 3.8 Flash-Next Strix Halo tuned)
-brew install q38rocm              # Dedicated Qwen 3.8 27B Strix Halo stack (36 tok/s)
-brew install cachy-llama          # Persistent KV cache & MoE residency (Linux & macOS Metal)
-brew install stable-diffusion-cpp # Fast Stable Diffusion, SDXL, Flux, SD3 & Wan video engine
-brew install llama-ai             # 1-click APU hardware solver & turnkey runner
+brew install rocmfpx              # Canonical ROCm 7 llama.cpp stack (AMD RDNA2..RDNA4 / CDNA)
+brew install stable-diffusion-cpp # Fast SD, SDXL, Flux, SD3 & Wan image/video inference
+brew install shimmy               # Pure-Rust WebGPU & CUDA LLM engine
 
 # 3. Optional: Start background OpenAI-compatible server daemon (runs on boot):
 brew services start rocmfpx
 # or
-brew services start ciru-rocmfpx
-# or
-brew services start kingjones-rocmfpx
-# or
-brew services start engramhalo
-# or
-brew services start q38rocm
-# or
 brew services start stable-diffusion-cpp
+# or
+brew services start shimmy
 ```
 
 > [!IMPORTANT]
@@ -58,38 +48,47 @@ brew services start stable-diffusion-cpp
 
 | Engine / Formula | Upstream Source | Primary Specialization | Key Highlights | Target Hardware & Backends |
 | :--- | :--- | :--- | :--- | :--- |
-| [**`rocmfpx`**](#-rocmfpx-upstream) | [`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX) | **Canonical Upstream ROCm Engine** | • Official, actively maintained upstream ROCmFPX engine<br>• Active upstream `llama.cpp` synchronization<br>• High-performance MMQ/MMVQ ROCm 7 GPU acceleration | AMD RDNA2, RDNA3, RDNA3.5, RDNA4, CDNA |
-| [**`ciru-rocmfpx`**](#-ciru-rocmfpx) | [`ciru-ai/ROCmFPX`](https://github.com/ciru-ai/ROCmFPX) | **Low-Bit Quantization & DualView Fork** | • **ROCmFP2 (2.50 bpw)** through **ROCmFP8 (8.25 bpw)**<br>• **DualView Architecture**: Q7 storage + Q8 prefill shadow<br>• **ActiveFPX PromptForge** & **Kairic Edge** profiles | AMD ROCm 7 (`gfx1151`, `gfx1150`, `gfx120X`, `gfx110X`, `gfx103X`, `gfx90a`, `gfx908`) |
-| [**`kingjones-rocmfpx`**](#-kingjones-rocmfpx) | [`kingjones30/ROCmFPX`](https://github.com/kingjones30/ROCmFPX) | **7 Extended Architectures Stack** | • Native ROCmFP4/FP8 tensor formats<br>• Mellum, Instella, Ling-3.0/bailing-hybrid, Muse-Glimmer, Qwen4Exp, ZAYA, Cohere2MoE<br>• Fixes compressed queries loader bug | AMD ROCm 7 (`gfx1151`, `gfx1150`, `gfx120X`, `gfx110X`, `gfx103X`, `gfx90a`, `gfx908`) |
-| [**`engramhalo`**](#-engramhalo) | [`Aristo94/EngramHalo.cpp`](https://github.com/Aristo94/EngramHalo.cpp) | **Qwen 3.8 Flash-Next Tuned Stack** | • 🔥 **24.4 → 39.3 tok/s** decode with MTP draft head<br>• True QSA sparse gather doubling deep prefill (91 → 192 t/s at 131K)<br>• 27 GiB engram table on SSD/NVMe (~1 GiB resident RAM footprint) | AMD Strix Halo (`gfx1151`) • ROCm 7 (HIP) |
-| [**`q38rocm`**](#-q38rocm) | [`julianmb/q38rocm`](https://github.com/julianmb/q38rocm) | **Qwen 3.8 27B Dedicated Deployment** | • 🔥 **30.56 – 36.04 tok/s** generation throughput<br>• Embedded MTP speculative decoding (K=4..6)<br>• **Asymmetric TurboQuant KV Cache** (`-ctk q8_0 -ctv turbo4`)<br>• Mesa RADV Wave64 cooperative matrices | AMD Strix Halo (`gfx1151`) • ROCm 7 (HIP) + Vulkan RADV |
-| [**`cachy-llama`**](#-cachyllama) | [`fewtarius/CachyLLama`](https://github.com/fewtarius/CachyLLama) | **Persistent KV Cache & MoE Residency** | • **Cross-Turn KV Cache Preservation** (disk/RAM paging)<br>• **MoE Expert Residency & Dynamic Offload**<br>• Zero-prefill instant response on multi-turn conversations | Universal Linux Vulkan RADV • Linux ROCm • Linux CPU / CUDA |
-| [**`stable-diffusion-cpp`**](#-stable-diffusion-cpp) | [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) | **Image & Video Diffusion Inference Engine** | • **Stable Diffusion 1.x/2.x, SDXL, SD3, Flux, Wan 2.1/2.2**<br>• 4-bit / 8-bit / GGUF quantization support<br>• Zero Python dependencies, rolling upstream releases | Linux Vulkan RADV • Linux ROCm 7 • Linux CPU • Apple Silicon Metal |
-| [**`llama-ai`**](#-llama-ai) | [`fewtarius/llama-ai`](https://github.com/fewtarius/llama-ai) | **Turnkey APU Solver & Profile Engine** | • Automated APU memory, bandwidth, and compute probe<br>• Optimistic profile solver for optimal quantization & context<br>• 1-command zero-config launch | Linux x64 Vulkan/CPU |
-| [**`prima-cpp`**](#-primacpp) | [`OpenCPIL/prima.cpp`](https://github.com/OpenCPIL/prima.cpp) | **Distributed Heterogeneous Cluster Engine** | • **Distributed 30B–70B Model Inference** across home LAN<br>• Smart pipeline parallelism with automatic device profiling<br>• OS weight prefetching across mixed GPU/CPU nodes | Linux CUDA • Vulkan • CPU OpenMP • Apple Silicon |
-| [**`shimmy`**](#-shimmy) | [`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy) | **Pure-Rust WebGPU & CUDA Single Binary** | • **100% Rust** with <1s cold startup and ~50MB RAM footprint<br>• Native GGUF loading and OpenAI streaming completions<br>• Zero Python and zero C/C++ dependencies | Linux • macOS • Windows (WebGPU / Vulkan / CUDA / Metal) |
+| [**`rocmfpx`**](#-rocmfpx) | [`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX) | **Canonical ROCm 7 Engine** | • Official upstream ROCmFPX engine<br>• Active upstream `llama.cpp` synchronization<br>• High-performance MMQ/MMVQ ROCm 7 GPU acceleration<br>• Built in-repo across all AMD GFX targets | AMD Strix Halo (`gfx1151`), Strix Point (`gfx1150`), RDNA4 (`gfx120X`), RDNA3 (`gfx110X`), RDNA2 (`gfx103X`), CDNA (`gfx90a`, `gfx908`) |
+| [**`stable-diffusion-cpp`**](#-stable-diffusion-cpp) | [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) | **Image & Video Diffusion Engine** | • **Stable Diffusion 1.x/2.x, SDXL, SD3, Flux, Wan 2.1/2.2**<br>• 4-bit / 8-bit / GGUF quantization support<br>• Rolling upstream releases with zero Python dependencies | Linux Vulkan RADV • Linux ROCm 7 • Linux CPU • Apple Silicon Metal |
+| [**`shimmy`**](#-shimmy) | [`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy) | **Pure-Rust WebGPU Single Binary** | • **100% Rust** with <1s cold startup and ~50MB RAM footprint<br>• Native GGUF loading and OpenAI streaming completions<br>• Zero Python and zero C/C++ dependencies | Linux • macOS • Windows (WebGPU / Vulkan / CUDA / Metal) |
 
 ---
 
-## 📦 Detailed Formula Installation & Usage Guide
+## 🎯 AMD GPU Architecture Support Matrix
 
-### ⚡ `rocmfpx` (Upstream)
-The canonical upstream **ROCmFPX** project maintained by Charlie ([`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX)), providing the latest upstream syncs, stable ROCm 7 HIP acceleration, and multi-GPU matrix coverage.
+| GPU / APU Target | GFX Code | Target Hardware & Devices | `rocmfpx` | `stable-diffusion-cpp` | `shimmy` |
+| :--- | :--- | :--- | :---: | :---: | :---: |
+| **AMD Strix Halo** | `gfx1151` | Ryzen AI Max+ 395 / Radeon 8060S (128GB Unified) | ✅ (Default) | ✅ (ROCm / Vulkan) | ✅ (WebGPU) |
+| **AMD Strix Point** | `gfx1150` | Ryzen AI 9 HX 370 / Radeon 890M / 880M | ✅ (`--with-gfx1150`) | ✅ (ROCm / Vulkan) | ✅ (WebGPU) |
+| **AMD RDNA4** | `gfx120X` | Radeon RX 9070 XT / RX 9070 | ✅ (`--with-gfx120X`) | ✅ (Vulkan RADV) | ✅ (WebGPU) |
+| **AMD RDNA3** | `gfx110X` | Radeon RX 7900 XTX / 7800 XT / 780M / 760M | ✅ (`--with-gfx110X`) | ✅ (ROCm / Vulkan) | ✅ (WebGPU) |
+| **AMD RDNA2** | `gfx103X` | Radeon RX 6800 / 6700 XT / Steam Deck (Van Gogh) | ✅ (`--with-gfx103X`) | ✅ (Vulkan RADV) | ✅ (WebGPU) |
+| **AMD CDNA2** | `gfx90a` | AMD Instinct MI210 / MI250X | ✅ (`--with-gfx90a`) | ✅ (ROCm) | ⚠️ (CPU fallback) |
+| **AMD CDNA1** | `gfx908` | AMD Instinct MI100 | ✅ (`--with-gfx908`) | ✅ (ROCm) | ⚠️ (CPU fallback) |
+| **Multi-Arch Fatbin** | `multiarch` | Combined gfx1100 + gfx1151 binary | ✅ (`--with-multi-arch`) | — | — |
+| **Apple Silicon** | `arm64` | M1 / M2 / M3 / M4 (Pro / Max / Ultra) | — | ✅ (Metal) | ✅ (Metal) |
+
+---
+
+## 📦 Detailed Formula Guide
+
+### ⚡ `rocmfpx`
+The canonical upstream **ROCmFPX** project maintained by Charlie ([`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX)), built directly in this repository with bundled AMD ROCm 7 runtime libraries.
 
 ```bash
 # Default: Optimized for AMD Strix Halo (gfx1151)
 brew install rocmfpx
 
 # Or install for your specific GPU architecture:
+brew install rocmfpx --with-multi-arch # Combined fatbin for gfx1100 + gfx1151
 brew install rocmfpx --with-gfx1150    # AMD Strix Point (Radeon 890M / 880M)
 brew install rocmfpx --with-gfx120X    # AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)
 brew install rocmfpx --with-gfx110X    # AMD RDNA3 GPUs (RX 7900 XTX / 7800 XT / Radeon 780M)
 brew install rocmfpx --with-gfx103X    # AMD RDNA2 / Steam Deck (Van Gogh / 680M / RX 6800)
 brew install rocmfpx --with-gfx90a     # AMD Instinct MI210 / MI250X (CDNA2)
 brew install rocmfpx --with-gfx908     # AMD Instinct MI100 (CDNA1)
-brew install rocmfpx --with-multi-arch # Combined fatbin for gfx1100 + gfx1151
 
-# Start OpenAI server:
+# Start OpenAI-compatible server:
 rocmfpx -m /path/to/model.gguf --port 8080
 
 # Or run CLI chat:
@@ -98,270 +97,58 @@ rocmfpx-cli -m /path/to/model.gguf -ngl 99 -p "Hello world!"
 
 ---
 
-### 🧬 `ciru-rocmfpx` (Ciru Research Fork)
-Ciru's specialized research fork ([`ciru-ai/ROCmFPX`](https://github.com/ciru-ai/ROCmFPX)) featuring proprietary low-bit quantization formats, DualView Q7 storage, and certified model profiles.
-
-```bash
-# Install Ciru-AI ROCmFPX (Default: gfx1151)
-brew install ciru-rocmfpx
-
-# Or install certified model profiles:
-brew install ciru-rocmfpx --with-kairic-edge   # Qwen 3.8 27B IU4 Kairic Edge certified runtime
-brew install ciru-rocmfpx --with-promptforge  # Qwen 3.8 27B ActiveFPX PromptForge certified runtime
-
-# Or choose GPU target:
-brew install ciru-rocmfpx --with-gfx1150
-brew install ciru-rocmfpx --with-gfx120X
-brew install ciru-rocmfpx --with-gfx110X
-
-# Quantize models to ROCmFPX formats:
-ciru-fpx-quantize model-BF16.gguf model-Q7.gguf Q7_0_ROCMFPX
-```
-
----
-
-### 👑 `kingjones-rocmfpx`
-King Jones's extended ROCmFPX fork ([`kingjones30/ROCmFPX`](https://github.com/kingjones30/ROCmFPX)) adding support for **7 model architectures** on top of ROCmFP4 / ROCmFP8 tensor types:
-
-| Architecture | Supported Models | Published Throughput |
-|---|---|---|
-| `mellum` | Mellum2-12B-A2.5B | **96.92 tok/s** |
-| `instella` | Instella-MoE-16B-A3B | **~90 tok/s** |
-| `bailing-hybrid` | Ling-3.0 `*-base-*` (KDA + MLA hybrid) | **36.6–42.3 tok/s** |
-| `muse-glimmer` | Muse-Glimmer-30B | **~30 tok/s** |
-| `qwen4exp` | Qwen3.8-Flash-Next | **345 tok/s** prefill, **22.6 tok/s** decode |
-| `zaya` | ZAYA1-8B | **15.8 tok/s** |
-| `cohere2moe` | North-Mini-Code-1.0 | Supported |
-
-```bash
-# Default install: AMD Strix Halo APU (gfx1151)
-brew install kingjones-rocmfpx
-
-# Or install for your specific GPU architecture:
-brew install kingjones-rocmfpx --with-multi-arch # Combined gfx1100 + gfx1151
-brew install kingjones-rocmfpx --with-gfx1150    # AMD Strix Point (Radeon 890M / 880M)
-brew install kingjones-rocmfpx --with-gfx120X    # AMD RDNA4 (RX 9070 XT / 9070)
-brew install kingjones-rocmfpx --with-gfx110X    # AMD RDNA3 (RX 7900 / 7800 / 780M)
-brew install kingjones-rocmfpx --with-gfx103X    # AMD RDNA2 / Steam Deck
-brew install kingjones-rocmfpx --with-gfx90a     # AMD Instinct MI210 / MI250X
-
-# Launch OpenAI-compatible server:
-kingjones-rocmfpx -m /path/to/Mellum2-12B-ROCmFP4.gguf --port 8080
-
-# Or run CLI chat:
-kingjones-fpx-cli -m /path/to/Mellum2-12B-ROCmFP4.gguf -ngl 99 -p "Hello!"
-```
-
----
-
-### 🧠 `engramhalo`
-Aristo94's specialized `llama.cpp` fork ([`Aristo94/EngramHalo.cpp`](https://github.com/Aristo94/EngramHalo.cpp), `strix-halo-qwen4exp` branch) tuned specifically for **Qwen 3.8 Flash-Next on AMD Strix Halo** (`gfx1151`, Radeon 8060S):
-- **True QSA Sparse Gather**: Sparse KV row gather doubling deep prefill (91 → 192 t/s at 131K).
-- **Working MTP Draft Head**: Speculative decoding boosting generation throughput from **24.4 → 39.3 tok/s**.
-- **SSD/NVMe Engram Table Streaming**: Keeps 26.8 GiB engram table on SSD/NVMe (`-lm mmap`), consuming only ~1 GiB resident RAM while supporting full 262K context.
-
-```bash
-# Install engramhalo:
-brew install engramhalo
-
-# Launch server with Qwen 3.8 Flash-Next and MTP sidecar:
-engramhalo \
-  -m /path/to/Qwen3.8-Flash-Next-ROCmFP4.gguf \
-  --spec-draft /path/to/mtp-Qwen3.8-Flash-Next-Q8_0.gguf \
-  --spec-draft-p-min 0.75 \
-  -lm mmap \
-  -ctk q8_0 \
-  -ctv q8_0 \
-  --port 8080
-
-# Or run CLI chat:
-engramhalo-cli -m /path/to/model.gguf -ngl 99 -p "Explain sparse attention"
-
-# Manage as a background daemon:
-brew services start engramhalo
-```
-
----
-
-### 🚀 `q38rocm`
-High-performance deployment stack for **Qwen 3.8 27B** custom-engineered by Julian ([`julianmb/q38rocm`](https://github.com/julianmb/q38rocm)) for **AMD Strix Halo (Ryzen AI Max+ 395 / Radeon 8060S)** APUs.
-
-```bash
-# Install q38rocm
-brew install q38rocm
-
-# Start OpenAI-compatible server on port 8000 (36 tok/s sustained decode):
-q38rocm -m Qwen3.8-27B-ROCmFP4-FAST.gguf --port 8000
-
-# Or launch with namespaced CLI:
-q38rocm-cli -m Qwen3.8-27B-ROCmFP4-FAST.gguf -ngl 99 -p "Write a binary search tree in Rust"
-
-# Start as a background daemon:
-brew services start q38rocm
-```
-
----
-
-### 💾 `cachy-llama`
-Persistent KV cache and MoE active expert memory residency manager by fewtarius ([`fewtarius/CachyLLama`](https://github.com/fewtarius/CachyLLama)). Eliminates prompt re-prefill latency across agent conversation turns.
-
-```bash
-# macOS (Apple Silicon Metal M1/M2/M3/M4):
-brew install cachy-llama
-
-# Linux Universal (Mesa RADV Vulkan - works on any AMD/Intel/NVIDIA GPU):
-brew install cachy-llama
-
-# Linux AMD ROCm 7 GPU Acceleration:
-brew install cachy-llama --with-rocm-gfx1151  # Strix Halo (Radeon 8060S / 128GB)
-brew install cachy-llama --with-rocm-gfx1150  # Strix Point (Radeon 890M / 880M)
-brew install cachy-llama --with-rocm-gfx120X  # RDNA4 (RX 9070 XT)
-brew install cachy-llama --with-rocm-gfx110X  # RDNA3 (RX 7900 / 7800 / 780M)
-brew install cachy-llama --with-rocm-gfx103X  # RDNA2 / Steam Deck
-brew install cachy-llama --with-rocm-gfx90a   # Instinct MI210 / MI250X
-```
-
 ### 🎨 `stable-diffusion-cpp`
-High-performance C/C++ image and video diffusion engine by leejet ([`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp)). Supports Stable Diffusion 1.x/2.x, SDXL, SD3, Flux, and Wan 2.1/2.2 video generation with 4-bit/8-bit GGUF quantization and zero Python overhead.
+Fast, lightweight image and video generation engine based on [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) in pure C/C++.
+
+Supports Stable Diffusion 1.x/2.x, SDXL, SD3, Flux, and Wan video models:
 
 ```bash
-# macOS (Apple Silicon Metal M1/M2/M3/M4):
+# Default: Vulkan RADV acceleration on Linux; Metal on Apple Silicon
 brew install stable-diffusion-cpp
 
-# Linux Universal (Mesa RADV Vulkan - works on any AMD/Intel/NVIDIA GPU):
-brew install stable-diffusion-cpp
+# On Linux, optional acceleration flags:
+brew install stable-diffusion-cpp --with-rocm   # AMD ROCm 7 GPU acceleration
+brew install stable-diffusion-cpp --with-cpu    # CPU-only baseline
 
-# Linux AMD ROCm 7 GPU Acceleration:
-brew install stable-diffusion-cpp --with-rocm
+# Run text-to-image generation:
+sd -m /path/to/sdxl.gguf -p "A cinematic view of an ancient library on Mars" -o output.png
 
-# Linux CPU-only:
-brew install stable-diffusion-cpp --with-cpu
-
-# Generate an image using CLI:
-sd-cli -m /path/to/sd-v1-5.gguf -p "a photograph of an astronaut riding a horse on mars" -o output.png
-
-# Start background server daemon (OpenAI-compatible /v1/images/generations):
-brew services start stable-diffusion-cpp
+# Launch HTTP generation server:
+sd-server --host 0.0.0.0 --port 8080
 ```
 
 ---
 
-### 🎯 `llama-ai`
-Turnkey APU runner and profile solver by fewtarius ([`fewtarius/llama-ai`](https://github.com/fewtarius/llama-ai)). Automatically detects system RAM, VRAM, and memory bus topology, calculates optimal context and quantization settings, and launches the engine.
+### 🦀 `shimmy`
+A pure-Rust LLM engine by Michael Kuykendall ([`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy)) using `wgpu` and native CUDA/WebGPU shaders. Single binary with sub-second cold starts and zero Python or C/C++ dependencies.
 
 ```bash
-# Install llama-ai
-brew install llama-ai
+# Install via Cargo source compilation:
+brew install shimmy
 
-# 1-Command Launch:
-llama-ai
+# Run OpenAI-compatible inference server on port 11434 (drop-in Ollama replacement):
+shimmy serve --port 11434 --host 0.0.0.0
+
+# Start background service:
+brew services start shimmy
 ```
 
 ---
 
-## 🎯 Comprehensive Hardware Compatibility Matrix
+## 🛠️ In-Repo Automated Building & Maintenance
 
-| GPU / APU Target | GFX Code | Target Hardware & Devices | `rocmfpx` (Upstream) | `ciru-rocmfpx` | `kingjones-rocmfpx` | `engramhalo` | `q38rocm` | `cachy-llama` | `stable-diffusion-cpp` |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **AMD Strix Halo APU** | `gfx1151` | Ryzen AI MAX+ Pro 395, MAX 390, Radeon 8060S (128GB) | *(Default)* | *(Default)* | *(Default)* | 🔥 **Native (39 tok/s)** | 🔥 **Native (36 tok/s)** | `--with-rocm-gfx1151` | `--with-rocm` |
-| **AMD Strix Point APU** | `gfx1150` | Ryzen AI 9 HX 370 / 365, Radeon 890M / 880M | `--with-gfx1150` | `--with-gfx1150` | `--with-gfx1150` | Guarded Fallback | Guarded Fallback | `--with-rocm-gfx1150` | `--with-rocm` |
-| **AMD RDNA4 Discrete** | `gfx120X` | Radeon RX 9070 XT, RX 9070 GRE, RX 9070, RX 9060 XT | `--with-gfx120X` | `--with-gfx120X` | `--with-gfx120X` | Guarded Fallback | Guarded Fallback | `--with-rocm-gfx120X` | `--with-rocm` |
-| **AMD RDNA3 Discrete & iGPU** | `gfx110X` | Radeon RX 7900 XTX / XT / GRE, RX 7800 XT, Radeon 780M / 760M | `--with-gfx110X` | `--with-gfx110X` | `--with-gfx110X` | Guarded Fallback | Guarded Fallback | `--with-rocm-gfx110X` | `--with-rocm` |
-| **AMD RDNA2 / Handhelds** | `gfx103X` | Steam Deck (Van Gogh), Radeon 680M, RX 6950 XT / 6800 XT | `--with-gfx103X` | `--with-gfx103X` | `--with-gfx103X` | Guarded Fallback | Guarded Fallback | `--with-rocm-gfx103X` | `--with-rocm` |
-| **AMD CDNA2 Enterprise** | `gfx90a` | AMD Instinct MI250X, MI250, MI210 | `--with-gfx90a` | `--with-gfx90a` | `--with-gfx90a` | N/A | N/A | `--with-rocm-gfx90a` | `--with-rocm` |
-| **AMD CDNA1 Enterprise** | `gfx908` | AMD Instinct MI100 | `--with-gfx908` | `--with-gfx908` | `--with-gfx908` | N/A | N/A | N/A | `--with-rocm` |
-| **Universal Linux Vulkan** | `RADV` | Universal support for all AMD, Intel, NVIDIA GPUs via Mesa RADV | N/A | N/A | N/A | N/A | N/A | *(Linux Default)* | *(Linux Default)* |
-| **Apple Silicon** | `Metal` | Apple M1 / M2 / M3 / M4 (Standard, Pro, Max, Ultra) | N/A | N/A | N/A | N/A | N/A | *(macOS Default)* | *(macOS Default)* |
+All builder workflows are consolidated directly into this repository:
 
----
-
-## 🛠️ Production Serving & Client Integration
-
-All installed engines provide standard OpenAI-compatible API endpoints (`/v1/chat/completions`, `/v1/models`, `/health`) on ports `8000` or `8080`.
-
-### 1. Managing Background Daemons (`brew services`)
+- **`.github/workflows/build-rocmfpx.yml`**: Nightly and dispatch builds of `charlie12345/ROCmFPX` across Ubuntu & Windows with ROCm 7 runtime packaging.
+- **`.github/workflows/autobump.yml`**: Scheduled synchronization for upstream releases and formula SHA256 checksums.
+- **`.github/workflows/test-install-and-run.yml`**: Multi-OS install and binary validation suite.
 
 ```bash
-# Start background server daemon on system boot:
-brew services start rocmfpx
-# or
-brew services start ciru-rocmfpx
-# or
-brew services start q38rocm
-# or
-brew services start cachy-llama
-
-# View status:
-brew services list
-
-# Stop background server:
-brew services stop rocmfpx
-```
-
-### 2. Client Configuration Snippets
-
-#### Open WebUI
-Set OpenAI Base URL: `http://localhost:8080/v1` (API Key: `sk-no-key-required`).
-
-#### Continue.dev (`~/.continue/config.json`)
-```json
-{
-  "models": [
-    {
-      "title": "ROCmFPX (Strix Halo)",
-      "provider": "openai",
-      "model": "local-model",
-      "apiBase": "http://localhost:8080/v1"
-    }
-  ]
-}
-```
-
-#### Cursor IDE
-In **Settings > Models > OpenAI API Key**, configure base URL: `http://localhost:8080/v1`.
-
----
-
-## 🔧 AMD Hardware Tweaks & Performance Optimization
-
-To achieve maximum inference throughput on AMD Ryzen AI APUs and Radeon GPUs:
-
-### 1. Set GPU Performance Governor to High
-```bash
-echo "high" | sudo tee /sys/class/drm/card0/device/power_dpm_force_performance_level
-```
-
-### 2. Expand TTM / GTT Memory Allocation Limits
-```bash
-# 64GB Unified RAM (expands GPU allocation to ~56 GiB):
-echo 14680064 | sudo tee /sys/module/ttm/parameters/pages_limit
-
-# 128GB Unified RAM / Strix Halo (expands GPU allocation to ~120 GiB):
-echo 31457280 | sudo tee /sys/module/ttm/parameters/pages_limit
-```
-
-### 3. Enable Transparent Hugepages (THP)
-```bash
-echo "madvise" | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
+# Test formula updater locally:
+python3 scripts/update_formulae.py --repo all --dry-run
 ```
 
 ---
 
-## 🏗️ Automated Builder Pipelines
-
-Binaries distributed by this tap are automatically compiled, tested, and published nightly by dedicated GitHub Actions CI pipelines:
-
-- [**`Heretek-AI/ROCmFPX-BUILDER`**](https://github.com/Heretek-AI/ROCmFPX-BUILDER): Multi-target AMD ROCm 7 matrix builds for upstream `charlie12345/ROCmFPX`, `ciru-ai/ROCmFPX`, and `q38rocm`.
-- [**`Heretek-AI/CachyLLama-BUILDER`**](https://github.com/Heretek-AI/CachyLLama-BUILDER): Multi-platform builds for CachyLLama (macOS Metal, Linux ROCm, Linux Vulkan) and `llama-ai`.
-
----
-
-## 📄 License & Attribution
-
-- **Homebrew Tap**: Licensed under the [MIT License](LICENSE).
-- **ROCmFPX (Upstream)**: Developed by Charlie ([charlie12345/ROCmFPX](https://github.com/charlie12345/ROCmFPX)) under the MIT License.
-- **ROCmFPX (Ciru Fork)**: Developed by Ciru ([ciru-ai/ROCmFPX](https://github.com/ciru-ai/ROCmFPX)) under the MIT License.
-- **q38rocm**: Developed by Julian ([julianmb/q38rocm](https://github.com/julianmb/q38rocm)) under the Apache 2.0 License.
-- **CachyLLama & llama-ai**: Developed by fewtarius ([fewtarius/CachyLLama](https://github.com/fewtarius/CachyLLama), [fewtarius/llama-ai](https://github.com/fewtarius/llama-ai)) under the MIT / GPL-3.0 Licenses.
-- **stable-diffusion.cpp**: Developed by leejet ([leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)) under the MIT License.
-- **llama.cpp**: Developed by Georgi Gerganov and contributors under the MIT License.
+## 📄 License
+This Homebrew Tap and its automation scripts are licensed under the [MIT License](LICENSE). Individual upstream packages remain licensed under their respective open-source licenses.

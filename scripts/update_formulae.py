@@ -19,41 +19,12 @@ import urllib.request
 GITHUB_API_BASE = "https://api.github.com/repos"
 
 CONFIG = {
-    # BUILDER multi-asset releases
-    "cachyllama": {
-        "type": "builder",
-        "repo": "Heretek-AI/CachyLLama-BUILDER",
-        "formulae": ["cachy-llama.rb", "llama-ai.rb"],
-    },
+    # In-repo multi-arch ROCm release tracking
     "rocmfpx": {
         "type": "builder",
-        "repo": "Heretek-AI/ROCmFPX-BUILDER",
+        "repo": "Heretek-AI/homebrew-tap",
+        "fallback_repo": "Heretek-AI/ROCmFPX-BUILDER",
         "formulae": ["rocmfpx.rb"],
-    },
-    "ciru-rocmfpx": {
-        "type": "builder",
-        "repo": "Heretek-AI/ROCmFPX-BUILDER",
-        "formulae": ["ciru-rocmfpx.rb"],
-    },
-    "q38rocm": {
-        "type": "builder",
-        "repo": "Heretek-AI/ROCmFPX-BUILDER",
-        "formulae": ["q38rocm.rb"],
-    },
-    "kingjones-rocmfpx": {
-        "type": "builder",
-        "repo": "Heretek-AI/ROCmFPX-BUILDER",
-        "formulae": ["kingjones-rocmfpx.rb"],
-    },
-    "engramhalo": {
-        "type": "builder",
-        "repo": "Heretek-AI/EngramHalo-BUILDER",
-        "formulae": ["engramhalo.rb"],
-    },
-    "ember": {
-        "type": "builder",
-        "repo": "Heretek-AI/ember-BUILDER",
-        "formulae": ["ember.rb"],
     },
 
     # Upstream source release tracking
@@ -68,14 +39,6 @@ CONFIG = {
         "type": "rolling_release",
         "repo": "leejet/stable-diffusion.cpp",
         "formulae": ["stable-diffusion-cpp.rb"],
-    },
-
-    # Upstream rolling commit tracking
-    "prima-cpp": {
-        "type": "upstream_commit",
-        "repo": "OpenCPIL/prima.cpp",
-        "branch": "main",
-        "formulae": ["prima-cpp.rb"],
     },
 }
 
@@ -115,7 +78,7 @@ def get_latest_commit(repo: str, branch: str = "main", token: str = None) -> dic
     return fetch_json(url, token)
 
 
-def update_builder_formula_content(formula_path: str, release_tag: str, asset_shas: dict, dry_run: bool = False) -> bool:
+def update_builder_formula_content(formula_path: str, release_tag: str, asset_shas: dict, repo_name: str = None, dry_run: bool = False) -> bool:
     if not os.path.exists(formula_path):
         print(f"[-] Formula not found: {formula_path}")
         return False
@@ -166,7 +129,8 @@ def update_builder_formula_content(formula_path: str, release_tag: str, asset_sh
         if not matched_name:
             print(f"[*] No matching asset for {old_filename}; keeping {old_tag} URL")
             return match.group(0)
-        return f'url "{prefix}{release_tag}/{matched_name}"'
+        new_prefix = f"https://github.com/{repo_name}/releases/download/" if repo_name else prefix
+        return f'url "{new_prefix}{release_tag}/{matched_name}"'
 
     content = re.sub(
         r'url\s+"(https://github\.com/[^/]+/[^/]+/releases/download/)([^/]+)/([^"]+)"',
@@ -420,11 +384,32 @@ def main():
             formula_path = os.path.join(args.formula_dir, formula_file)
 
             if target_type == "builder":
+                rel = None
                 try:
                     rel = get_latest_release(repo_name, args.token, args.tag)
+                except urllib.error.HTTPError as e:
+                    fallback = cfg.get("fallback_repo")
+                    if fallback and e.code == 404:
+                        print(f"[*] No release found on {repo_name}; checking fallback {fallback}...")
+                        try:
+                            rel = get_latest_release(fallback, args.token, args.tag)
+                        except Exception as e2:
+                            print(f"[-] Failed to fetch fallback release for {fallback}: {e2}")
+                            continue
+                    else:
+                        print(f"[-] Failed to fetch release for {repo_name}: {e}")
+                        continue
                 except Exception as e:
-                    print(f"[-] Failed to fetch release for {repo_name}: {e}")
-                    continue
+                    fallback = cfg.get("fallback_repo")
+                    if fallback:
+                        try:
+                            rel = get_latest_release(fallback, args.token, args.tag)
+                        except Exception as e2:
+                            print(f"[-] Failed to fetch fallback release for {fallback}: {e2}")
+                            continue
+                    else:
+                        print(f"[-] Failed to fetch release for {repo_name}: {e}")
+                        continue
 
                 tag_name = rel.get("tag_name", "")
                 print(f"[+] Found builder release: {tag_name} ({rel.get('name', '')})")
@@ -445,7 +430,7 @@ def main():
                             continue
                     asset_shas[name] = sha
 
-                update_builder_formula_content(formula_path, tag_name, asset_shas, args.dry_run)
+                update_builder_formula_content(formula_path, tag_name, asset_shas, repo_name=repo_name, dry_run=args.dry_run)
 
             elif target_type == "upstream_release":
                 try:

@@ -79,10 +79,8 @@ class Rocmfpx < Formula
 
   def caveats
     <<~EOS
-      This formula distributes canonical upstream ROCmFPX (charlie12345/ROCmFPX).
-      For Ciru's specialized research fork (DualView Q7, PromptForge, Kairic Edge),
-      install:
-        brew install ciru-rocmfpx
+      This formula distributes canonical upstream ROCmFPX (charlie12345/ROCmFPX)
+      with bundled AMD ROCm 7 runtimes.
     EOS
   end
 

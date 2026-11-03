@@ -22,75 +22,16 @@ jobs:
       matrix:
         include:
           # macOS Apple Silicon
-          - formula: cachy-llama
-            flags: ""
-            os: macos-14
-            name: "cachy-llama [macOS Metal arm64]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: llama-ai
-            flags: ""
-            os: macos-14
-            name: "llama-ai [macOS arm64]"
-            binaries: "llama-ai"
           - formula: stable-diffusion-cpp
             flags: ""
             os: macos-15
             name: "stable-diffusion-cpp [macOS Metal arm64]"
             binaries: "sd-cli sd-server sd stable-diffusion"
-
-          # Linux ARM64
-          - formula: cachy-llama
+          - formula: shimmy
             flags: ""
-            os: ubuntu-24.04-arm
-            name: "cachy-llama [Linux ARM64 CPU]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-
-          # Linux x64 (CachyLLama variants)
-          - formula: cachy-llama
-            flags: ""
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux Vulkan RADV]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cpu"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CPU x64]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm100"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM100 Blackwell]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm120"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM120 Blackwell RTX 50]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm90"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM90 Hopper]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm89"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM89 Ada Lovelace]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm86"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM86 Ampere]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm80"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM80 Ampere A100]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
-          - formula: cachy-llama
-            flags: "--with-cuda-sm75"
-            os: ubuntu-24.04
-            name: "cachy-llama [Linux CUDA SM75 Turing]"
-            binaries: "llama-cli llama-server cachy-llama-cli cachy-llama-server"
+            os: macos-15
+            name: "shimmy [macOS arm64]"
+            binaries: "shimmy"
 
           # Linux x64 (ROCmFPX variants)
           - formula: rocmfpx
@@ -134,36 +75,12 @@ jobs:
             name: "rocmfpx [Linux ROCm gfx908 CDNA1]"
             binaries: "llama-cli llama-server rocmfpx-cli rocmfpx-server"
 
-          # Linux x64 (q38rocm dedicated formula)
-          - formula: q38rocm
+          # Linux x64 (shimmy)
+          - formula: shimmy
             flags: ""
             os: ubuntu-24.04
-            name: "q38rocm [Linux ROCm gfx1151 Strix Halo]"
-            binaries: "llama-cli llama-server q38rocm q38rocm-server q38rocm-cli"
-
-          # Linux x64 (ciru-rocmfpx dedicated formula)
-          - formula: ciru-rocmfpx
-            flags: ""
-            os: ubuntu-24.04
-            name: "ciru-rocmfpx [Linux ROCm gfx1151 Default]"
-            binaries: "llama-cli llama-server ciru-rocmfpx ciru-fpx-server ciru-fpx-cli"
-          - formula: ciru-rocmfpx
-            flags: "--with-kairic-edge"
-            os: ubuntu-24.04
-            name: "ciru-rocmfpx [Linux ROCm gfx1151 Kairic Edge]"
-            binaries: "llama-server ciru-rocmfpx ciru-fpx-server"
-          - formula: ciru-rocmfpx
-            flags: "--with-promptforge"
-            os: ubuntu-24.04
-            name: "ciru-rocmfpx [Linux ROCm gfx1151 PromptForge]"
-            binaries: "llama-server ciru-rocmfpx ciru-fpx-server"
-
-          # Linux x64 (llama-ai)
-          - formula: llama-ai
-            flags: ""
-            os: ubuntu-24.04
-            name: "llama-ai [Linux x64 Turnkey Bundle]"
-            binaries: "llama-ai"
+            name: "shimmy [Linux x64]"
+            binaries: "shimmy"
 
           # Linux x64 (stable-diffusion-cpp)
           - formula: stable-diffusion-cpp

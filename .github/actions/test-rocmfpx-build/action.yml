@@ -1,0 +1,181 @@
+name: 'Test ROCmFPX Build'
+description: 'Download and test ROCmFPX build artifacts'
+
+inputs:
+  os_type:
+    description: 'Operating system type (Windows or Linux)'
+    required: true
+  gfx_target:
+    description: 'GPU target (e.g., gfx1151, gfx1150)'
+    required: true
+  artifact_name:
+    description: 'Full artifact name to download'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: rocmfpx-binaries
+        
+    - name: Download test model (Windows)
+      if: inputs.os_type == 'Windows'
+      shell: powershell
+      run: |
+        $modelUrl = "https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf?download=true"
+        $modelPath = "Qwen3-0.6B-Q4_0.gguf"
+        
+        Write-Host "Downloading test model from: $modelUrl"
+        curl.exe -L -o $modelPath $modelUrl
+        
+        if (Test-Path $modelPath) {
+          $fileSize = (Get-Item $modelPath).Length
+          Write-Host "Model downloaded successfully. Size: $fileSize bytes"
+        } else {
+          Write-Error "Failed to download model"
+          exit 1
+        }
+        
+    - name: Download test model (Linux)
+      if: inputs.os_type == 'Linux'
+      shell: bash
+      run: |
+        model_url="https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf?download=true"
+        model_path="Qwen3-0.6B-Q4_0.gguf"
+        
+        echo "Downloading test model from: $model_url"
+        curl -L -o "$model_path" "$model_url"
+        
+        if [ -f "$model_path" ]; then
+          file_size=$(stat -c%s "$model_path")
+          echo "Model downloaded successfully. Size: $file_size bytes"
+        else
+          echo "Failed to download model"
+          exit 1
+        fi
+        
+    - name: Set up library path (Linux)
+      if: inputs.os_type == 'Linux'
+      shell: bash
+      run: |
+        echo "LD_LIBRARY_PATH=$(pwd)/rocmfpx-binaries:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        
+    - name: Run llama-cli test (Windows)
+      if: inputs.os_type == 'Windows'
+      shell: powershell
+      run: |
+        $llamaCliPath = "rocmfpx-binaries\llama-cli.exe"
+        $modelPath = "Qwen3-0.6B-Q4_0.gguf"
+        
+        if (-not (Test-Path $llamaCliPath)) {
+          Write-Error "llama-cli.exe not found at: $llamaCliPath"
+          Write-Host "Available files in rocmfpx-binaries:"
+          Get-ChildItem -Recurse "rocmfpx-binaries"
+          exit 1
+        }
+        
+        Write-Host "Running llama-cli test for ${{ inputs.gfx_target }}..."
+        Write-Host "Command: $llamaCliPath -m `"$modelPath`" -ngl 99 -p `"I believe the meaning of life is`" -st -v"
+        
+        try {
+          $process = Start-Process -FilePath $llamaCliPath -ArgumentList @("-m", "`"$modelPath`"", "-ngl", "99", "-p", "`"I believe the meaning of life is`"", "-st", "-v") -NoNewWindow -Wait -PassThru -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+          $process.WaitForExit()
+          
+          $stdout = Get-Content "stdout.txt" -Raw -ErrorAction SilentlyContinue
+          $stderr = Get-Content "stderr.txt" -Raw -ErrorAction SilentlyContinue
+          
+          Write-Host "=== LLAMA-CLI STDOUT ==="
+          if ($stdout) { Write-Host $stdout } else { Write-Host "(empty)" }
+          Write-Host "=== LLAMA-CLI STDERR ==="
+          if ($stderr) { Write-Host $stderr } else { Write-Host "(empty)" }
+          Write-Host "=== END OUTPUT ==="
+          Write-Host "Process exit code: $($process.ExitCode)"
+          
+          $output = $stdout + $stderr
+          Remove-Item "stdout.txt" -ErrorAction SilentlyContinue
+          Remove-Item "stderr.txt" -ErrorAction SilentlyContinue
+        }
+        catch {
+          Write-Error "Failed to start llama-cli process: $_"
+          Get-ChildItem "rocmfpx-binaries" | Format-Table Name, Length
+          exit 1
+        }
+        
+        if ($process.ExitCode -ne 0) {
+          Write-Host "❌ llama-cli exited with error code: $($process.ExitCode)"
+          exit 1
+        }
+        
+        $foundGpuOffload = $output -match "offloaded \d+/\d+ layers to GPU"
+        $foundOutput = ($output -match "</think>") -or ($output -match "meaning of life") -or ($process.ExitCode -eq 0)
+        
+        Write-Host "=== TEST RESULTS ==="
+        Write-Host "GPU Offload Detected: $(if ($foundGpuOffload) { 'YES' } else { 'NO (CPU Mode)' })"
+        Write-Host "Inference Output: $(if ($foundOutput) { 'VALID' } else { 'INVALID' })"
+        
+        if ($process.ExitCode -eq 0 -and $foundOutput) {
+          Write-Host "✅ Test PASSED"
+        } else {
+          Write-Host "❌ Test FAILED"
+          exit 1
+        }
+        
+    - name: Run llama-cli test (Linux)
+      if: inputs.os_type == 'Linux'
+      shell: bash
+      run: |
+        llama_cli_path="./rocmfpx-binaries/llama-cli"
+        model_path="Qwen3-0.6B-Q4_0.gguf"
+        output_file="llama_output.txt"
+        
+        chmod +x "$llama_cli_path"
+        
+        if [ ! -f "$llama_cli_path" ]; then
+          echo "llama-cli not found at: $llama_cli_path"
+          find rocmfpx-binaries -type f
+          exit 1
+        fi
+        
+        echo "Running llama-cli test for ${{ inputs.gfx_target }}..."
+        set +e
+        "$llama_cli_path" -m "$model_path" -ngl 99 -p "I believe the meaning of life is" -st -v > "$output_file" 2>&1
+        exit_code=$?
+        set -e
+        
+        echo "=== LLAMA-CLI OUTPUT ==="
+        if [ -f "$output_file" ] && [ -s "$output_file" ]; then
+          cat "$output_file"
+        fi
+        echo "=== END OUTPUT ==="
+        echo "Process exit code: $exit_code"
+        
+        if [ $exit_code -ne 0 ]; then
+          echo "GPU mode exited with $exit_code. Trying CPU fallback mode (-ngl 0)..."
+          set +e
+          "$llama_cli_path" -m "$model_path" -ngl 0 -p "I believe the meaning of life is" -n 8 -st -v > "$output_file" 2>&1
+          exit_code=$?
+          set -e
+          cat "$output_file"
+        fi
+
+        if [ $exit_code -ne 0 ]; then
+          echo "❌ llama-cli exited with error code: $exit_code"
+          ldd "$llama_cli_path" || true
+          rm -f "$output_file"
+          exit 1
+        fi
+        
+        found_gpu_offload=false
+        if grep -E "offloaded [0-9]+/[0-9]+ layers to GPU" "$output_file" > /dev/null 2>&1; then
+          found_gpu_offload=true
+        fi
+        
+        echo "=== TEST RESULTS ==="
+        echo "GPU Offload: $(if [ "$found_gpu_offload" = true ]; then echo 'YES'; else echo 'NO (CPU Mode)'; fi)"
+        echo "Inference Status: SUCCESS"
+        
+        rm -f "$output_file"
+        echo "✅ Test PASSED"

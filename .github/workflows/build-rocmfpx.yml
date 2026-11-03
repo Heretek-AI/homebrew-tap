@@ -1,0 +1,893 @@
+name: Build ROCmFPX + ROCm
+on:
+  workflow_dispatch:
+    inputs:
+      operating_systems:
+        description: 'Operating systems to build for (comma-separated: windows,ubuntu)'
+        required: false
+        default: 'windows,ubuntu'
+      gfx_target:
+        description: 'AMD GPU targets (comma-separated; use "multiarch" for a single combined gfx1100+gfx1151 binary)'
+        required: false
+        default: 'gfx1151,gfx1150,gfx120X,gfx110X,gfx103X,gfx90a,gfx908,multiarch'
+      rocm_version:
+        description: 'ROCm version to use (e.g., 7.13.0a20260318) or "latest" to auto-detect'
+        required: false
+        default: 'latest'
+      rocmfpx_repo:
+        description: 'ROCmFPX repository (owner/repo)'
+        required: false
+        default: 'charlie12345/ROCmFPX'
+      rocmfpx_version:
+        description: 'ROCmFPX version (tag, branch, commit hash, or "latest"/"main")'
+        required: false
+        default: 'main'
+      create_release:
+        description: 'Create a GitHub release after successful build'
+        required: false
+        default: true
+        type: boolean
+
+  # Trigger on pull requests
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  # Nightly build schedule at 13:00 UTC (5:00 AM PST)
+  schedule:
+    - cron: '0 13 * * *'
+
+env:
+  OPERATING_SYSTEMS: ${{ github.event.inputs.operating_systems || 'windows,ubuntu' }}
+  GFX_TARGETS: ${{ github.event.inputs.gfx_target || 'gfx1151,gfx1150,gfx120X,gfx110X,gfx103X,gfx90a,gfx908,multiarch' }}
+  ROCM_VERSION: ${{ github.event.inputs.rocm_version || 'latest' }}
+  ROCMFPX_REPO: ${{ github.event.inputs.rocmfpx_repo || 'charlie12345/ROCmFPX' }}
+  ROCMFPX_VERSION: ${{ github.event.inputs.rocmfpx_version || 'main' }}
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      windows_matrix: ${{ steps.set-matrix.outputs.windows_matrix }}
+      ubuntu_matrix: ${{ steps.set-matrix.outputs.ubuntu_matrix }}
+      should_build_windows: ${{ steps.set-matrix.outputs.should_build_windows }}
+      should_build_ubuntu: ${{ steps.set-matrix.outputs.should_build_ubuntu }}
+    steps:
+    - name: Set matrix
+      id: set-matrix
+      run: |
+        targets="${{ env.GFX_TARGETS }}"
+        operating_systems="${{ env.OPERATING_SYSTEMS }}"
+        
+        echo "Input targets: $targets"
+        echo "Input operating systems: $operating_systems"
+
+        # Convert comma-separated targets into JSON array
+        matrix_targets=$(echo "$targets" \
+          | tr ',' '\n' \
+          | sed 's/^ *//;s/ *$//' \
+          | sed 's/^"//;s/"$//' \
+          | jq -R . \
+          | jq -s '{gfx_target: .}' \
+          | jq -c)
+
+        should_build_windows="false"
+        should_build_ubuntu="false"
+
+        # multiarch is a Linux-only combined target (gfx1100+gfx1151 fatbin);
+        # drop it from the Windows matrix so the Windows job never picks it up.
+        windows_matrix=$(echo "$matrix_targets" | jq -c '{gfx_target: [.gfx_target[] | select(. != "multiarch")]}')
+
+        if [[ "$operating_systems" == *"windows"* && "$windows_matrix" != '{"gfx_target":[]}' ]]; then
+          should_build_windows="true"
+          echo "windows_matrix=$windows_matrix" >> $GITHUB_OUTPUT
+        fi
+        
+        if [[ "$operating_systems" == *"ubuntu"* ]]; then
+          should_build_ubuntu="true"
+          echo "ubuntu_matrix=$matrix_targets" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "should_build_windows=$should_build_windows" >> $GITHUB_OUTPUT
+        echo "should_build_ubuntu=$should_build_ubuntu" >> $GITHUB_OUTPUT
+        
+        echo "Windows build: $should_build_windows"
+        echo "Ubuntu build: $should_build_ubuntu"
+        echo "Generated matrix: $matrix_targets"
+
+  build-windows:
+    # Pinned to windows-2022 (MSVC 14.4x) to avoid <cmath> constexpr conflicts in MSVC 14.51+
+    runs-on: windows-2022
+    needs: prepare-matrix
+    if: needs.prepare-matrix.outputs.should_build_windows == 'true'
+    strategy:
+      matrix: ${{fromJson(needs.prepare-matrix.outputs.windows_matrix)}}
+      fail-fast: false
+    outputs:
+      rocm_version: ${{ steps.set-outputs.outputs.rocm_version }}
+      rocmfpx_commit_hash: ${{ steps.set-outputs.outputs.rocmfpx_commit_hash }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Clean up workspace
+      run: |
+        if (Test-Path "ROCmFPX") { Remove-Item -Recurse -Force "ROCmFPX" }
+        if (Test-Path "C:\opt\rocm") { Remove-Item -Recurse -Force "C:\opt\rocm" }
+        if (Test-Path "rocm.tar.gz") { Remove-Item -Force "rocm.tar.gz" }
+
+    - name: Install Visual Studio Build Tools
+      run: |
+        $vsInstallerUrl = "https://aka.ms/vs/17/release/vs_buildtools.exe"
+        $vsInstallerPath = "$env:TEMP\vs_buildtools.exe"
+        Invoke-WebRequest -Uri $vsInstallerUrl -OutFile $vsInstallerPath
+        Start-Process -FilePath $vsInstallerPath -ArgumentList "--quiet", "--wait", "--norestart", "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "--add", "Microsoft.VisualStudio.Component.VC.CMake.Project", "--add", "Microsoft.VisualStudio.Component.VC.ATL", "--add", "Microsoft.VisualStudio.Component.Windows11SDK.22621" -Wait
+        Remove-Item $vsInstallerPath -Force
+
+    - name: Install build dependencies
+      run: |
+        # Install Ninja
+        $ninjaUrl = "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip"
+        $ninjaPath = "$env:TEMP\ninja-win.zip"
+        $ninjaDir = "C:\ninja"
+        New-Item -ItemType Directory -Force -Path $ninjaDir
+        Invoke-WebRequest -Uri $ninjaUrl -OutFile $ninjaPath
+        Expand-Archive -Path $ninjaPath -DestinationPath $ninjaDir -Force
+        
+        # Install Strawberry Perl
+        $perlUrl = "http://strawberryperl.com/download/5.32.1.1/strawberry-perl-5.32.1.1-64bit.msi"
+        $perlPath = "$env:TEMP\strawberry-perl-5.32.1.1-64bit.msi"
+        Invoke-WebRequest -Uri $perlUrl -OutFile $perlPath
+        Start-Process msiexec.exe -ArgumentList "/i $perlPath /quiet /norestart" -Wait
+        
+        $env:PATH = "C:\ninja;C:\Strawberry\perl\bin;$env:PATH"
+        ninja --version
+        perl --version
+            
+    - name: Download ROCm nightly tarball
+      run: |
+        $rocmVersion = "${{ env.ROCM_VERSION }}"
+        $currentTarget = "${{ matrix.gfx_target }}"
+        
+        # Add -all suffix for combined targets
+        $s3Target = $currentTarget
+        if ($currentTarget -eq "gfx103X" -or $currentTarget -eq "gfx110X" -or $currentTarget -eq "gfx120X") {
+          $s3Target = "$currentTarget-all"
+        }
+        
+        $baseUrl = "https://rocm.nightlies.amd.com/tarball-multi-arch"
+        if ($rocmVersion -eq "latest") {
+          Write-Host "Auto-detecting latest ROCm version for $currentTarget"
+          $indexHtml = (Invoke-WebRequest "$baseUrl/" -UseBasicParsing).Content
+          $filesMatch = [regex]::Match($indexHtml, 'const files = (\[.*?\]);', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+          if (-not $filesMatch.Success) {
+            Write-Error "Failed to parse file index from $baseUrl/"
+            exit 1
+          }
+
+          $allFiles = $filesMatch.Groups[1].Value | ConvertFrom-Json
+          $prefix = "therock-dist-windows-$s3Target-"
+          $versionPattern = "^$([regex]::Escape($prefix))\d+\.\d+\.\d+(a|rc)\d+\.tar\.gz$"
+          $latest = $allFiles |
+            Where-Object { $_.name -match $versionPattern } |
+            Sort-Object { [regex]::Match($_.name, '(\d{8})\.tar\.gz$').Groups[1].Value } |
+            Select-Object -Last 1
+          if (-not $latest) {
+            Write-Error "No tarball found for prefix '$prefix' at $baseUrl/"
+            exit 1
+          }
+          $latestFile = $latest.name
+          Write-Host "Found latest file: $latestFile"
+
+          if ($latestFile -match "therock-dist-windows-$s3Target-(\d+\.\d+\.\d+(?:a|rc)\d+)\.tar\.gz") {
+            $rocmVersion = $matches[1]
+          } else {
+            Write-Error "Failed to extract version from: $latestFile"
+            exit 1
+          }
+
+          $rocmUrl = "$baseUrl/$latestFile"
+        } else {
+          $rocmUrl = "$baseUrl/therock-dist-windows-$s3Target-$rocmVersion.tar.gz"
+        }
+        
+        echo "DETECTED_ROCM_VERSION=$rocmVersion" >> $env:GITHUB_ENV
+        Write-Host "Downloading ROCm: $rocmUrl"
+        Invoke-WebRequest -Uri $rocmUrl -OutFile "rocm.tar.gz"
+        
+    - name: Extract ROCm to C:\opt\rocm
+      run: |
+        New-Item -ItemType Directory -Force -Path "C:\opt\rocm"
+        tar -xzf rocm.tar.gz -C C:\opt\rocm --strip-components=1
+      
+    - name: Clone ROCmFPX
+      run: |
+        $rocmfpxRepo = "${{ env.ROCMFPX_REPO }}"
+        $rocmfpxVersion = "${{ env.ROCMFPX_VERSION }}"
+        if ($rocmfpxRepo -match '^https?://') {
+          $repoUrl = $rocmfpxRepo
+        } else {
+          $repoUrl = "https://github.com/$rocmfpxRepo.git"
+        }
+        if ($rocmfpxVersion -eq "latest" -or $rocmfpxVersion -eq "main") {
+          git clone --depth 1 --single-branch --branch main $repoUrl ROCmFPX
+        } else {
+          git clone --depth 1 --single-branch --branch $rocmfpxVersion $repoUrl ROCmFPX 2>$null
+          if (-not (Test-Path ROCmFPX)) {
+            git clone $repoUrl ROCmFPX
+            cd ROCmFPX
+            git checkout $rocmfpxVersion
+            cd ..
+          }
+        }
+        cd ROCmFPX
+        $commitHash = git rev-parse --short=7 HEAD
+        echo "ROCMFPX_COMMIT_HASH=$commitHash" >> $env:GITHUB_ENV
+        git log --oneline -1
+
+    - name: Build ROCmFPX + ROCm
+      shell: cmd
+      run: |
+        REM Map target aliases to concrete architectures
+        set "current_target=${{ matrix.gfx_target }}"
+        if "%current_target%"=="gfx110X" (
+          set "mapped_target=gfx1100;gfx1101;gfx1102;gfx1103"
+        ) else if "%current_target%"=="gfx103X" (
+          set "mapped_target=gfx1030;gfx1031;gfx1032;gfx1034"
+        ) else if "%current_target%"=="gfx1151" (
+          set "mapped_target=gfx1151"
+        ) else if "%current_target%"=="gfx1150" (
+          set "mapped_target=gfx1150"
+        ) else if "%current_target%"=="gfx120X" (
+          set "mapped_target=gfx1200;gfx1201"
+        ) else (
+          set "mapped_target=%current_target%"
+        )
+
+        set HIP_PATH=C:\opt\rocm
+        set HIP_PLATFORM=amd
+        set PATH=%HIP_PATH%\lib\llvm\bin;%HIP_PATH%\bin;%PATH%
+
+        call "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath > vs_path.txt
+        set /p VS_PATH=<vs_path.txt
+        call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+
+        cd ROCmFPX
+        mkdir build
+        cd build
+
+        cmake .. -G Ninja ^
+          -DCMAKE_C_COMPILER="C:\opt\rocm\lib\llvm\bin\clang.exe" ^
+          -DCMAKE_CXX_COMPILER="C:\opt\rocm\lib\llvm\bin\clang++.exe" ^
+          -DCMAKE_CXX_FLAGS="-IC:\opt\rocm\include" ^
+          -DCMAKE_CROSSCOMPILING=ON ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DGPU_TARGETS="%mapped_target%" ^
+          -DBUILD_SHARED_LIBS=ON ^
+          -DLLAMA_BUILD_TESTS=OFF ^
+          -DLLAMA_BUILD_WEBUI=OFF ^
+          -DGGML_HIP=ON ^
+          -DGGML_HIP_FORCE_MMQ=ON ^
+          -DGGML_OPENMP=OFF ^
+          -DGGML_CUDA_FORCE_CUBLAS=OFF ^
+          -DGGML_RPC=ON ^
+          -DGGML_HIP_ROCWMMA_FATTN=OFF ^
+          -DLLAMA_BUILD_BORINGSSL=ON ^
+          -DGGML_NATIVE=OFF ^
+          -DGGML_STATIC=OFF ^
+          -DCMAKE_SYSTEM_NAME=Windows
+
+        cmake --build . -j %NUMBER_OF_PROCESSORS%
+        
+    - name: Copy ROCm core DLLs to build directory
+      run: |
+        $buildBinPath = "ROCmFPX\build\bin"
+        $rocmBinPath = "C:\opt\rocm\bin"
+        
+        if (Test-Path $rocmBinPath) {
+          $filesToCopy = @(
+            "amdhip64_*.dll",
+            "rocm_kpack.dll",
+            "amd_comgr*.dll", 
+            "libhipblas.dll",
+            "rocblas.dll",
+            "rocsolver.dll",
+            "hipblaslt.dll",
+            "libhipblaslt.dll",
+            "hipblas.dll",
+            "origami.dll"
+          )
+          
+          foreach ($pattern in $filesToCopy) {
+            $matchingFiles = Get-ChildItem -Path $rocmBinPath -Name $pattern -ErrorAction SilentlyContinue
+            if ($matchingFiles) {
+              foreach ($file in $matchingFiles) {
+                Copy-Item (Join-Path $rocmBinPath $file) (Join-Path $buildBinPath $file)
+              }
+            }
+          }
+          
+          # Copy rocblas and hipblaslt kernel libraries
+          $rocblasLibPath = Join-Path $rocmBinPath "rocblas\library"
+          if (Test-Path $rocblasLibPath) {
+            Copy-Item -Path $rocblasLibPath -Destination (Join-Path $buildBinPath "rocblas\library") -Recurse -Force
+          }
+
+          $hipblasltLibPath = Join-Path $rocmBinPath "hipblaslt\library"
+          if (Test-Path $hipblasltLibPath) {
+            Copy-Item -Path $hipblasltLibPath -Destination (Join-Path $buildBinPath "hipblaslt\library") -Recurse -Force
+          }
+        } else {
+          Write-Error "ROCm directory not found: $rocmBinPath"
+          exit 1
+        }
+        
+    - name: Verify Windows Binaries and Dependencies
+      run: |
+        $binDir = "ROCmFPX\build\bin"
+        Write-Host "Verifying executable existence and DLL dependencies in $binDir..."
+        Get-ChildItem $binDir | Select-Object Name, Length
+        $llamaCli = Join-Path $binDir "llama-cli.exe"
+        $llamaServer = Join-Path $binDir "llama-server.exe"
+        if (-not (Test-Path $llamaCli)) {
+          Write-Error "llama-cli.exe missing!"
+          exit 1
+        }
+        if (-not (Test-Path $llamaServer)) {
+          Write-Error "llama-server.exe missing!"
+          exit 1
+        }
+        Write-Host "Testing llama-cli.exe --help..."
+        $helpText = & $llamaCli --help 2>&1
+        $helpText | Select-Object -First 10 | Out-Host
+        Write-Host "Windows binary verification successful!"
+
+    - name: List build artifacts
+      run: |
+        cd ROCmFPX\build\bin
+        Get-ChildItem -Recurse | Format-Table Name, Length, LastWriteTime
+        
+    - name: Upload build artifacts
+      id: upload-artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: rocmfpx-windows-rocm-${{ matrix.gfx_target }}-x64
+        path: ROCmFPX/build/bin/
+        retention-days: 30
+        
+    - name: Set job outputs
+      id: set-outputs
+      run: |
+        $rocmVersion = if ($env:DETECTED_ROCM_VERSION) { $env:DETECTED_ROCM_VERSION } else { $env:ROCM_VERSION }
+        echo "rocm_version=$rocmVersion" >> $GITHUB_OUTPUT
+        echo "rocmfpx_commit_hash=$env:ROCMFPX_COMMIT_HASH" >> $GITHUB_OUTPUT
+        
+    - name: Create release summary
+      run: |
+        $summary = @"
+        # ROCmFPX + ROCm Build Summary (Windows - ${{ matrix.gfx_target }})
+        
+        ## Build Configuration
+        - **GPU Target**: ${{ matrix.gfx_target }}
+        - **ROCm Version**: ${{ env.DETECTED_ROCM_VERSION || env.ROCM_VERSION }}
+        - **ROCmFPX Commit Hash**: ${{ env.ROCMFPX_COMMIT_HASH }}
+        - **Build Type**: Release
+        - **Platform**: Windows
+        "@
+        Set-Content -Path "build-summary-windows-${{ matrix.gfx_target }}.md" -Value $summary
+        
+    - name: Upload build summary
+      id: upload-summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-summary-windows-${{ matrix.gfx_target }}
+        path: build-summary-windows-${{ matrix.gfx_target }}.md
+        retention-days: 30
+        
+    - name: Clean up workspace
+      if: always()
+      run: |
+        if (Test-Path "rocm.tar.gz") { Remove-Item -Force "rocm.tar.gz" }
+        if (Test-Path "C:\opt\rocm") { Remove-Item -Recurse -Force "C:\opt\rocm" }
+        if (Test-Path "ROCmFPX") { Remove-Item -Recurse -Force "ROCmFPX" }
+        if (Test-Path "build-summary-windows-${{ matrix.gfx_target }}.md") { Remove-Item -Force "build-summary-windows-${{ matrix.gfx_target }}.md" }
+
+  build-ubuntu:
+    runs-on: ubuntu-22.04
+    needs: prepare-matrix
+    if: needs.prepare-matrix.outputs.should_build_ubuntu == 'true'
+    strategy:
+      matrix: ${{fromJson(needs.prepare-matrix.outputs.ubuntu_matrix)}}
+      fail-fast: false
+    outputs:
+      rocm_version: ${{ steps.set-outputs.outputs.rocm_version }}
+      rocmfpx_commit_hash: ${{ steps.set-outputs.outputs.rocmfpx_commit_hash }}
+
+    steps:
+    - name: Free disk space
+      run: curl -fsSL https://raw.githubusercontent.com/kou/arrow/e49d8ae15583ceff03237571569099a6ad62be32/ci/scripts/util_free_space.sh | bash
+    
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Clean up workspace
+      run: |
+        if [ -d "ROCmFPX" ]; then rm -rf ROCmFPX; fi
+        if [ -d "/opt/rocm" ]; then sudo rm -rf /opt/rocm; fi
+        if [ -f "rocm.tar.gz" ]; then rm -f rocm.tar.gz; fi
+
+    - name: Install build dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y cmake ninja-build unzip curl patchelf
+            
+    - name: Download and extract ROCm directly to /opt/rocm
+      run: |
+        rocm_version="${{ env.ROCM_VERSION }}"
+        current_target="${{ matrix.gfx_target }}"
+        
+        s3_target="$current_target"
+        if [[ "$current_target" = "gfx103X" || "$current_target" = "gfx110X" || "$current_target" = "gfx120X" ]]; then
+          s3_target="${current_target}-all"
+        fi
+        
+        base_url="https://rocm.nightlies.amd.com/tarball-multi-arch"
+        if [ "$rocm_version" = "latest" ]; then
+          echo "Auto-detecting latest ROCm version for $current_target"
+          prefix="therock-dist-linux-${s3_target}-"
+
+          files_json=$(curl -s "$base_url/" | tr '\n' ' ' | grep -oP 'const files = \K\[.*?\](?=\s*;)')
+          if [ -z "$files_json" ]; then
+            echo "Failed to parse file index from $base_url/"
+            exit 1
+          fi
+
+          latest_file=$(echo "$files_json" | jq -r --arg p "$prefix" \
+            '[.[] | select(.name | test("^" + $p + "[0-9]+\\.[0-9]+\\.[0-9]+(a|rc)[0-9]+\\.tar\\.gz$"))] | sort_by(.name | capture("(?<d>[0-9]{8})\\.tar\\.gz$").d) | last | .name // empty')
+          if [ -z "$latest_file" ]; then
+            echo "No tarball found for prefix '$prefix' at $base_url/"
+            exit 1
+          fi
+          echo "Found latest file: $latest_file"
+
+          if [[ "$latest_file" =~ therock-dist-linux-${s3_target}-([0-9]+\.[0-9]+\.[0-9]+(a|rc)[0-9]+)\.tar\.gz ]]; then
+            rocm_version="${BASH_REMATCH[1]}"
+            echo "Detected latest ROCm version: $rocm_version"
+          else
+            echo "Failed to extract ROCm version from: $latest_file"
+            exit 1
+          fi
+
+          rocm_url="$base_url/$latest_file"
+        else
+          rocm_url="$base_url/therock-dist-linux-${s3_target}-${rocm_version}.tar.gz"
+        fi
+        
+        echo "DETECTED_ROCM_VERSION=$rocm_version" >> $GITHUB_ENV
+        sudo mkdir -p /opt/rocm
+        curl -sL "$rocm_url" | sudo tar --use-compress-program=gzip -xf - -C /opt/rocm --strip-components=1
+        
+    - name: Set ROCm environment variables
+      run: |
+        echo "HIP_PATH=/opt/rocm" >> $GITHUB_ENV
+        echo "ROCM_PATH=/opt/rocm" >> $GITHUB_ENV
+        echo "HIP_PLATFORM=amd" >> $GITHUB_ENV
+        echo "HIP_CLANG_PATH=/opt/rocm/llvm/bin" >> $GITHUB_ENV
+        echo "HIP_INCLUDE_PATH=/opt/rocm/include" >> $GITHUB_ENV
+        echo "HIP_LIB_PATH=/opt/rocm/lib" >> $GITHUB_ENV
+        echo "HIP_DEVICE_LIB_PATH=/opt/rocm/lib/llvm/amdgcn/bitcode" >> $GITHUB_ENV
+        echo "/opt/rocm/bin:/opt/rocm/llvm/bin:$PATH" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/rocm/llvm/lib:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+        echo "LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:${LIBRARY_PATH:-}" >> $GITHUB_ENV
+        echo "CPATH=/opt/rocm/include:${CPATH:-}" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=/opt/rocm/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> $GITHUB_ENV
+        
+    - name: Clone ROCmFPX
+      run: |
+        rocmfpx_repo="${{ env.ROCMFPX_REPO }}"
+        rocmfpx_version="${{ env.ROCMFPX_VERSION }}"
+        if [[ "$rocmfpx_repo" =~ ^https?:// ]]; then
+          repo_url="$rocmfpx_repo"
+        else
+          repo_url="https://github.com/${rocmfpx_repo}.git"
+        fi
+        if [ "$rocmfpx_version" = "latest" ] || [ "$rocmfpx_version" = "main" ]; then
+          git clone --depth 1 --single-branch --branch main "$repo_url" ROCmFPX
+        else
+          git clone --depth 1 --single-branch --branch "$rocmfpx_version" "$repo_url" ROCmFPX 2>/dev/null || {
+            git clone "$repo_url" ROCmFPX
+            cd ROCmFPX
+            git checkout "$rocmfpx_version" || git checkout --detach "$rocmfpx_version"
+            cd ..
+          }
+        fi
+        cd ROCmFPX
+        commit_hash=$(git rev-parse --short=7 HEAD)
+        echo "ROCMFPX_COMMIT_HASH=$commit_hash" >> $GITHUB_ENV
+        git log --oneline -1
+
+    - name: Build ROCmFPX + ROCm
+      run: |
+        current_target="${{ matrix.gfx_target }}"
+        if [ "$current_target" = "gfx110X" ]; then
+          mapped_target="gfx1100;gfx1101;gfx1102;gfx1103"
+        elif [ "$current_target" = "gfx103X" ]; then
+          mapped_target="gfx1030;gfx1031;gfx1032;gfx1034"
+        elif [ "$current_target" = "gfx1151" ]; then
+          mapped_target="gfx1151"
+        elif [ "$current_target" = "multiarch" ]; then
+          # Combined fatbin: HIP runtime picks gfx1100 or gfx1151 code object at load
+          mapped_target="gfx1100;gfx1151"
+        elif [ "$current_target" = "gfx1150" ]; then
+          mapped_target="gfx1150"
+        elif [ "$current_target" = "gfx120X" ]; then
+          mapped_target="gfx1200;gfx1201"
+        else
+          mapped_target="$current_target"
+        fi
+
+        cd ROCmFPX
+        mkdir build
+        cd build
+
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=/opt/rocm/llvm/bin/clang \
+          -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ \
+          -DCMAKE_CXX_FLAGS="-I/opt/rocm/include" \
+          -DCMAKE_CROSSCOMPILING=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DGPU_TARGETS="$mapped_target" \
+          -DBUILD_SHARED_LIBS=ON \
+          -DLLAMA_BUILD_TESTS=OFF \
+          -DLLAMA_BUILD_WEBUI=OFF \
+          -DGGML_HIP=ON \
+          -DGGML_HIP_FORCE_MMQ=ON \
+          -DGGML_OPENMP=OFF \
+          -DGGML_CUDA_FORCE_CUBLAS=OFF \
+          -DGGML_RPC=ON \
+          -DGGML_HIP_ROCWMMA_FATTN=OFF \
+          -DLLAMA_BUILD_BORINGSSL=ON \
+          -DGGML_NATIVE=OFF \
+          -DGGML_STATIC=OFF \
+          -DCMAKE_SYSTEM_NAME=Linux
+
+        cmake --build . -j $(nproc)
+        
+    - name: Copy ROCm core libs to build directory
+      run: |
+        build_bin_path="ROCmFPX/build/bin"
+        current_target="${{ matrix.gfx_target }}"
+
+        # Copy BLAS kernel folders. Skipped for multiarch: those trees hold every
+        # architecture's kernels (~3 GB); the filtered .kpack packs supply them.
+        if [ "$current_target" != "multiarch" ]; then
+          rocblas_lib_path="/opt/rocm/lib/rocblas/library"
+          if [ -d "$rocblas_lib_path" ]; then
+            dest_rocblas_path="$build_bin_path/rocblas/library"
+            mkdir -p "$(dirname "$dest_rocblas_path")"
+            cp -r "$rocblas_lib_path" "$(dirname "$dest_rocblas_path")/"
+          fi
+
+          hipblaslt_lib_path="/opt/rocm/lib/hipblaslt/library"
+          if [ -d "$hipblaslt_lib_path" ]; then
+            dest_hipblaslt_path="$build_bin_path/hipblaslt/library"
+            mkdir -p "$(dirname "$dest_hipblaslt_path")"
+            cp -r "$hipblaslt_lib_path" "$(dirname "$dest_hipblaslt_path")/"
+          fi
+        fi
+
+        # Copy required ROCm dynamic shared libraries
+        cp -v /opt/rocm/lib/libhipblas.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/librocblas.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/libamdhip64.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/librocsolver.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/libroctx64.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/libhipblaslt.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_liblzma.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/librocprofiler-register.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/libamd_comgr.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/libamd_comgr_loader.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/libhsa-runtime64.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_numa.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/librocroller.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/liborigami.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/librocm_kpack.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_z.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_zstd.so* "$build_bin_path/" 2>/dev/null || true
+        # LLVM/clang-cpp are compiler-only; inference never loads them.
+        if [ "$current_target" != "multiarch" ]; then
+          cp -v /opt/rocm/lib/llvm/lib/libLLVM.so* "$build_bin_path/" 2>/dev/null || true
+          cp -v /opt/rocm/lib/llvm/lib/libclang-cpp.so* "$build_bin_path/" 2>/dev/null || true
+        fi
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_elf.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_drm.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_drm_amdgpu.so* "$build_bin_path/" 2>/dev/null || true
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_bz2.so* "$build_bin_path/" 2>/dev/null || true
+
+        cp -v /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_bz2.so* "$build_bin_path/" 2>/dev/null || true
+
+    - name: Set RPATH for portable distribution
+      run: |
+        cd ROCmFPX/build/bin
+        # Set RPATH to $ORIGIN so all libraries find adjacent dependencies locally
+        for file in *.so* llama-*; do
+          [ -f "$file" ] && [ ! -L "$file" ] && patchelf --set-rpath '$ORIGIN' "$file" 2>/dev/null || true
+        done
+
+    - name: Stage multiarch distribution layout
+      id: stage-dist
+      if: matrix.gfx_target == 'multiarch'
+      run: |
+        # rocm_kpack resolves each host library's embedded "../.kpack/<name>_@GFXARCH@.kpack"
+        # relative to that library, so kernel packs must be a SIBLING of bin/
+        # (mirrors TheRock's install/lib + install/.kpack geometry). Packs are
+        # staged under a visible name because upload-artifact drops hidden
+        # entries; the release step renames kpacks/ -> .kpack/ before zipping.
+        mkdir -p ROCmFPX/dist/bin ROCmFPX/dist/kpacks
+        cp -a ROCmFPX/build/bin/. ROCmFPX/dist/bin/
+        ls /opt/rocm/.kpack || true
+        cp -v /opt/rocm/.kpack/*_gfx1100.kpack ROCmFPX/dist/kpacks/ 2>/dev/null || true
+        cp -v /opt/rocm/.kpack/*_gfx1151.kpack ROCmFPX/dist/kpacks/ 2>/dev/null || true
+
+    - name: Verify Linux Binaries and Dependencies
+      run: |
+        cd ROCmFPX/build/bin
+        export LD_LIBRARY_PATH="$(pwd):${LD_LIBRARY_PATH:-}"
+        ./llama-cli --help | head -n 10
+        ./llama-server --help | head -n 10
+        echo "Linux binary verification successful!"
+
+    - name: Upload build artifacts
+      id: upload-artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: rocmfpx-ubuntu-rocm-${{ matrix.gfx_target }}-x64
+        # multiarch uploads the staged dist tree (bin/ + kpacks/, see the
+        # staging step); the release workflow renames kpacks/ -> .kpack/
+        path: ${{ matrix.gfx_target == 'multiarch' && 'ROCmFPX/dist/**' || 'ROCmFPX/build/bin/' }}
+        retention-days: 30
+        
+    - name: Set job outputs
+      id: set-outputs
+      run: |
+        rocm_version="${DETECTED_ROCM_VERSION:-${{ env.ROCM_VERSION }}}"
+        echo "rocm_version=$rocm_version" >> $GITHUB_OUTPUT
+        echo "rocmfpx_commit_hash=${ROCMFPX_COMMIT_HASH}" >> $GITHUB_OUTPUT
+        
+    - name: Create release summary
+      run: |
+        cat > "build-summary-ubuntu-${{ matrix.gfx_target }}.md" << 'EOF'
+        # ROCmFPX + ROCm Build Summary (Ubuntu - ${{ matrix.gfx_target }})
+        
+        ## Build Configuration
+        - **GPU Target**: ${{ matrix.gfx_target }}
+        - **ROCm Version**: ${{ env.DETECTED_ROCM_VERSION || env.ROCM_VERSION }}
+        - **ROCmFPX Commit Hash**: ${{ env.ROCMFPX_COMMIT_HASH }}
+        - **Build Type**: Release
+        - **Platform**: Ubuntu
+        EOF
+        
+    - name: Upload build summary
+      id: upload-summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-summary-ubuntu-${{ matrix.gfx_target }}
+        path: build-summary-ubuntu-${{ matrix.gfx_target }}.md
+        retention-days: 30
+        
+    - name: Clean up workspace
+      if: always()
+      run: |
+        if [ -f "rocm.tar.gz" ]; then rm -f rocm.tar.gz; fi
+        if [ -d "/opt/rocm" ]; then sudo rm -rf /opt/rocm; fi
+        if [ -d "ROCmFPX" ]; then rm -rf ROCmFPX; fi
+        if [ -f "build-summary-ubuntu-${{ matrix.gfx_target }}.md" ]; then rm -f "build-summary-ubuntu-${{ matrix.gfx_target }}.md"; fi
+
+  test-stx-halo:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    continue-on-error: true
+    needs: [prepare-matrix, build-windows, build-ubuntu]
+    if: |
+      (needs.build-windows.result == 'success' || needs.build-ubuntu.result == 'success') &&
+      contains(github.event.inputs.gfx_target || 'gfx1151,gfx1150,gfx120X,gfx110X', 'gfx1151')
+    strategy:
+      matrix:
+        include:
+          - os: Windows
+            gfx_target: gfx1151
+            artifact_prefix: windows
+            runner: ["stx-halo", "Windows"]
+          - os: Linux
+            gfx_target: gfx1151
+            artifact_prefix: ubuntu
+            runner: ["stx-halo", "Linux"]
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Test ROCmFPX build
+      uses: ./.github/actions/test-rocmfpx-build
+      with:
+        os_type: ${{ matrix.os }}
+        gfx_target: ${{ matrix.gfx_target }}
+        artifact_name: rocmfpx-${{ matrix.artifact_prefix }}-rocm-${{ matrix.gfx_target }}-x64
+
+  test-stx:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    continue-on-error: true
+    needs: [prepare-matrix, build-windows, build-ubuntu]
+    if: |
+      (needs.build-windows.result == 'success' || needs.build-ubuntu.result == 'success') &&
+      contains(github.event.inputs.gfx_target || 'gfx1151,gfx1150,gfx120X,gfx110X', 'gfx1150')
+    strategy:
+      matrix:
+        include:
+          - os: Windows
+            gfx_target: gfx1150
+            artifact_prefix: windows
+            runner: ["stx", "Windows"]
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Test ROCmFPX build
+      uses: ./.github/actions/test-rocmfpx-build
+      with:
+        os_type: ${{ matrix.os }}
+        gfx_target: ${{ matrix.gfx_target }}
+        artifact_name: rocmfpx-${{ matrix.artifact_prefix }}-rocm-${{ matrix.gfx_target }}-x64
+
+  create-release:
+    needs: [prepare-matrix, build-windows, build-ubuntu]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
+    if: |
+      always() &&
+      (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') &&
+      (needs.build-ubuntu.result == 'success' || needs.build-ubuntu.result == 'skipped') &&
+      (needs.build-windows.result == 'success' || needs.build-ubuntu.result == 'success') &&
+      github.event_name != 'pull_request' &&
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.create_release == 'true' || github.event.inputs.create_release == null) ||
+       github.event_name == 'schedule')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./all-artifacts
+        
+    - name: Generate release tag
+      id: generate-tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        existing_tags=$(gh release list --limit 1000 --json tagName --jq '.[].tagName' | grep -E '^b[0-9]{4}$' | sort -V || echo "")
+        
+        if [ -z "$existing_tags" ]; then
+          next_number=1000
+        else
+          highest_tag=$(echo "$existing_tags" | tail -n 1)
+          highest_number=$(echo "$highest_tag" | sed 's/^b//')
+          next_number=$((highest_number + 1))
+        fi
+        
+        TAG=$(printf "b%04d" $next_number)
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "Generated release tag: ${TAG}"
+        
+    - name: Check if tag already exists
+      id: check-tag
+      run: |
+        TAG="${{ steps.generate-tag.outputs.tag }}"
+        if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+          echo "Tag $TAG already exists, skipping release creation"
+          echo "tag_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "Tag $TAG does not exist, proceeding with release creation"
+          echo "tag_exists=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create archives for all target artifacts
+      if: steps.check-tag.outputs.tag_exists == 'false'
+      run: |
+        targets="${{ env.GFX_TARGETS }}"
+        operating_systems="${{ env.OPERATING_SYSTEMS }}"
+        TAG="${{ steps.generate-tag.outputs.tag }}"
+        
+        IFS=',' read -ra TARGET_ARRAY <<< "$targets"
+        IFS=',' read -ra OS_ARRAY <<< "$operating_systems"
+        
+        for os in "${OS_ARRAY[@]}"; do
+          os=$(echo "$os" | xargs)
+          for target in "${TARGET_ARRAY[@]}"; do
+            target=$(echo "$target" | xargs)
+            
+            artifact_name="rocmfpx-${os}-rocm-${target}-x64"
+            artifact_dir="./all-artifacts/${artifact_name}"
+            final_archive_name="rocmfpx-${TAG}-${os}-rocm-${target}-x64"
+            
+            if [ -d "$artifact_dir" ]; then
+              cd "$artifact_dir"
+              # Restore rocm_kpack's hidden-dir geometry (see multiarch staging);
+              # dotglob so the zip glob also picks up the now-hidden .kpack/
+              shopt -s dotglob
+              [ -d kpacks ] && mv kpacks .kpack
+              zip -r "../../${final_archive_name}.zip" *
+              cd ../../
+            else
+              echo "Warning: Artifact directory not found: $artifact_dir"
+            fi
+          done
+        done
+        
+    - name: Create Release
+      if: steps.check-tag.outputs.tag_exists == 'false'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="${{ steps.generate-tag.outputs.tag }}"
+        ROCM_VERSION="${{ needs.build-windows.outputs.rocm_version || needs.build-ubuntu.outputs.rocm_version }}"
+        ROCMFPX_COMMIT_HASH="${{ needs.build-windows.outputs.rocmfpx_commit_hash || needs.build-ubuntu.outputs.rocmfpx_commit_hash }}"
+        targets="${{ env.GFX_TARGETS }}"
+        operating_systems="${{ env.OPERATING_SYSTEMS }}"
+        
+        upload_files=""
+        IFS=',' read -ra TARGET_ARRAY <<< "$targets"
+        IFS=',' read -ra OS_ARRAY <<< "$operating_systems"
+        
+        for os in "${OS_ARRAY[@]}"; do
+          os=$(echo "$os" | xargs)
+          for target in "${TARGET_ARRAY[@]}"; do
+            target=$(echo "$target" | xargs)
+            
+            final_archive_name="rocmfpx-${TAG}-${os}-rocm-${target}-x64"
+            if [ -f "${final_archive_name}.zip" ]; then
+              upload_files="${upload_files} ${final_archive_name}.zip"
+            fi
+          done
+        done
+        
+        gh release create "$TAG" \
+          --title "ROCmFPX $TAG" \
+          --notes "**Build Number**: $TAG
+        **Operating System(s)**: $operating_systems
+        **GPU Target(s)**: $targets
+        **ROCm Version**: $ROCM_VERSION
+        **ROCmFPX Repository**: $ROCMFPX_REPO
+        **ROCmFPX Commit Hash**: $ROCMFPX_COMMIT_HASH
+        **Build Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+        This release includes pre-compiled binaries of canonical upstream **ROCmFPX** (https://github.com/${ROCMFPX_REPO}) with AMD ROCm™ 7 GPU acceleration for multiple GPU targets and operating systems, with all essential ROCm runtime libraries included via portable \$ORIGIN RPATHs." \
+          $upload_files
+
+    - name: Update Formula and Commit Changes
+      if: steps.check-tag.outputs.tag_exists == 'false' && success()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ steps.generate-tag.outputs.tag }}
+      run: |
+        echo "Updating formula for release: $TAG"
+        python3 scripts/update_formulae.py --repo rocmfpx --tag "$TAG"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        if [[ -n "$(git status --porcelain Formula/)" ]]; then
+          git add Formula/
+          git commit -m "chore(formulae): auto-bump rocmfpx to $TAG [skip ci]"
+          git push origin main
+          echo "[✓] Formula updated and pushed successfully"
+        else
+          echo "No formula updates needed."
+        fi
+
