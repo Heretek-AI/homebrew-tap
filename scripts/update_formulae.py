@@ -81,7 +81,7 @@ CONFIG = {
     "kyojin": {
         "type": "upstream_commit",
         "repo": "Yamz-Labs/kyojin",
-        "branch": "master",
+        "branch": "main",
         "formulae": ["kyojin.rb"],
     },
     "hyperqwen": {
@@ -201,7 +201,7 @@ def update_builder_formula_content(formula_path: str, release_tag: str, asset_sh
         else:
             with open(formula_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"[✓] Saved updates to {formula_path}")
+            print(f"[OK] Saved updates to {formula_path}")
         return True
     else:
         print(f"[*] No changes needed for {formula_path}")
@@ -247,7 +247,7 @@ def update_upstream_release_formula(formula_path: str, repo: str, token: str = N
         else:
             with open(formula_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"[✓] Updated {formula_path} to {tag_name}")
+            print(f"[OK] Updated {formula_path} to {tag_name}")
         return True
     else:
         print(f"[*] No changes needed for {formula_path} (already at {tag_name})")
@@ -299,7 +299,7 @@ def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "
         else:
             with open(formula_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"[✓] Updated {formula_path} to commit {commit_sha[:7]} ({commit_date})")
+            print(f"[OK] Updated {formula_path} to commit {commit_sha[:7]} ({commit_date})")
         return True
     else:
         print(f"[*] No changes needed for {formula_path} (already at {commit_sha[:7]})")
@@ -394,7 +394,7 @@ def update_rolling_release_formula(formula_path: str, repo: str, token: str = No
         else:
             with open(formula_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"[✓] Updated {formula_path} to {tag_name}")
+            print(f"[OK] Updated {formula_path} to {tag_name}")
         return True
     else:
         print(f"[*] No changes needed for {formula_path} (already at {tag_name})")
@@ -422,6 +422,8 @@ def main():
 
     targets = list(CONFIG.keys()) if args.repo == "all" else [args.repo]
 
+    updated_targets = []
+
     for target in targets:
         cfg = CONFIG[target]
         target_type = cfg["type"]
@@ -432,6 +434,7 @@ def main():
 
         for formula_file in formula_files:
             formula_path = os.path.join(args.formula_dir, formula_file)
+            changed = False
 
             if target_type == "builder":
                 rel = None
@@ -480,26 +483,35 @@ def main():
                             continue
                     asset_shas[name] = sha
 
-                update_builder_formula_content(formula_path, tag_name, asset_shas, repo_name=repo_name, dry_run=args.dry_run)
+                changed = update_builder_formula_content(formula_path, tag_name, asset_shas, repo_name=repo_name, dry_run=args.dry_run)
 
             elif target_type == "upstream_release":
                 try:
-                    update_upstream_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
+                    changed = update_upstream_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
                 except Exception as e:
                     print(f"[-] Failed to update upstream release formula {formula_file}: {e}")
 
             elif target_type == "rolling_release":
                 try:
-                    update_rolling_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
+                    changed = update_rolling_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
                 except Exception as e:
                     print(f"[-] Failed to update rolling release formula {formula_file}: {e}")
 
             elif target_type == "upstream_commit":
                 branch = cfg.get("branch", "main")
                 try:
-                    update_upstream_commit_formula(formula_path, repo_name, branch, args.token, args.dry_run)
+                    changed = update_upstream_commit_formula(formula_path, repo_name, branch, args.token, args.dry_run)
                 except Exception as e:
                     print(f"[-] Failed to update upstream commit formula {formula_file}: {e}")
+
+            if changed and target not in updated_targets:
+                updated_targets.append(target)
+
+    if "GITHUB_OUTPUT" in os.environ and os.path.exists(os.environ["GITHUB_OUTPUT"]):
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+            f.write(f"updated_targets={','.join(updated_targets)}\n")
+            f.write(f"has_updates={'true' if updated_targets else 'false'}\n")
+    print(f"\n[*] Summary: {len(updated_targets)} formula(e) updated: {', '.join(updated_targets) if updated_targets else 'none'}")
 
 
 if __name__ == "__main__":

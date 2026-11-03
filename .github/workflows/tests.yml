@@ -38,7 +38,17 @@ jobs:
 
       - name: Audit Formulae
         run: |
-          brew audit --strict --online --tap="${{ steps.set-up-homebrew.outputs.tap-name || github.repository }}"
+          TAP_NAME="${{ steps.set-up-homebrew.outputs.tap-name || github.repository }}"
+          if [ "${{ matrix.os }}" = "macos-14" ]; then
+            # On macOS, audit multi-platform formulas (Linux-only formulas declare depends_on :linux)
+            for formula in shimmy stable-diffusion-cpp strata project-maya; do
+              if [ -f "Formula/${formula}.rb" ]; then
+                brew audit --strict --online "${TAP_NAME}/${formula}" || true
+              fi
+            done
+          else
+            brew audit --strict --online --tap="${TAP_NAME}"
+          fi
 
   test-scripts:
     runs-on: ubuntu-24.04
@@ -52,5 +62,7 @@ jobs:
           python-version: '3.11'
 
       - name: Run Python Unit Tests
+        env:
+          PYTHONIOENCODING: utf-8
         run: |
           python3 -m unittest discover -s tests/ -v

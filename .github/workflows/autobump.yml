@@ -2,12 +2,12 @@ name: Auto-Bump Formulae
 
 on:
   schedule:
-    # Run every 4 hours to check for new builder releases
+    # Run every 4 hours to check for new builder releases and upstream commits
     - cron: '0 */4 * * *'
   workflow_dispatch:
     inputs:
       target_builder:
-        description: 'Target to sync (rocmfpx, shimmy, stable-diffusion-cpp, or all)'
+        description: 'Target to sync (rocmfpx, shimmy, stable-diffusion-cpp, gufetto, gufo, gufo-franzmoca, strixite, strata, project-maya, kyojin, hyperqwen, or all)'
         required: false
         default: 'all'
       release_tag:
@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   bump-formulae:
@@ -35,8 +36,10 @@ jobs:
           python-version: '3.11'
 
       - name: Update Formulae
+        id: update_step
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
         run: |
           TARGET="${{ github.event.inputs.target_builder || github.event.client_payload.builder || 'all' }}"
           TAG="${{ github.event.inputs.release_tag || github.event.client_payload.release_tag || 'latest' }}"
@@ -45,6 +48,7 @@ jobs:
           python3 scripts/update_formulae.py --repo "${TARGET}" --tag "${TAG}"
 
       - name: Commit and push changes
+        id: commit_step
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -53,6 +57,24 @@ jobs:
             git add Formula/
             git commit -m "chore(formulae): auto-bump releases [skip ci]"
             git push origin main
+            echo "committed=true" >> "$GITHUB_OUTPUT"
           else
             echo "No formula updates detected."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Dispatch Bottle Builds for Updated Formulae
+        if: steps.commit_step.outputs.committed == 'true' && steps.update_step.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATED: ${{ steps.update_step.outputs.updated_targets }}
+        run: |
+          IFS=',' read -ra TARGETS <<< "$UPDATED"
+          for target in "${TARGETS[@]}"; do
+            case "$target" in
+              gufetto|gufo|gufo-franzmoca|strixite|strata|project-maya)
+                echo "Triggering bottle build for: $target"
+                gh workflow run build-bottles.yml -f formula="$target" || echo "Warning: could not dispatch build-bottles for $target"
+                ;;
+            esac
+          done

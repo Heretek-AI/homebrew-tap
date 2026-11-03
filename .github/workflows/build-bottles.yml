@@ -4,22 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       formula:
-        description: "Formula name to bottle (or 'all-rocm' for gufetto/gufo/gufo-franzmoca/strixite/strata/project-maya)"
+        description: "Formula name to bottle (gufetto, gufo, gufo-franzmoca, strixite, strata, project-maya, or all-rocm)"
         required: true
         default: "all-rocm"
   push:
-    branches: [main]
-    paths:
-      - "Formula/gufetto.rb"
-      - "Formula/gufo.rb"
-      - "Formula/gufo-franzmoca.rb"
-      - "Formula/strixite.rb"
-      - "Formula/strata.rb"
-      - "Formula/project-maya.rb"
-      - "Formula/kyojin.rb"
+    tags:
+      - "release/*"
+      - "bottles/*"
 
 permissions:
   contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-bottles:
@@ -39,13 +37,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Skip if single formula requested and not matching matrix
+      - name: Filter Requested Formula
         id: filter
         run: |
-          if [ "${{ github.event.inputs.formula }}" != "" ] && \
-             [ "${{ github.event.inputs.formula }}" != "all-rocm" ] && \
-             [ "${{ github.event.inputs.formula }}" != "${{ matrix.formula }}" ]; then
+          REQ="${{ github.event.inputs.formula }}"
+          if [ -n "$REQ" ] && [ "$REQ" != "all-rocm" ] && [ "$REQ" != "${{ matrix.formula }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -97,16 +95,60 @@ jobs:
               EXTRA_FLAGS="--with-portable-cpu"
               ;;
           esac
+          
+          echo "Building ${{ matrix.formula }} bottle..."
           brew install --build-bottle $EXTRA_FLAGS "heretek-ai/tap/${{ matrix.formula }}"
           brew test "heretek-ai/tap/${{ matrix.formula }}"
-          brew bottle --force-core-tap --root-url="https://github.com/${{ github.repository }}/releases/download/bottles-${{ matrix.formula }}" "heretek-ai/tap/${{ matrix.formula }}"
+          
+          # Generate bottle archive and json metadata
+          RELEASE_TAG="bottles-${{ matrix.formula }}"
+          ROOT_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
+          brew bottle --force-core-tap --root-url="${ROOT_URL}" --json "heretek-ai/tap/${{ matrix.formula }}"
+          
+          # Normalize filenames: replace double dashes in bottle tarball names
           for f in *--*.bottle.*.tar.gz; do
-            mv "$f" "${f/--/-}"
+            [ -f "$f" ] && mv "$f" "${f/--/-}"
           done
+          for j in *--*.bottle.json; do
+            [ -f "$j" ] && mv "$j" "${j/--/-}"
+          done
+          ls -la *.bottle.*
+
+      - name: Publish Bottle to GitHub Releases
+        if: steps.filter.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: bottles-${{ matrix.formula }}
+          name: Bottles for ${{ matrix.formula }}
+          files: |
+            *.bottle.*.tar.gz
+            *.bottle.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge Bottle Block into Formula
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Use brew bottle --merge to inject the bottle DSL block into Formula/<name>.rb
+          if ls *.bottle.json 1> /dev/null 2>&1; then
+            brew bottle --merge --write *.bottle.json || true
+            if [[ -n "$(git status --porcelain Formula/${{ matrix.formula }}.rb)" ]]; then
+              git add "Formula/${{ matrix.formula }}.rb"
+              git commit -m "chore(${{ matrix.formula }}): update bottle block [skip ci]"
+              git push origin main || true
+            fi
+          fi
 
       - name: Upload Bottle Artifact
         if: steps.filter.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: bottle-${{ matrix.formula }}
-          path: "*.bottle.*.tar.gz"
+          path: |
+            *.bottle.*.tar.gz
+            *.bottle.json

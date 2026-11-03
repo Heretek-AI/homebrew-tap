@@ -32,6 +32,16 @@ jobs:
             os: macos-15
             name: "shimmy [macOS arm64]"
             binaries: "shimmy"
+          - formula: strata
+            flags: ""
+            os: macos-15
+            name: "strata [macOS Metal arm64]"
+            binaries: "strata strata-server strata-cli strata-chat"
+          - formula: project-maya
+            flags: ""
+            os: macos-15
+            name: "project-maya [macOS Metal arm64]"
+            binaries: "maya maya-server maya-cli maya-chat"
 
           # Linux x64 (ROCmFPX variants)
           - formula: rocmfpx
@@ -98,6 +108,48 @@ jobs:
             os: ubuntu-24.04
             name: "stable-diffusion-cpp [Linux ROCm]"
             binaries: "sd-cli sd-server sd stable-diffusion"
+
+          # Linux x64 (Strix Halo & Tiered MoE Engines)
+          - formula: gufetto
+            flags: ""
+            os: ubuntu-24.04
+            name: "gufetto [Linux ROCm gfx1151]"
+            binaries: "gufo gufetto"
+          - formula: gufo
+            flags: ""
+            os: ubuntu-24.04
+            name: "gufo [Linux ROCm gfx1151]"
+            binaries: "gufo gufo-server"
+          - formula: gufo-franzmoca
+            flags: ""
+            os: ubuntu-24.04
+            name: "gufo-franzmoca [Linux ROCm gfx1151]"
+            binaries: "gufo gufo-franzmoca"
+          - formula: strixite
+            flags: ""
+            os: ubuntu-24.04
+            name: "strixite [Linux ROCm gfx1151]"
+            binaries: "strix_server strixite convert_qwen4exp"
+          - formula: strata
+            flags: ""
+            os: ubuntu-24.04
+            name: "strata [Linux ROCm gfx1151]"
+            binaries: "strata strata-cli strata-server strata-chat"
+          - formula: project-maya
+            flags: ""
+            os: ubuntu-24.04
+            name: "project-maya [Linux ROCm gfx1151]"
+            binaries: "maya maya-cli maya-server maya-chat"
+          - formula: kyojin
+            flags: ""
+            os: ubuntu-24.04
+            name: "kyojin [Linux ROCm gfx1151]"
+            binaries: "kyojin-serve kyojin-bench kyojin-convert kyojin-chat"
+          - formula: hyperqwen
+            flags: ""
+            os: ubuntu-24.04
+            name: "hyperqwen [Linux CUDA sm_80+]"
+            binaries: "hyperqwen-bench"
 
     name: ${{ matrix.name }}
     steps:
