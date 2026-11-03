@@ -23,8 +23,8 @@ class Hyperqwen < Formula
   end
 
   resource "xgrammar" do
-    url "https://github.com/mlc-ai/xgrammar.git",
-        revision: "d78c1ae84c2bd3faadbe2fbca3eeb4bfebba3e92"
+    url "https://github.com/cpuchip/xgrammar/archive/fa893f0cc2d117e51218e55ea5b0d88579741bf7.tar.gz"
+    sha256 "74ac3dc455c3d2abb547dfc8bb66b5b41e701b52a00e1eac55f14f5577217f9f"
   end
 
   def install
@@ -48,10 +48,10 @@ class Hyperqwen < Formula
               "cmake_args = [",
               "cmake_args = [\"-DCUTLASS_DIR=#{cutlass_dir}\","
 
-    # 2. Stage xgrammar offline and patch patches/apply.py to use local checkout
+    # 2. Stage xgrammar offline
     xgrammar_dir = buildpath/"xgrammar_src"
     resource("xgrammar").stage xgrammar_dir
-    inreplace "patches/apply.py", "/tmp/xgrammar_build", xgrammar_dir.to_s
+    inreplace "patches/apply.sh", "/tmp/xgrammar_build", xgrammar_dir.to_s if File.exist?("patches/apply.sh")
 
     # 3. Build liblsa.so for sm_80, sm_86, sm_89, sm_120 (instead of hardcoded sm_86)
     (libexec/"lib").mkpath

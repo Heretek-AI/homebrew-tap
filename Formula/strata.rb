@@ -111,7 +111,8 @@ class Strata < Formula
     end
 
     # Install runtime layout into libexec so strata.py / serve/server.py resolve ROOT-relative paths
-    libexec.install "strata.py", "setup.py", "chat.py", "VERSION", "serve", "tools"
+    libexec.install "strata.py", "setup.py", "chat.py", "serve", "tools"
+    libexec.install "VERSION" if File.exist?("VERSION")
     (libexec/"third_party/llama.cpp").install llama_dir/"gguf-py"
 
     if OS.mac?
@@ -151,7 +152,6 @@ class Strata < Formula
     venv = virtualenv_create(libexec/"venv", "python3.12")
     Dir.glob("third_party/wheels/*.whl").each { |whl| venv.pip_install whl }
     venv.pip_install libexec/"third_party/llama.cpp/gguf-py"
-    system libexec/"venv/bin/pip", "install", "numpy", "jinja2", "pillow", "safetensors", "huggingface-hub"
     libexec.install_symlink libexec/"venv" => ".venv"
 
     env_vars = {

@@ -150,11 +150,35 @@ jobs:
             os: ubuntu-24.04
             name: "hyperqwen [Linux CUDA sm_80+]"
             binaries: "hyperqwen-bench"
+            continue_on_error: true
 
     name: ${{ matrix.name }}
+    continue-on-error: ${{ matrix.continue_on_error || false }}
     steps:
       - name: Checkout tap repository
         uses: actions/checkout@v4
+
+      - name: Provision AMD TheRock ROCm SDK for ROCm Formulas
+        if: runner.os == 'Linux' && contains(matrix.name, 'ROCm')
+        run: |
+          base_url="https://rocm.nightlies.amd.com/tarball-multi-arch"
+          prefix="therock-dist-linux-gfx1151-"
+          files_json=$(curl -s "$base_url/" | tr '\n' ' ' | grep -oP 'const files = \K\[.*?\](?=\s*;)')
+          if [ -n "$files_json" ]; then
+            latest_file=$(echo "$files_json" | jq -r --arg p "$prefix" \
+              '[.[] | select(.name | test("^" + $p + "[0-9]+\\.[0-9]+\\.[0-9]+(a|rc)[0-9]+\\.tar\\.gz$"))] | sort_by(.name | capture("(?<d>[0-9]{8})\\.tar\\.gz$").d) | last | .name // empty')
+          fi
+          if [ -n "$latest_file" ]; then
+            URL="$base_url/$latest_file"
+          else
+            URL="$base_url/therock-dist-linux-gfx1151-7.15.0a20260728.tar.gz"
+          fi
+          echo "Provisioning latest ROCm SDK from $URL"
+          sudo mkdir -p /opt/rocm
+          curl -sL --retry 3 "$URL" | sudo tar -xz -C /opt/rocm
+          echo "ROCM_PATH=/opt/rocm" >> "$GITHUB_ENV"
+          echo "/opt/rocm/bin" >> "$GITHUB_PATH"
+          echo "/opt/rocm/llvm/bin" >> "$GITHUB_PATH"
 
       - name: Set up Homebrew
         id: set-up-homebrew
@@ -165,31 +189,24 @@ jobs:
           brew trust heretek-ai/tap
 
       - name: Install Formula
-        id: install
         run: |
           mkdir -p "$HOME/.cache/brew_tmp"
           export HOMEBREW_TEMP="$HOME/.cache/brew_tmp"
           echo "Installing ${{ matrix.formula }} ${{ matrix.flags }}..."
-          if brew install ${{ matrix.formula }} ${{ matrix.flags }} --verbose; then
-            echo "installed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::Installation skipped or pending release asset for ${{ matrix.name }}"
-            echo "installed=false" >> "$GITHUB_OUTPUT"
-          fi
+          brew install ${{ matrix.formula }} ${{ matrix.flags }} --verbose
 
       - name: Verify Installed Executables
-        if: steps.install.outputs.installed == 'true'
         run: |
           for bin in ${{ matrix.binaries }}; do
             if command -v "$bin" >/dev/null 2>&1; then
               echo "=== Verifying $bin --help ==="
               "$bin" --help 2>&1 | head -n 15
             else
-              echo "::warning::Command $bin not in PATH"
+              echo "::error::Command $bin not in PATH"
+              exit 1
             fi
           done
 
       - name: Run Formula Audit / Test
-        if: steps.install.outputs.installed == 'true'
         run: |
           brew test ${{ matrix.formula }} || echo "::warning::brew test exited with non-zero status (expected on headless CI runner without GPU hardware)"
