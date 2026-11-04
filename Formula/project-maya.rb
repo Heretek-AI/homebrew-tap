@@ -92,6 +92,7 @@ class ProjectMaya < Formula
       args = %W[
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release
+        -DSTRATA_BUILD_TESTS=OFF
         -DSTRATA_NATIVE_EXPERTS=ON
         -DSTRATA_PORTABLE=#{portable}
         -DSTRATA_GGML_DIR=#{llama_dir}
@@ -112,6 +113,7 @@ class ProjectMaya < Formula
         vision_args += %W[
           -DSTRATA_VISION_HIP=ON
           -DSTRATA_VISION_HIP_TARGETS=#{hip_archs}
+          -DSTRATA_VISION_HIP_ARCHS=#{hip_archs}
           -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
           -DHIP_ROOT_DIR=#{rocm_path}
         ]
@@ -130,8 +132,11 @@ class ProjectMaya < Formula
       (libexec/"build-metal").install "build-metal/maya-metal"
       bin.install_symlink libexec/"build-metal/maya-metal" => "maya"
       bin.install_symlink libexec/"build-metal/maya-metal" => "maya-metal"
-      if File.exist?("build-metal/vision/maya-vision")
-        (libexec/"build-metal").install "build-metal/vision/maya-vision"
+      maya_vision_mac = ["build-metal/vision/bin/maya-vision", "build-metal/vision/maya-vision"].find do |f|
+        File.exist?(f)
+      end
+      if maya_vision_mac
+        (libexec/"build-metal").install maya_vision_mac => "maya-vision"
         bin.install_symlink libexec/"build-metal/maya-vision" => "maya-vision"
       end
     else
@@ -153,8 +158,11 @@ class ProjectMaya < Formula
         alias_name = tool.start_with?("strata-") ? tool.sub("strata-", "maya-") : "maya-#{tool.tr("_", "-")}"
         bin.install_symlink libexec/"build/#{tool}" => alias_name
       end
-      if File.exist?("build/vision/maya-vision")
-        (libexec/"build").install "build/vision/maya-vision"
+      maya_vision_linux = ["build/vision/bin/maya-vision", "build/vision/maya-vision"].find do |f|
+        File.exist?(f)
+      end
+      if maya_vision_linux
+        (libexec/"build").install maya_vision_linux => "maya-vision"
         bin.install_symlink libexec/"build/maya-vision" => "maya-vision"
       end
     end

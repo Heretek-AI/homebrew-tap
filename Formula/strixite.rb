@@ -87,10 +87,13 @@ class Strixite < Formula
     bin.install "build/inspect_strixw"
     bin.install "build/check_stream_calls"
 
-    (etc/"strixite").install "strix_server.example.conf"
-    default_conf = etc/"strixite/strix_server.conf"
-    default_conf.write (etc/"strixite/strix_server.example.conf").read unless default_conf.exist?
-    doc.install "README.md", "docs"
+    if File.exist?("deploy/strix-server.conf")
+      (etc/"strixite").install "deploy/strix-server.conf" => "strix_server.example.conf"
+      default_conf = etc/"strixite/strix_server.conf"
+      default_conf.write (etc/"strixite/strix_server.example.conf").read unless default_conf.exist?
+    end
+    doc.install "README.md"
+    doc.install "docs" if Dir.exist?("docs")
   end
 
   def caveats

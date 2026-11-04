@@ -120,6 +120,7 @@ class Strata < Formula
       if vision_target == "strata-vision-hip"
         vision_args += %W[
           -DSTRATA_VISION_HIP=ON
+          -DSTRATA_VISION_HIP_ARCHS=gfx1151;gfx1100;gfx1201
           -DSTRATA_VISION_HIP_TARGETS=gfx1151;gfx1100;gfx1201
           -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
           -DHIP_ROOT_DIR=#{rocm_path}
@@ -128,7 +129,7 @@ class Strata < Formula
       end
       system "cmake", "-S", "tools/vision", "-B", "build/vision", *std_cmake_args, *vision_args,
              "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
-      system "cmake", "--build", "build/vision", "--target", vision_target
+      system "cmake", "--build", "build/vision", "--target", "strata-vision"
     end
 
     # Install runtime layout into libexec so strata.py / serve/server.py resolve ROOT-relative paths
@@ -144,8 +145,11 @@ class Strata < Formula
           bin.install_symlink libexec/"build-metal/#{b}" => b.sub("-metal", "")
         end
       end
-      if File.exist?("build-metal/vision/strata-vision")
-        (libexec/"build-metal").install "build-metal/vision/strata-vision"
+      strata_vision_mac = ["build-metal/vision/bin/strata-vision", "build-metal/vision/strata-vision"].find do |f|
+        File.exist?(f)
+      end
+      if strata_vision_mac
+        (libexec/"build-metal").install strata_vision_mac => "strata-vision"
         bin.install_symlink libexec/"build-metal/strata-vision" => "strata-vision"
       end
     else
@@ -161,11 +165,14 @@ class Strata < Formula
         (libexec/"build").install "build/#{b}"
         bin.install_symlink libexec/"build/#{b}" => b
       end
-      %w[strata-vision-hip strata-vision].each do |vb|
-        next unless File.exist?("build/vision/#{vb}")
-
-        (libexec/"build").install "build/vision/#{vb}"
-        bin.install_symlink libexec/"build/#{vb}" => vb
+      strata_vision_linux = [
+        "build/vision/bin/strata-vision-hip", "build/vision/strata-vision-hip",
+        "build/vision/bin/strata-vision", "build/vision/strata-vision"
+      ].find { |f| File.exist?(f) }
+      if strata_vision_linux
+        target_name = File.basename(strata_vision_linux)
+        (libexec/"build").install strata_vision_linux => target_name
+        bin.install_symlink libexec/"build/#{target_name}" => target_name
       end
     end
 
