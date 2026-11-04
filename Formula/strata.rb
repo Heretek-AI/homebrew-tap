@@ -57,7 +57,7 @@ class Strata < Formula
       system "cmake", "--build", "build-metal/vision", "--target", "strata-vision"
     else
       rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1151;gfx1100;gfx1201"
+      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1151"
 
       backend_args = if build.with?("cuda")
         %w[-DSTRATA_ENABLE_CUDA=ON -DSTRATA_PREFILL_MMQ=ON -DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;100;120]
@@ -120,8 +120,8 @@ class Strata < Formula
       if vision_target == "strata-vision-hip"
         vision_args += %W[
           -DSTRATA_VISION_HIP=ON
-          -DSTRATA_VISION_HIP_ARCHS=gfx1151;gfx1100;gfx1201
-          -DSTRATA_VISION_HIP_TARGETS=gfx1151;gfx1100;gfx1201
+          -DSTRATA_VISION_HIP_ARCHS=#{hip_archs}
+          -DSTRATA_VISION_HIP_TARGETS=#{hip_archs}
           -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
           -DHIP_ROOT_DIR=#{rocm_path}
         ]

@@ -14,6 +14,7 @@ class ProjectMaya < Formula
   end
 
   option "with-wave64", "Compile HIP kernels for AMD Wave64 CDNA/Vega GPUs (gfx906;gfx908;gfx942;gfx950)"
+  option "with-all-amdgpu", "Compile HIP kernels for all supported AMD GPUs (gfx1100..gfx1201)"
   option "with-cuda", "Build with NVIDIA CUDA backend instead of AMD ROCm/HIP"
   option "with-native", "Enable -march=native in ggml-cpu (default uses portable AVX2 + runtime AVX-512 dispatch)"
 
@@ -54,8 +55,10 @@ class ProjectMaya < Formula
       rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
       hip_archs = if build.with?("wave64")
         "gfx906;gfx908;gfx942;gfx950"
-      else
+      elsif build.with?("all-amdgpu")
         "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
+      else
+        "gfx1151"
       end
 
       backend_args = if build.with?("cuda")
