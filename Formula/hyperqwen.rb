@@ -71,7 +71,10 @@ class Hyperqwen < Formula
     python3 = formula_opt_bin("python@3.12")/"python3.12"
     system python3, "-m", "venv", libexec/"venv"
 
-    libexec.install "bench.py", "patches", "entrypoint.sh", "pthfa", "fa2", "lsa"
+    libexec.install "patches", "pthfa", "fa2", "lsa"
+    libexec.install "bench" if Dir.exist?("bench")
+    libexec.install "docker/entrypoint.sh" if File.exist?("docker/entrypoint.sh")
+    libexec.install "bench.py" if File.exist?("bench.py")
 
     (bin/"hyperqwen").write <<~EOS
       #!/usr/bin/env bash
@@ -123,7 +126,19 @@ class Hyperqwen < Formula
 
     (bin/"hyperqwen-bench").write <<~EOS
       #!/usr/bin/env bash
-      exec "#{libexec}/venv/bin/python" "#{libexec}/bench.py" "$@"
+      if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ -z "$1" ]; then
+        cat << 'EOF'
+      Benchmark OpenAI-compatible endpoint with HyperQwen
+      Usage:
+        hyperqwen-bench --url http://127.0.0.1:18020 [options]
+      EOF
+        exit 0
+      fi
+      if [ -f "#{libexec}/bench.py" ]; then
+        exec "#{libexec}/venv/bin/python" "#{libexec}/bench.py" "$@"
+      elif [ -f "#{libexec}/bench/labd_bench.py" ]; then
+        exec "#{libexec}/venv/bin/python" "#{libexec}/bench/labd_bench.py" "$@"
+      fi
     EOS
     chmod 0755, bin/"hyperqwen-bench"
 
