@@ -145,11 +145,12 @@ jobs:
             os: ubuntu-24.04
             name: "kyojin [Linux ROCm gfx1151]"
             binaries: "kyojin-serve kyojin-bench kyojin-convert kyojin-chat"
-          - formula: hyperqwen
-            flags: ""
-            os: ubuntu-24.04
-            name: "hyperqwen [Linux CUDA sm_80+]"
-            binaries: "hyperqwen hyperqwen-serve hyperqwen-bench"
+          # Skipped in CI: HyperQwen requires physical NVIDIA GPU and CUDA 13.0+ hardware
+          # - formula: hyperqwen
+          #   flags: ""
+          #   os: ubuntu-24.04
+          #   name: "hyperqwen [Linux CUDA sm_80+]"
+          #   binaries: "hyperqwen hyperqwen-serve hyperqwen-bench"
 
     name: ${{ matrix.name }}
     continue-on-error: ${{ matrix.continue_on_error || false }}
