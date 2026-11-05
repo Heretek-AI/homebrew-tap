@@ -79,7 +79,7 @@ jobs:
 
       - name: Set up Homebrew
         if: steps.filter.outputs.skip != 'true'
-        uses: Homebrew/actions/setup-homebrew@main
+        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
 
       - name: Configure Tap & Audit Formula Style
         if: steps.filter.outputs.skip != 'true'
@@ -127,7 +127,7 @@ jobs:
 
       - name: Publish Bottle to GitHub Releases
         if: steps.filter.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: bottles-${{ matrix.formula }}
           name: Bottles for ${{ matrix.formula }}

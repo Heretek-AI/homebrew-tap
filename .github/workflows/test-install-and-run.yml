@@ -200,7 +200,7 @@ jobs:
       - name: Provision NVIDIA CUDA Toolkit
         if: runner.os == 'Linux' && contains(matrix.name, 'CUDA')
         continue-on-error: true
-        uses: Jimver/cuda-toolkit@v0.2.36
+        uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d # v0.2.36
         with:
           cuda: '12.8.0'
           method: 'network'
@@ -208,7 +208,7 @@ jobs:
 
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@main
+        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
 
       - name: Trust Tap
         run: |
