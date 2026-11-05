@@ -1,9 +1,9 @@
 class Rocmfpx < Formula
   desc "High-Performance AMD ROCm llama.cpp Inference Stack (Upstream)"
   homepage "https://github.com/charlie12345/ROCmFPX"
-  url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx1151-x64.zip"
-  version "1135"
-  sha256 "8b14756b4302e052721d27a9bc6cbc5c76171e0b6dbcafe6cbb0093bce57b42f"
+  url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx1151-x64.zip"
+  version "1136"
+  sha256 "4e6fab169b35d6337b1f7a874fd630dc06c4d98d58ff85ad2bdbcf799f508b2f"
   license "MIT"
 
   livecheck do
@@ -24,26 +24,26 @@ class Rocmfpx < Formula
   on_linux do
     if Hardware::CPU.intel?
       if build.with? "multi-arch"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-multiarch-x64.zip"
-        sha256 "d929677c9338e10b876ae87e3924be6b4cac96aba3c862e6fd6dfa5bcc2432b7"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-multiarch-x64.zip"
+        sha256 "4dcca64792e20d4d3d79132da09bb43a3d8ab971c319fbac9661598af85783c8"
       elsif build.with? "gfx1150"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx1150-x64.zip"
-        sha256 "2b5001c38dcbd455c595c3eb14a13776bdaf9a3f968e9af5eac09c1792bd0628"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx1150-x64.zip"
+        sha256 "30d4da89565d53c98e21c7cf6f28d6151e4c3ec5dbee5e2e08d3815e14363149"
       elsif build.with? "gfx120X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx120X-x64.zip"
-        sha256 "dd472af68e839dd619d7dcf9b99a3122addde8adedf05fc20be26f52c6918e3e"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx120X-x64.zip"
+        sha256 "93e82c23131acfbda70be274bf2d5cab7fd394ff8d746d578d3ad72f9ee875f9"
       elsif build.with? "gfx110X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx110X-x64.zip"
-        sha256 "e2a00e7b6d8d9a6a513e58accd77b7e499df713de3f0678ba36b43522a3f88a7"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx110X-x64.zip"
+        sha256 "837baab2f58af097ca2050e47307ec8793ed5ae4ad3e269ae721ab9c3904d01d"
       elsif build.with? "gfx103X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx103X-x64.zip"
-        sha256 "7b8044c32f5d4026692bf9f0d28d308cd1d8b6ec1caccbf2b964124c7045473a"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx103X-x64.zip"
+        sha256 "aabc20f23c29cf3629431ec49e99f7134cd62850a4257ce9b10626b26b6e72f7"
       elsif build.with? "gfx90a"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx90a-x64.zip"
-        sha256 "3245723cdff58f0394de29e45956c6726eb59b1a006c781905860c4868de983b"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx90a-x64.zip"
+        sha256 "fc2fcf9b90e021dfef8979568c537fa53b99243da97d5276c97616dd8b5fa3f6"
       elsif build.with? "gfx908"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1135/rocmfpx-b1135-ubuntu-rocm-gfx908-x64.zip"
-        sha256 "bdf3f637bef1994585ec4e4b7a33b6b3ced861aa2a6b13e1732c41c41770f77c"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx908-x64.zip"
+        sha256 "2a2ee81b9a0f2119ca293c906e8471495e6386cb421f4eeb8d4b94de0d169f0c"
       end
     end
   end
