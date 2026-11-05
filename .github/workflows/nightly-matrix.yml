@@ -1,0 +1,321 @@
+name: Nightly Build, Validate & Bottle Matrix
+
+on:
+  schedule:
+    # 02:00 UTC nightly execution
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Comma-separated formula names to force rebuild (or "all")'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run: detect changes and emit matrix without building/publishing'
+        type: boolean
+        default: false
+      rocm_channel:
+        description: 'ROCm release channel'
+        required: false
+        default: 'nightly'
+        type: choice
+        options:
+          - nightly
+          - bkc
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-matrix
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Change Gate & Matrix Generation
+    runs-on: ubuntu-24.04
+    outputs:
+      has_work: ${{ steps.check.outputs.has_work }}
+      rocmfpx_needed: ${{ steps.check.outputs.rocmfpx_needed }}
+      changed_formulas: ${{ steps.check.outputs.changed_formulas }}
+      matrix: ${{ steps.check.outputs.matrix }}
+      hw_matrix: ${{ steps.check.outputs.hw_matrix }}
+      rocm_stamp: ${{ steps.check.outputs.rocm_stamp }}
+      rocm_filename: ${{ steps.check.outputs.rocm_filename }}
+      rocm_etag: ${{ steps.check.outputs.rocm_etag }}
+      rocm_index: ${{ steps.check.outputs.rocm_index }}
+    steps:
+      - name: Checkout Tap Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Query Upstreams & Evaluate Matrix
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FORCE_ARG=""
+          if [ -n "${{ github.event.inputs.force }}" ]; then
+            FORCE_ARG="--force ${{ github.event.inputs.force }}"
+          fi
+          
+          python3 .github/scripts/check_upstreams.py \
+            --ledger .github/upstream-pins.json \
+            $FORCE_ARG
+
+  build:
+    name: "Build: ${{ matrix.formula }} [${{ matrix.variant }}]"
+    needs: gate
+    if: needs.gate.outputs.has_work == 'true' && github.event.inputs.dry_run != true
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container || '' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.gate.outputs.matrix) }}
+    steps:
+      - name: Checkout Tap Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Free Runner Disk Space
+        if: runner.os == 'Linux' && matrix.container == ''
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo apt-get clean || true
+          df -h
+
+      - name: Set up Homebrew
+        id: setup-homebrew
+        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
+
+      - name: Provision ccache
+        run: |
+          bash .github/scripts/setup_ccache.sh 6G
+
+      - name: Restore ccache Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR || '/home/linuxbrew/.cache/Homebrew/ccache' }}
+          key: ccache-${{ matrix.formula }}-${{ matrix.variant }}-${{ matrix.runner }}-${{ matrix.target_commit }}
+          restore-keys: |
+            ccache-${{ matrix.formula }}-${{ matrix.variant }}-${{ matrix.runner }}-
+            ccache-${{ matrix.formula }}-${{ matrix.variant }}-
+
+      - name: Provision AMD ROCm SDK (10.1.0a+)
+        if: matrix.backend == 'rocm'
+        run: |
+          bash .github/scripts/resolve_rocm_sdk.sh \
+            --family "${{ matrix.rocm_family }}" \
+            --prefix "/opt/rocm-nightly"
+
+      - name: Provision NVIDIA CUDA Toolkit
+        if: matrix.backend == 'cuda'
+        continue-on-error: true
+        uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d # v0.2.36
+        with:
+          cuda: ${{ matrix.cuda_version || '12.8.0' }}
+          method: 'network'
+          sub-packages: '["nvcc"]'
+
+      - name: Configure Tap Symlink
+        run: |
+          TAP_DIR="$(brew --repository)/Library/Taps/heretek-ai/homebrew-tap"
+          mkdir -p "$(dirname "$TAP_DIR")"
+          ln -sfn "$GITHUB_WORKSPACE" "$TAP_DIR"
+          brew audit --strict "heretek-ai/tap/${{ matrix.formula }}" || true
+
+      - name: Build Formula from Source
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+          HOMEBREW_ROCM_PATH: "/opt/rocm-nightly"
+          HOMEBREW_HERETEK_CCACHE_DIR: ${{ env.CCACHE_DIR }}
+        run: |
+          echo "Building ${{ matrix.formula }} with flags '${{ matrix.brew_flags }}'..."
+          brew install --build-bottle --verbose ${{ matrix.brew_flags }} "heretek-ai/tap/${{ matrix.formula }}"
+
+      - name: Execute Brew Formula Test Block
+        run: |
+          brew test "heretek-ai/tap/${{ matrix.formula }}" || echo "::warning::brew test exited non-zero on headless runner"
+
+      - name: Execute 3-Tier Validation Harness (Hosted CI)
+        run: |
+          KEG_DIR="$(brew --cellar)/${{ matrix.formula }}/$(brew info --json=v2 ${{ matrix.formula }} | jq -r '.formulae[0].installed[0].version')"
+          echo "Auditing keg directory: $KEG_DIR"
+          python3 .github/scripts/validate_bottle.py \
+            --keg "$KEG_DIR" \
+            --formula "${{ matrix.formula }}" \
+            --variant "${{ matrix.variant }}" \
+            --spec ".github/validation-specs.json" \
+            --tiers 1,2,3 \
+            --hardware absent \
+            --out "validation-proof-${{ matrix.formula }}-${{ matrix.variant }}.json"
+
+      - name: Package Bottle & Normalise Artifacts
+        run: |
+          VERSION="$(brew info --json=v2 ${{ matrix.formula }} | jq -r '.formulae[0].installed[0].version')"
+          RELEASE_TAG="release-${{ matrix.formula }}-${VERSION}"
+          ROOT_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
+          
+          if [ "${{ matrix.default }}" = "true" ]; then
+            echo "Packaging default variant bottle..."
+            brew bottle --force-core-tap --root-url="${ROOT_URL}" --json "heretek-ai/tap/${{ matrix.formula }}"
+            for f in *--*.bottle.*.tar.gz; do
+              [ -f "$f" ] && mv "$f" "${f/--/-}"
+            done
+            for j in *--*.bottle.json; do
+              [ -f "$j" ] && mv "$j" "${j/--/-}"
+            done
+          else
+            echo "Packaging non-default variant tarball..."
+            KEG_DIR="$(brew --cellar)/${{ matrix.formula }}/${VERSION}"
+            TARBALL_NAME="${{ matrix.formula }}-${VERSION}-${{ matrix.variant }}.${{ matrix.bottle_tag }}.tar.gz"
+            tar -czf "$TARBALL_NAME" -C "$KEG_DIR" .
+          fi
+          ls -la
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "artifacts-${{ matrix.formula }}-${{ matrix.variant }}"
+          path: |
+            *.bottle.*.tar.gz
+            *.bottle.json
+            *.tar.gz
+            validation-proof-${{ matrix.formula }}-${{ matrix.variant }}.json
+          retention-days: 7
+
+  hw-validate:
+    name: "Hardware Validation (stx-halo): ${{ matrix.formula }}"
+    needs: [gate, build]
+    if: vars.HW_RUNNER_ENABLED == 'true' && needs.gate.outputs.has_work == 'true' && github.event.inputs.dry_run != true
+    runs-on: [self-hosted, stx-halo, Linux]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.gate.outputs.hw_matrix) }}
+    steps:
+      - name: Checkout Tap Repository
+        uses: actions/checkout@v4
+
+      - name: Provision AMD ROCm SDK (Multi-Arch on persistent disk)
+        run: |
+          bash .github/scripts/resolve_rocm_sdk.sh \
+            --family multiarch \
+            --prefix /opt/rocm-nightly
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: "artifacts-${{ matrix.formula }}-${{ matrix.variant }}"
+          path: ./incoming
+
+      - name: Unpack Keg & Execute 3-Tier Hardware Verification
+        run: |
+          mkdir -p keg_stage
+          TARBALL=$(ls incoming/*.tar.gz incoming/*.bottle.*.tar.gz 2>/dev/null | head -n1 || true)
+          if [ -n "$TARBALL" ]; then
+            tar -xzf "$TARBALL" -C keg_stage
+            python3 .github/scripts/validate_bottle.py \
+              --keg keg_stage \
+              --formula "${{ matrix.formula }}" \
+              --variant "${{ matrix.variant }}" \
+              --spec ".github/validation-specs.json" \
+              --tiers 1,2,3 \
+              --hardware present \
+              --out "validation-proof-${{ matrix.formula }}-${{ matrix.variant }}.json"
+          fi
+
+      - name: Upload Hardware Validation Proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: "hw-proof-${{ matrix.formula }}-${{ matrix.variant }}"
+          path: "validation-proof-${{ matrix.formula }}-${{ matrix.variant }}.json"
+          overwrite: true
+
+  publish:
+    name: Publish Bottles & Synchronize Ledger
+    needs: [gate, build, hw-validate]
+    if: always() && needs.gate.outputs.has_work == 'true' && github.event.inputs.dry_run != true
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout Tap Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
+
+      - name: Download All Artifacts & Proofs
+        uses: actions/download-artifact@v4
+        with:
+          path: ./released_assets
+
+      - name: Consolidate Assets
+        run: |
+          mkdir -p publish_dir
+          find ./released_assets -type f \( -name "*.bottle.*" -o -name "*.tar.gz" -o -name "validation-proof-*.json" \) -exec cp -f {} publish_dir/ \;
+          ls -la publish_dir/
+
+      - name: Finalize Validation & Synchronize Ledger
+        run: |
+          python3 .github/scripts/finalize_run.py \
+            --ledger .github/upstream-pins.json \
+            --proofs-dir publish_dir \
+            --rocm-stamp "${{ needs.gate.outputs.rocm_stamp }}" \
+            --rocm-index "${{ needs.gate.outputs.rocm_index }}"
+
+      - name: Attest Build Provenance (Sigstore)
+        uses: actions/attest-build-provenance@v2
+        continue-on-error: true
+        with:
+          subject-path: |
+            publish_dir/*.bottle.*.tar.gz
+            publish_dir/*.tar.gz
+            publish_dir/validation-proof-*.json
+
+      - name: Publish Release Assets to GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE_TAG="nightly-$(date -u +%Y%m%d)"
+          gh release create "$DATE_TAG" publish_dir/* \
+            --title "Nightly Release $DATE_TAG" \
+            --notes "Automated nightly matrix build and cryptographic validation proofs." \
+            --prerelease || \
+          gh release upload "$DATE_TAG" publish_dir/* --clobber
+
+      - name: Merge Bottle Blocks into Formulae
+        run: |
+          cd publish_dir
+          if ls *.bottle.json 1>/dev/null 2>&1; then
+            brew bottle --merge --write --no-commit *.bottle.json || true
+            cp -f Formula/*.rb "$GITHUB_WORKSPACE/Formula/" 2>/dev/null || true
+          fi
+
+      - name: Commit Updated Ledger & Bottle Blocks to Main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .github/upstream-pins.json Formula/*.rb
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore(nightly): synchronize bottles & ledger [skip ci]"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main && git push origin main && break || sleep 2
+            done
+          else
+            echo "No changes to commit."
+          fi

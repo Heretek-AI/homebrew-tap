@@ -28,13 +28,32 @@ on:
         default: true
         type: boolean
 
+  workflow_call:
+    inputs:
+      operating_systems:
+        description: 'Operating systems to build for (comma-separated: windows,ubuntu)'
+        required: false
+        default: 'windows,ubuntu'
+        type: string
+      gfx_target:
+        description: 'AMD GPU targets'
+        required: false
+        default: 'gfx1151,gfx1150,gfx120X,gfx110X,gfx103X,gfx90a,gfx908,multiarch'
+        type: string
+      rocm_version:
+        description: 'ROCm version to use or "latest"'
+        required: false
+        default: 'latest'
+        type: string
+      create_release:
+        description: 'Create a GitHub release after successful build'
+        required: false
+        default: true
+        type: boolean
+
   # Trigger on pull requests
   pull_request:
     types: [opened, synchronize, reopened]
-
-  # Nightly build schedule at 13:00 UTC (5:00 AM PST)
-  schedule:
-    - cron: '0 13 * * *'
 
 permissions:
   contents: read
@@ -158,7 +177,15 @@ jobs:
           $s3Target = "$currentTarget-all"
         }
         
-        $baseUrl = "https://rocm.nightlies.amd.com/tarball-multi-arch"
+        $primaryUrl = "https://nightly.repo.amd.com/rocm/core/tarball"
+        $fallbackUrl = "https://rocm.nightlies.amd.com/tarball-multi-arch"
+        $baseUrl = $primaryUrl
+        try {
+          $test = Invoke-WebRequest -Uri "$primaryUrl/" -UseBasicParsing -TimeoutSec 10
+          if ($test.StatusCode -ne 200) { $baseUrl = $fallbackUrl }
+        } catch {
+          $baseUrl = $fallbackUrl
+        }
         if ($rocmVersion -eq "latest") {
           Write-Host "Auto-detecting latest ROCm version for $currentTarget"
           $indexHtml = (Invoke-WebRequest "$baseUrl/" -UseBasicParsing).Content
@@ -434,12 +461,14 @@ jobs:
           s3_target="${current_target}-all"
         fi
         
-        base_url="https://rocm.nightlies.amd.com/tarball-multi-arch"
-        if [ "$rocm_version" = "latest" ]; then
-          echo "Auto-detecting latest ROCm version for $current_target"
-          prefix="therock-dist-linux-${s3_target}-"
-
-          files_json=$(curl -s "$base_url/" | tr '\n' ' ' | grep -oP 'const files = \K\[.*?\](?=\s*;)')
+        primary_url="https://nightly.repo.amd.com/rocm/core/tarball"
+        fallback_url="https://rocm.nightlies.amd.com/tarball-multi-arch"
+        base_url="$primary_url"
+        files_json=$(curl -s "$primary_url/" | tr '\n' ' ' | grep -oP 'const files = \K\[.*?\](?=\s*;)' || true)
+        if [ -z "$files_json" ]; then
+          base_url="$fallback_url"
+          files_json=$(curl -s "$fallback_url/" | tr '\n' ' ' | grep -oP 'const files = \K\[.*?\](?=\s*;)')
+        fi
           if [ -z "$files_json" ]; then
             echo "Failed to parse file index from $base_url/"
             exit 1

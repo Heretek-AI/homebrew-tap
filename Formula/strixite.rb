@@ -19,12 +19,14 @@ class Strixite < Formula
   depends_on "gcc"
   depends_on :linux
 
-  def install
-    rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-    unless Dir.exist?(rocm_path)
-      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+)."
-    end
+  def rocm_root
+    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
+      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+).")
+  end
 
+  def install
+    rocm_path = rocm_root
     ENV["ROCM_PATH"] = rocm_path
     ENV["HIP_PATH"] = rocm_path
     ENV.prepend_path "PATH", formula_opt_bin("lld")
@@ -94,6 +96,13 @@ class Strixite < Formula
     end
     doc.install "README.md"
     doc.install "docs" if Dir.exist?("docs")
+
+    (pkgshare/"build-manifest.json").write JSON.pretty_generate(
+      variant:    "rocm",
+      rocm_root:  rocm_path,
+      host_arch:  host_arch,
+      cmake_args: args,
+    )
   end
 
   def caveats
@@ -117,6 +126,13 @@ class Strixite < Formula
   end
 
   test do
+    # 1. Dynamic Linker & ABI Audit
+    out = shell_output("ldd #{bin}/strix_server")
+    refute_match(/not found/, out)
+    assert_match(/libamdhip64\.so/, out)
+
+    # 2. CLI Introspection
     assert_match "Usage: ./strix_server --model", shell_output("#{bin}/strix_server --help")
+    assert_match(/convert|usage/i, shell_output("#{bin}/convert_qwen4exp --help 2>&1"))
   end
 end

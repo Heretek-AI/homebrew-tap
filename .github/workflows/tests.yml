@@ -57,10 +57,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Run Python Unit Tests
+      - name: Install Test Dependencies
+        run: |
+          pip install pytest pytest-cov
+
+      - name: Run Script & Toolchain Unit Tests
         env:
           PYTHONIOENCODING: utf-8
         run: |
-          python3 -m unittest discover -s tests/ -v
+          pytest tests/ -v
+
+      - name: Lint Shell Scripts
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck .github/scripts/*.sh

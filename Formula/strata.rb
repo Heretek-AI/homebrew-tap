@@ -31,6 +31,12 @@ class Strata < Formula
     sha256 "c076d7534afa0e5d0ec2a0d425b11e791c16f3de0d727221aea071cef156a280"
   end
 
+  def rocm_root
+    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
+      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
+  end
+
   def install
     llama_dir = buildpath/"third_party/llama.cpp"
     resource("llama.cpp").stage llama_dir
@@ -56,15 +62,14 @@ class Strata < Formula
              "-DCMAKE_BUILD_TYPE=Release", "-DLLAMA_DIR=#{llama_dir}", *std_cmake_args
       system "cmake", "--build", "build-metal/vision", "--target", "strata-vision"
     else
-      rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1151"
+      rocm_path = rocm_root
+      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1100;gfx1150;gfx1151"
 
       backend_args = if build.with?("cuda")
         %w[-DSTRATA_ENABLE_CUDA=ON -DSTRATA_PREFILL_MMQ=ON -DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;100;120]
       elsif build.with?("sycl")
         %w[-DSTRATA_ENABLE_SYCL=ON]
       else
-        odie "ROCm installation not found at #{rocm_path}." unless Dir.exist?(rocm_path)
         ENV["ROCM_PATH"] = rocm_path
         ENV["HIP_PATH"] = rocm_path
         ENV.prepend_path "PATH", "#{rocm_path}/bin"
@@ -218,7 +223,20 @@ class Strata < Formula
   end
 
   test do
+    # 1. Dynamic Linker & ABI Audit
+    if OS.linux?
+      out = shell_output("ldd #{bin}/strata")
+      refute_match(/not found/, out)
+    elsif OS.mac?
+      out = shell_output("otool -L #{bin}/strata")
+      refute_match(/not found/, out)
+    end
+
+    # 2. CLI Introspection
     assert_match "STRATA", shell_output("#{bin}/strata-cli --help")
+    assert_match(/strata|usage/i, shell_output("#{bin}/strata --help 2>&1"))
+
+    # 3. Device Discovery Smoke Test
     assert_match "GPU", shell_output("#{bin}/strata-device 2>&1") if File.exist?(bin/"strata-device")
   end
 end

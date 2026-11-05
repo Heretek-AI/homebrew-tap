@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "defaults": {
+    "tier1": {
+      "check_linkage": true,
+      "forbidden_strings": ["not found", "undefined symbol"]
+    },
+    "tier2": {
+      "timeout_seconds": 30
+    },
+    "tier3": {
+      "timeout_seconds": 60,
+      "min_tokens_per_sec": 0.01
+    }
+  },
+  "formulas": {
+    "gufo": {
+      "binaries": ["bin/gufo", "bin/gufo-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/gufo", "version"],
+        "help_cmd": ["bin/gufo", "--help"],
+        "device_cmd": ["bin/gufo", "info"],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|compute unit)",
+        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip)",
+        "golden_cmd": ["bin/gufo", "test", "--mock"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|ms/tok)"
+      }
+    },
+    "gufetto": {
+      "binaries": ["bin/gufo", "bin/gufo-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/gufo", "version"],
+        "help_cmd": ["bin/gufo", "--help"],
+        "device_cmd": ["bin/gufo", "info"],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|compute unit)",
+        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip)",
+        "golden_cmd": ["bin/gufo", "test", "--mock"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|ms/tok)"
+      }
+    },
+    "gufo-franzmoca": {
+      "binaries": ["bin/gufo", "bin/gufo-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/gufo", "version"],
+        "help_cmd": ["bin/gufo", "--help"],
+        "device_cmd": ["bin/gufo", "info"],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|compute unit)",
+        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip)",
+        "golden_cmd": ["bin/gufo", "test", "--mock"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|ms/tok)"
+      }
+    },
+    "hyperqwen": {
+      "binaries": ["bin/hyperqwen", "bin/hyperqwen-bench"],
+      "cuda": {
+        "required_libs": ["libcudart.so"],
+        "version_cmd": ["bin/hyperqwen", "--version"],
+        "help_cmd": ["bin/hyperqwen", "--help"],
+        "device_cmd": ["bin/hyperqwen", "--check-gpu"],
+        "device_ok_regex": "(?i)(cuda|nvidia|sm_[0-9]+|geforce|rtx|tesla|a100|h100)",
+        "no_device_ok_regex": "(?i)(cuda error|no (cuda-capable|gpu|device)|driver not loaded)",
+        "golden_cmd": ["bin/hyperqwen-bench", "--mock-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|items/s)"
+      }
+    },
+    "qwenox": {
+      "binaries": ["bin/qwenox_engine", "bin/qwenox_server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/qwenox_engine", "--version"],
+        "help_cmd": ["bin/qwenox_engine", "--help"],
+        "device_cmd": ["bin/qwenox_engine", "--info"],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|rocm)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hipError|initialization failed)",
+        "golden_cmd": ["bin/qwenox_engine", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "snowllm": {
+      "binaries": ["bin/snowllm"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/snowllm", "--version"],
+        "help_cmd": ["bin/snowllm", "--help"],
+        "device_cmd": ["bin/snowllm", "devices"],
+        "device_ok_regex": "(?i)(gfx1151|strix|radeon|hip device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|cannot find hip)",
+        "golden_cmd": ["bin/snowllm", "bench", "--synthetic"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "kyojin": {
+      "binaries": ["bin/kyojin-serve", "bin/kyojin-bench"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/kyojin-serve", "--version"],
+        "help_cmd": ["bin/kyojin-serve", "--help"],
+        "device_cmd": ["bin/kyojin-serve", "--list-devices"],
+        "device_ok_regex": "(?i)(gfx1151|gfx1150|gfx1100|radeon|amd|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|0 devices found)",
+        "golden_cmd": ["bin/kyojin-bench", "--dry-run"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      },
+      "cuda": {
+        "required_libs": ["libcudart.so"],
+        "version_cmd": ["bin/kyojin-serve", "--version"],
+        "help_cmd": ["bin/kyojin-serve", "--help"],
+        "device_cmd": ["bin/kyojin-serve", "--list-devices"],
+        "device_ok_regex": "(?i)(cuda|nvidia|sm_[0-9]+|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|cudaErrorNoDevice|driver)",
+        "golden_cmd": ["bin/kyojin-bench", "--dry-run"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "project-maya": {
+      "binaries": ["bin/maya", "bin/maya-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/maya", "--version"],
+        "help_cmd": ["bin/maya", "--help"],
+        "device_cmd": ["bin/maya", "--info"],
+        "device_ok_regex": "(?i)(gfx1100|gfx1150|gfx1151|radeon|rocm|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|cpu fallback)",
+        "golden_cmd": ["bin/maya", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      },
+      "cuda": {
+        "required_libs": ["libcudart.so"],
+        "version_cmd": ["bin/maya", "--version"],
+        "help_cmd": ["bin/maya", "--help"],
+        "device_cmd": ["bin/maya", "--info"],
+        "device_ok_regex": "(?i)(cuda|nvidia|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|cudaError|driver)",
+        "golden_cmd": ["bin/maya", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      },
+      "metal": {
+        "required_libs": ["Metal.framework"],
+        "version_cmd": ["bin/maya", "--version"],
+        "help_cmd": ["bin/maya", "--help"],
+        "device_cmd": ["bin/maya", "--info"],
+        "device_ok_regex": "(?i)(apple|metal|m1|m2|m3|m4)",
+        "no_device_ok_regex": "(?i)(no metal device|cpu mode)",
+        "golden_cmd": ["bin/maya", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "strata": {
+      "binaries": ["bin/strata", "bin/strata-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/strata", "--version"],
+        "help_cmd": ["bin/strata", "--help"],
+        "device_cmd": ["bin/strata", "--info"],
+        "device_ok_regex": "(?i)(gfx1100|gfx1150|gfx1151|radeon|rocm|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|cpu fallback)",
+        "golden_cmd": ["bin/strata", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      },
+      "cuda": {
+        "required_libs": ["libcudart.so"],
+        "version_cmd": ["bin/strata", "--version"],
+        "help_cmd": ["bin/strata", "--help"],
+        "device_cmd": ["bin/strata", "--info"],
+        "device_ok_regex": "(?i)(cuda|nvidia|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|cudaError|driver)",
+        "golden_cmd": ["bin/strata", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      },
+      "metal": {
+        "required_libs": ["Metal.framework"],
+        "version_cmd": ["bin/strata", "--version"],
+        "help_cmd": ["bin/strata", "--help"],
+        "device_cmd": ["bin/strata", "--info"],
+        "device_ok_regex": "(?i)(apple|metal|m1|m2|m3|m4)",
+        "no_device_ok_regex": "(?i)(no metal device|cpu mode)",
+        "golden_cmd": ["bin/strata", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "strixite": {
+      "binaries": ["bin/strix_server", "bin/convert_qwen4exp"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/strix_server", "--help"],
+        "help_cmd": ["bin/strix_server", "--help"],
+        "device_cmd": ["bin/strix_server", "--probe-device"],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device)",
+        "no_device_ok_regex": "(?i)(Usage:|cannot open device|hipError|no gfx1151)",
+        "golden_cmd": ["bin/convert_qwen4exp", "--help"],
+        "throughput_regex": "(?i)(usage|convert|qwen)"
+      }
+    },
+    "crucible-strix-halo": {
+      "binaries": ["bin/crucible", "bin/crucible-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/crucible", "--version"],
+        "help_cmd": ["bin/crucible", "--help"],
+        "device_cmd": ["bin/crucible", "--list-devices"],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice)",
+        "golden_cmd": ["bin/crucible", "test", "--mock"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "rocmfpx": {
+      "binaries": ["bin/llama-cli", "bin/llama-server"],
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/llama-server", "--version"],
+        "help_cmd": ["bin/llama-server", "--help"],
+        "device_cmd": ["bin/llama-cli", "--list-devices"],
+        "device_ok_regex": "(?i)(ROCm|gfx[0-9a-zA-Z]+|HIP|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|0 devices found)",
+        "golden_cmd": ["bin/llama-cli", "-m", "mock", "--dry-run"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens per second)"
+      }
+    },
+    "lucebox": {
+      "binaries": ["bin/lucebox-server"],
+      "cuda": {
+        "required_libs": ["libcudart.so"],
+        "version_cmd": ["bin/lucebox-server", "--version"],
+        "help_cmd": ["bin/lucebox-server", "--help"],
+        "device_cmd": ["bin/lucebox-server", "--info"],
+        "device_ok_regex": "(?i)(cuda|nvidia|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|cudaError|driver)",
+        "golden_cmd": ["bin/lucebox-server", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      },
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/lucebox-server", "--version"],
+        "help_cmd": ["bin/lucebox-server", "--help"],
+        "device_cmd": ["bin/lucebox-server", "--info"],
+        "device_ok_regex": "(?i)(gfx1151|gfx1150|radeon|rocm|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice)",
+        "golden_cmd": ["bin/lucebox-server", "--dry-eval"],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
+      }
+    },
+    "shimmy": {
+      "binaries": ["bin/shimmy"],
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": ["bin/shimmy", "--version"],
+        "help_cmd": ["bin/shimmy", "--help"],
+        "device_cmd": ["bin/shimmy", "--version"],
+        "device_ok_regex": "(?i)(shimmy)",
+        "no_device_ok_regex": "(?i)(shimmy)",
+        "golden_cmd": ["bin/shimmy", "--version"],
+        "throughput_regex": "(?i)(shimmy)"
+      },
+      "metal": {
+        "required_libs": ["Metal.framework"],
+        "version_cmd": ["bin/shimmy", "--version"],
+        "help_cmd": ["bin/shimmy", "--help"],
+        "device_cmd": ["bin/shimmy", "--version"],
+        "device_ok_regex": "(?i)(shimmy)",
+        "no_device_ok_regex": "(?i)(shimmy)",
+        "golden_cmd": ["bin/shimmy", "--version"],
+        "throughput_regex": "(?i)(shimmy)"
+      }
+    },
+    "stable-diffusion-cpp": {
+      "binaries": ["bin/sd-cli", "bin/sd-server"],
+      "vulkan": {
+        "required_libs": ["libvulkan.so"],
+        "version_cmd": ["bin/sd-cli", "--help"],
+        "help_cmd": ["bin/sd-cli", "--help"],
+        "device_cmd": ["bin/sd-cli", "--help"],
+        "device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "no_device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "golden_cmd": ["bin/sd-cli", "--help"],
+        "throughput_regex": "(?i)(usage)"
+      },
+      "metal": {
+        "required_libs": ["Metal.framework"],
+        "version_cmd": ["bin/sd-cli", "--help"],
+        "help_cmd": ["bin/sd-cli", "--help"],
+        "device_cmd": ["bin/sd-cli", "--help"],
+        "device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "no_device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "golden_cmd": ["bin/sd-cli", "--help"],
+        "throughput_regex": "(?i)(usage)"
+      },
+      "rocm": {
+        "required_libs": ["libamdhip64.so"],
+        "version_cmd": ["bin/sd-cli", "--help"],
+        "help_cmd": ["bin/sd-cli", "--help"],
+        "device_cmd": ["bin/sd-cli", "--help"],
+        "device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "no_device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "golden_cmd": ["bin/sd-cli", "--help"],
+        "throughput_regex": "(?i)(usage)"
+      },
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": ["bin/sd-cli", "--help"],
+        "help_cmd": ["bin/sd-cli", "--help"],
+        "device_cmd": ["bin/sd-cli", "--help"],
+        "device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "no_device_ok_regex": "(?i)(usage|stable-diffusion)",
+        "golden_cmd": ["bin/sd-cli", "--help"],
+        "throughput_regex": "(?i)(usage)"
+      }
+    }
+  }
+}

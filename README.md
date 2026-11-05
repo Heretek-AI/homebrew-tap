@@ -1,18 +1,33 @@
-# 🍺 Heretek-AI Homebrew Tap: High-Performance GPU Inference Engines
+# 🍺 Heretek-AI Homebrew Tap: High-Performance GPU Inference Engines & APU Runtimes
 
 <div align="center">
 
+[![Nightly CI Matrix](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/nightly-matrix.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/nightly-matrix.yml)
 [![Brew CI & Formula Audit](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml)
-[![Auto-Bump Formulae](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/autobump.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/autobump.yml)
 [![Build ROCmFPX](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![AMD ROCm 7+ / 10.1+](https://img.shields.io/badge/AMD%20ROCm-7%2B%20%2F%2010.1%2B%20Built--in-blue?logo=amd&logoColor=white)](https://github.com/ROCm/ROCm)
+[![AMD ROCm 10.1.0a+ TheRock](https://img.shields.io/badge/AMD%20ROCm-10.1.0a%2B%20TheRock-blue?logo=amd&logoColor=white)](https://nightly.repo.amd.com/rocm/core/tarball/)
 [![Apple Metal](https://img.shields.io/badge/Apple-Metal%20Accelerated-000000?logo=apple&logoColor=white)](https://developer.apple.com/metal/)
+[![NVIDIA CUDA 12.8+](https://img.shields.io/badge/NVIDIA%20CUDA-12.8%2B%20Accelerated-76B900?logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
 [![Mesa RADV Vulkan](https://img.shields.io/badge/Vulkan-Mesa%20RADV%20Wave64-FF5722?logo=vulkan&logoColor=white)](https://mesa3d.org)
 
 <p align="center">
-  <b>Turnkey Homebrew tap delivering pre-compiled, GPU-accelerated builds of 11 high-performance local LLM, multimodal vision, and diffusion inference engines:</b><br/>
-  <b><a href="#-rocmfpx">rocmfpx</a></b> • <b><a href="#-stable-diffusion-cpp">stable-diffusion-cpp</a></b> • <b><a href="#-shimmy">shimmy</a></b> • <b><a href="#-gufo">gufo</a></b> • <b><a href="#-gufo-franzmoca">gufo-franzmoca</a></b> • <b><a href="#-gufetto">gufetto</a></b> • <b><a href="#-strixite">strixite</a></b> • <b><a href="#-strata">strata</a></b> • <b><a href="#-project-maya">project-maya</a></b> • <b><a href="#-kyojin">kyojin</a></b> • <b><a href="#-hyperqwen">hyperqwen</a></b>
+  <b>Turnkey Homebrew tap delivering pre-compiled, accelerator-optimized packages for 15 LLM, vision, APU harness, and low-level kernel runtimes:</b><br/>
+  <b><a href="#-rocmfpx">rocmfpx</a></b> •
+  <b><a href="#-gufo">gufo</a></b> •
+  <b><a href="#-gufetto">gufetto</a></b> •
+  <b><a href="#-gufo-franzmoca">gufo-franzmoca</a></b> •
+  <b><a href="#-qwenox">qwenox</a></b> •
+  <b><a href="#-crucible-strix-halo">crucible-strix-halo</a></b> •
+  <b><a href="#-strixite">strixite</a></b> •
+  <b><a href="#-snowllm">snowllm</a></b> •
+  <b><a href="#-strata">strata</a></b> •
+  <b><a href="#-project-maya">project-maya</a></b> •
+  <b><a href="#-kyojin">kyojin</a></b> •
+  <b><a href="#-hyperqwen">hyperqwen</a></b> •
+  <b><a href="#-lucebox">lucebox</a></b> •
+  <b><a href="#-shimmy">shimmy</a></b> •
+  <b><a href="#-stable-diffusion-cpp">stable-diffusion-cpp</a></b>
 </p>
 
 </div>
@@ -25,249 +40,171 @@
 # 1. Tap the Heretek-AI repository
 brew tap Heretek-AI/tap
 
-# 2. Install your desired inference engine:
-# --- Canonical Engines ---
-brew install rocmfpx              # Canonical ROCm (7+ / 10.1+) llama.cpp stack (AMD RDNA2..RDNA4 / CDNA)
-brew install stable-diffusion-cpp # Fast SD, SDXL, Flux, SD3 & Wan image/video inference
-brew install shimmy               # Pure-Rust WebGPU & CUDA LLM engine
-
-# --- AMD Strix Halo (gfx1151) Native Engines ---
-brew install gufo                 # Canonical upstream C++20/HIP Strix Halo runtime (voice + decide)
-brew install gufo-franzmoca       # DeepSeek-V4.1-Flash (763B SSD streaming) & Gemma 4 MTP engine
+# 2. Install desired packages:
+# --- AMD Strix Halo (gfx1151) & Strix Point (gfx1150) APU Runtimes ---
+brew install gufo                 # Canonical upstream C++20/HIP Strix Halo runtime
 brew install gufetto              # C++23 runtime with Flash-Next rotated KV cache & admission planner
-brew install strixite             # Zero-dependency C++20/HIP Qwen3.8-Flash-Next runtime
+brew install gufo-franzmoca       # DeepSeek-V4.1-Flash (763B SSD streaming) & Gemma 4 MTP engine
+brew install qwenox               # High-performance Qwen runtime & kernel primitives for Strix Halo
+brew install crucible-strix-halo  # Dedicated AMD Strix Halo kernel harness & memory allocator tuners
+brew install strixite             # Zero-dependency C++20/HIP Qwen3.8-Flash-Next runtime (.strixw v2)
+brew install snowllm              # Lightweight embedded C++ LLM runner with Ryzen AI Max APU kernels
+
+# --- Low-Level Acceleration Kernels & Canonical Stacks ---
+brew install rocmfpx              # Canonical ROCm llama.cpp stack with FP8/FP4/hipBLASLt primitives
+brew install stable-diffusion-cpp # Fast SD, SDXL, Flux, SD3 & Wan diffusion inference
+brew install shimmy               # Pure-Rust WebGPU & CUDA compatibility server
+brew install lucebox              # Containerized toolchain sandbox and accelerated workspace launcher
 
 # --- Tiered MoE & Multi-Model Engines ---
 brew install strata               # Tiered MoE engine (Qwen3.8, Qwen3.6-35B, DeepSeek-V4.1)
-brew install project-maya         # Tiered MoE engine (GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1, MiniMax-M3.1)
+brew install project-maya         # Multimodal tiered engine (GLM-5.3-Flash, MiniMax, DeepSeek-V4.1)
+brew install kyojin               # ExLlamaV3 Strix Halo / RDNA4 suite with specialized servers
+brew install hyperqwen            # NVIDIA CUDA 12.8+ vLLM appliance (sm_80..sm_120)
 
-# --- Python / JIT & CUDA Appliances ---
-brew install kyojin               # ExLlamaV3 Strix Halo / RDNA4 suite with 5 specialized servers
-brew install hyperqwen            # NVIDIA CUDA 13.0 patched vLLM 0.32.0 appliance (sm_80..sm_120)
-
-# 3. Optional: Start background OpenAI-compatible server daemon (runs on boot):
+# 3. Optional: Start background daemon (runs on boot):
 brew services start gufetto
 # or
 brew services start rocmfpx
 ```
 
 > [!IMPORTANT]
-> **⚡ Zero-Dependency Precompiled Runtimes vs. Source Builds**:  
-> - **Precompiled Packages & Bottles (`rocmfpx`, `stable-diffusion-cpp`, and prebuilt bottles):** Bundle complete AMD ROCm runtime libraries (supporting ROCm 7.x and ROCm 10.1+ nightly releases: `libhipblas.so`, `librocblas.so`, `libamdhip64.so`, `libhipblaslt.so`) linked via portable `$ORIGIN` RPATHs.
-> - **Source Builds (`gufo`, `gufetto`, `strixite`, `strata`, `project-maya`, `kyojin`):** Building from source requires an AMD ROCm SDK (ROCm 7+ or ROCm 10.1+ TheRock nightlies) installed at `/opt/rocm` (or specified via `ROCM_PATH`).
+> **⚡ Zero-Dependency Precompiled Bottles vs. Source Builds**:  
+> - **Precompiled Bottles (`brew install <formula>`):** Bottles link against system runtimes or dynamically isolated toolchain libraries.
+> - **Custom Acceleration Source Builds (`--with-rocm`):** Pass `HOMEBREW_ROCM_PATH=/path/to/rocm` (or have `/opt/rocm-nightly` / `/opt/rocm` present) when invoking Homebrew to override toolchain paths for HIP and clang++ builds.
 
 ---
 
-## 📊 Master Engine Comparison Matrix (All 11 Formulas)
+## 📊 Master Package Matrix (All 15 Formulas)
 
-| Formula | Upstream Source | Primary Languages & Build System | Primary Focus & Models | Default Backend | Port | Binary Aliases & CLI Tools |
-| :--- | :--- | :--- | :--- | :--- | :---: | :--- |
-| [**`rocmfpx`**](#-rocmfpx) | [`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX) | C/C++ (CMake + ROCm 7+ / 10.1+) | General GGUF LLMs (`llama.cpp` upstream fork) | AMD ROCm (`gfx1151` default) | `8080` | `rocmfpx`, `rocmfpx-cli`, `rocmfpx-server` |
-| [**`stable-diffusion-cpp`**](#-stable-diffusion-cpp) | [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) | C/C++ (CMake) | Image & video diffusion (SD, SDXL, Flux, SD3, Wan 2.1) | Vulkan RADV / Metal / ROCm | `8080` | `sd`, `sd-server` |
-| [**`shimmy`**](#-shimmy) | [`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy) | Rust (Cargo) | Ultra-lightweight GGUF server (<1s cold boot, ~50MB RAM) | WebGPU / Vulkan / Metal / CUDA | `11434` | `shimmy` |
-| [**`gufo`**](#-gufo) | [`gufo-org/gufo`](https://github.com/gufo-org/gufo) | C11, C++20, HIP (CMake + Ninja) | Upstream Strix Halo runtime, `gufo speak` (voice), `gufo decide`, WebSockets | AMD ROCm HIP (`gfx1151` strictly enforced) | `8080` | `gufo`, `gufo-server` |
-| [**`gufo-franzmoca`**](#-gufo-franzmoca) | [`franzmoca/gufo`](https://github.com/franzmoca/gufo) | C11, C++20, HIP (CMake + Ninja) | DeepSeek-V4.1-Flash (763B SSD streaming) & Gemma 4 MTP | AMD ROCm HIP (`gfx1151` strictly enforced) | `8080` | `gufo`, `gufo-franzmoca`, `gufo-dsv41-stream-order` |
-| [**`gufetto`**](#-gufetto) | [`fewtarius/gufetto`](https://github.com/fewtarius/gufetto) | C11, **C++23**, HIP (CMake + Ninja) | Flash-Next rotated Q4/Q8 KV cache, multi-prefix pinning, admission planner | AMD ROCm HIP (`gfx1151`) + XDNA 2 NPU | `8080` | `gufo`, `gufetto`, `gufo-server` |
-| [**`strixite`**](#-strixite) | [`shawnshekari/strixite`](https://github.com/shawnshekari/strixite) | C++20, HIP, C11 (CMake + Clang + lld) | Zero-dependency `.strixw` v2 runtime for Qwen3.8-Flash-Next | AMD ROCm HIP (`gfx1151` hardcoded) | `5300` | `strix_server`, `strixite`, `convert_qwen4exp` |
-| [**`strata`**](#-strata) | [`Niko1221/Strata`](https://github.com/Niko1221/Strata) | C++17, HIP/CUDA/Metal + Python | Tiered MoE for Qwen3.8, Qwen3.6-35B, DeepSeek-V4.1-Flash | Multi-Backend (ROCm HIP / Metal / CUDA) | `8080` / `8095` | `strata`, `strata-q36`, `strata-dsv41`, `strata-cli` |
-| [**`project-maya`**](#-project-maya) | [`mw00/project-maya`](https://github.com/mw00/project-maya) | C++20, HIP/CUDA/Metal + Python | Tiered MoE for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1, MiniMax-M3.1 | Multi-Backend (ROCm HIP / Metal / CUDA) | `8080` / `8095` | `maya`, `maya-ds4`, `maya-mm3`, `maya-cli` |
-| [**`kyojin`**](#-kyojin) | [`Yamz-Labs/kyojin`](https://github.com/Yamz-Labs/kyojin) | Python, C++20, HIP/CUDA (PyTorch JIT) | ExLlamaV3 Strix Halo / RDNA4 suite with 5 specialized servers | AMD ROCm HIP (`gfx1151`) / CUDA | `8000` | `kyojin-serve`, `kyojin-bench`, `kyojin-convert` |
-| [**`hyperqwen`**](#-hyperqwen) | [`syv-ai/HyperQwen`](https://github.com/syv-ai/HyperQwen) | Python 3.12, CUDA C++17, Inline PTX | NVIDIA CUDA 13.0 patched vLLM 0.32.0 appliance (Qwen3.8-27B) | NVIDIA CUDA 13.0 (`sm_80..sm_120` ONLY) | `18020` | `hyperqwen-serve`, `hyperqwen-bench` |
-
----
-
-## 🎯 Hardware Architecture & Backend Support Matrix
-
-| Hardware / Target | ISA Code | `rocmfpx` | `sd-cpp` | `shimmy` | `gufo` | `gufo-fm` | `gufetto` | `strixite` | `strata` | `maya` | `kyojin` | `hyperqwen` |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **AMD Strix Halo** | `gfx1151` | ✅ Default | ✅ | ✅ | ✅ Pure | ✅ Pure | ✅ Pure | ✅ Pure | ✅ | ✅ | ✅ | ❌ |
-| **AMD Strix Point** | `gfx1150` | ✅ Option | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ Option | ✅ | ✅ Option | ❌ |
-| **AMD RDNA4** | `gfx120X` | ✅ Option | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ Default | ✅ | ✅ Option | ❌ |
-| **AMD RDNA3** | `gfx110X` | ✅ Option | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ Default | ✅ | ✅ | ❌ |
-| **AMD RDNA2** | `gfx103X` | ✅ Option | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ Option | ❌ | ⚠️ | ❌ |
-| **AMD CDNA 1/2/3** | `gfx90X` | ✅ Option | ✅ | ⚠️ CPU | ❌ | ❌ | ❌ | ❌ | ✅ Option | ✅ Option | ❌ | ❌ |
-| **AMD XDNA 2 NPU** | `accel0` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Built-in | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **NVIDIA CUDA** | `sm_80..120`| ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ Option | ✅ Option | ✅ Option | ✅ Core |
-| **Apple Silicon** | `arm64` Metal| ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ Metal | ✅ Metal | ❌ | ❌ |
-| **Vulkan / WebGPU**| SPIR-V / WGSL| ❌ | ✅ Default| ✅ Default| ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Host CPU SIMD** | AVX-512/AVX2| ✅ | ✅ | ✅ | Zen4/Zen5 | Zen4/Zen5 | Zen4/Zen5 | Zen4/Zen5 | AVX-512 | AVX-512 | AVX2 | x86-64 |
+| Formula | Description | Upstream Source | Primary Languages | Supported Acceleration Backends | Default Backend |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| [**`gufo`**](#-gufo) | High-performance C++20 LLM runtime for Strix Halo | [`Heretek-AI/gufo`](https://github.com/Heretek-AI/gufo) | C++20, HIP, CMake | ROCm HIP (`gfx1151`) | ROCm HIP |
+| [**`gufetto`**](#-gufetto) | C++23 LLM runtime with Flash-Next rotated KV cache | [`community-token-labs/gufetto`](https://github.com/community-token-labs/gufetto) | C++23, HIP, CMake | ROCm HIP (`gfx1151`) + XDNA 2 NPU | ROCm HIP |
+| [**`gufo-franzmoca`**](#-gufo-franzmoca) | DeepSeek-V4.1 SSD streaming & Gemma 4 MTP engine | [`franzmoca/gufo`](https://github.com/franzmoca/gufo) | C++20, HIP, CMake | ROCm HIP (`gfx1151`) | ROCm HIP |
+| [**`qwenox`**](#-qwenox) | Qwen runtime & kernel primitives for Strix Halo | [`IIIIIllllIIIIIlllll/Qwenox`](https://github.com/IIIIIllllIIIIIlllll/Qwenox) | C++20, HIP, Make/CMake | ROCm HIP (`gfx1151`) | ROCm HIP |
+| [**`crucible-strix-halo`**](#-crucible-strix-halo) | Dedicated AMD Strix Halo kernel harness & memory tuners | [`jaedync/crucible-strix-halo`](https://github.com/jaedync/crucible-strix-halo) | C++20, HIP, CMake | ROCm HIP (`gfx1150`, `gfx1151`) | ROCm HIP |
+| [**`strixite`**](#-strixite) | Zero-dependency C++20 Qwen3.8-Flash-Next runtime | [`shawnshekari/strixite`](https://github.com/shawnshekari/strixite) | C++20, HIP, CMake | ROCm HIP (`gfx1151`) | ROCm HIP |
+| [**`snowllm`**](#-snowllm) | Lightweight embedded C++ LLM runner | [`snowllm/snowllm`](https://github.com/snowllm/snowllm) | C++20, HIP, Python | ROCm HIP (`gfx1150`, `gfx1151`) | ROCm HIP |
+| [**`rocmfpx`**](#-rocmfpx) | Low-bit FP8/FP4/hipBLASLt primitives for llama.cpp | [`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX) | C/C++, HIP, CMake | ROCm HIP (`gfx1100`, `gfx1150`, `gfx1151`, `gfx90a`, `gfx942`) | ROCm HIP |
+| [**`strata`**](#-strata) | Layered memory model virtualization & tiered MoE | [`Heretek-AI/Strata`](https://github.com/Heretek-AI/Strata) | C++17, HIP/CUDA/Metal | ROCm, Metal, CUDA, CPU | ROCm (Linux) / Metal (macOS) |
+| [**`project-maya`**](#-project-maya) | Multimodal audio-visual tiered MoE engine | [`mw00/project-maya`](https://github.com/mw00/project-maya) | C++20, HIP/CUDA/Metal | ROCm, Metal, CUDA, CPU | ROCm (Linux) / Metal (macOS) |
+| [**`kyojin`**](#-kyojin) | High-throughput multi-engine inference server | [`Yamz-Labs/kyojin`](https://github.com/Yamz-Labs/kyojin) | Python, C++20, HIP/CUDA | ROCm, CUDA | ROCm (Linux default) |
+| [**`hyperqwen`**](#-hyperqwen) | Quantized Qwen inference engine and vLLM runtime | [`syv-ai/HyperQwen`](https://github.com/syv-ai/HyperQwen) | Python 3.12, CUDA C++17 | CUDA (`sm_80..sm_120`) | CUDA |
+| [**`lucebox`**](#-lucebox) | Containerized toolchain sandbox & workspace launcher | [`Luce-Org/lucebox`](https://github.com/Luce-Org/lucebox) | Rust, Shell | Precompiled multi-arch CLI | CPU Multi-Arch |
+| [**`shimmy`**](#-shimmy) | Dynamic IPC/API compatibility shims and LLM runner | [`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy) | Rust | CPU, Metal, Vulkan, CUDA | CPU (Linux) / Metal (macOS) |
+| [**`stable-diffusion-cpp`**](#-stable-diffusion-cpp) | Fast image & video diffusion inference | [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) | C/C++, CMake | Vulkan, Metal, ROCm, CPU | Vulkan (Linux) / Metal (macOS) |
 
 ---
 
-## 🧠 Model & Feature Compatibility Matrix
+## 🎯 Accelerator Variant Installation Flags
 
-| Feature / Model Family | `rocmfpx` | `sd-cpp` | `shimmy` | `gufo` | `gufo-fm` | `gufetto` | `strixite` | `strata` | `maya` | `kyojin` | `hyperqwen` |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Qwen3.8-Flash-Next** | ✅ GGUF | ❌ | ✅ GGUF | ✅ Native | ✅ Native | ✅ Rotated KV | ✅ `.strixw` | ✅ Native | ✅ Native | ✅ `qwen` | ❌ |
-| **Qwen3.6-35B-A3B** | ✅ GGUF | ❌ | ✅ GGUF | ❌ | ❌ | ❌ | ❌ | ✅ `strata-q36`| ✅ `maya` | ✅ `qwen` | ❌ |
-| **Qwen3.8-27B-AWQ** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Core |
-| **DeepSeek-V4.1-Flash (763B)** | ⚠️ GGUF | ❌ | ❌ | ❌ | ✅ SSD Stream| ❌ | ❌ | ✅ `strata-dsv`| ✅ `maya-ds4` | ✅ `ds41` | ❌ |
-| **Gemma 4 (26B-A4B & 31B)**| ⚠️ GGUF | ❌ | ❌ | ⚠️ Extension | ✅ MTP Spec | ❌ | ❌ | ❌ | ❌ | ✅ `flint` | ❌ |
-| **GLM-5.3-Flash / 4.7** | ✅ GGUF | ❌ | ✅ GGUF | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ `maya` | ✅ `glm` | ❌ |
-| **MiniMax-M3.1-Flash** | ⚠️ GGUF | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ `maya-mm3` | ❌ | ❌ |
-| **MiMo-V2-Flash** | ⚠️ GGUF | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ `mimo` | ❌ |
-| **General GGUF LLMs** | ✅ Full | ❌ | ✅ Full | ❌ | ❌ | ❌ | ❌ | ⚠️ Pack tool | ⚠️ Pack tool | ⚠️ EXL3/GGUF | ❌ |
-| **Diffusion (SD/SDXL/Flux/Wan)**| ❌ | ✅ Core | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Multimodal Vision Tower**| ❌ | ❌ | ❌ | ✅ Built-in | ✅ Built-in | ❌ | ✅ Built-in | ✅ `vision-hip`| ✅ `vision-hip`| ❌ | ❌ |
-| **Speculative Decoding** | N-gram | ❌ | ❌ | MTP / N-gram | MTP / Lookup| N-gram | MTP / N-gram | MTP / DSpark | MTP / DSpark | MTP / N-gram | MTP |
-
----
-
-## 📦 Detailed Formula Guide
-
-### ⚡ `rocmfpx`
-The canonical upstream **ROCmFPX** project maintained by Charlie ([`charlie12345/ROCmFPX`](https://github.com/charlie12345/ROCmFPX)), built directly in this repository with bundled AMD ROCm runtime libraries (supporting ROCm 7.x and ROCm 10.1+ nightly releases).
+Formulas in this tap provide explicit hardware acceleration options:
 
 ```bash
-# Default: Optimized for AMD Strix Halo (gfx1151)
-brew install rocmfpx
+# Build / Install with AMD ROCm acceleration (e.g. Strix Point / Strix Halo / RDNA3 / RDNA4):
+brew install <formula> --with-rocm
 
-# Or install for your specific GPU architecture:
-brew install rocmfpx --with-multi-arch # Combined fatbin for gfx1100 + gfx1151
-brew install rocmfpx --with-gfx1150    # AMD Strix Point (Radeon 890M / 880M)
-brew install rocmfpx --with-gfx120X    # AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)
-brew install rocmfpx --with-gfx110X    # AMD RDNA3 GPUs (RX 7900 XTX / 7800 XT / Radeon 780M)
-brew install rocmfpx --with-gfx103X    # AMD RDNA2 / Steam Deck (Van Gogh / 680M / RX 6800)
-brew install rocmfpx --with-gfx90a     # AMD Instinct MI210 / MI250X (CDNA2)
-brew install rocmfpx --with-gfx908     # AMD Instinct MI100 (CDNA1)
+# Build / Install with NVIDIA CUDA acceleration:
+brew install <formula> --with-cuda
 
-# Start OpenAI-compatible server:
-rocmfpx -m /path/to/model.gguf --port 8080
+# Build / Install with Apple Metal acceleration (macOS):
+brew install <formula> --with-metal
+
+# Build / Install with Vulkan SPIR-V acceleration:
+brew install <formula> --with-vulkan
+
+# Fallback to portable CPU-only builds:
+brew install <formula> --with-cpu
+```
+
+### Passing Custom ROCm Paths
+Because Homebrew sanitizes environmental variables during `brew install`, supply the ROCm installation path via `HOMEBREW_ROCM_PATH`:
+```bash
+HOMEBREW_ROCM_PATH=/opt/rocm-nightly brew install gufo --with-rocm
 ```
 
 ---
 
-### 🎨 `stable-diffusion-cpp`
-Fast, lightweight image and video generation engine based on [`leejet/stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp) in pure C/C++. Supports Stable Diffusion 1.x/2.x, SDXL, SD3, Flux, and Wan video models:
+## 🔄 End-to-End Nightly CI/CD Pipeline Architecture
 
+The tap features a matrixed CI/CD automation pipeline configured in [`.github/workflows/nightly-matrix.yml`](.github/workflows/nightly-matrix.yml) that executes on a nightly schedule (`02:00 UTC`) or manually via `workflow_dispatch`:
+
+```mermaid
+flowchart TD
+    A["Nightly Trigger (02:00 UTC) / Manual Dispatch"] --> B["Change Gate (check_upstreams.py)"]
+    B --> C1["Query Git Remotes (git ls-remote)"]
+    B --> C2["Query AMD TheRock ROCm 10.1.0a+ Index"]
+    B --> C3["Diff Against Ledger (.github/upstream-pins.json)"]
+    
+    C1 & C2 & C3 --> D{"Any Dirty Targets?"}
+    D -- "No Changes" --> E["Clean No-Op Exit"]
+    D -- "Changes Detected" --> F["Dynamic GitHub Actions Matrix"]
+    
+    F --> G1["Hosted Linux Runners (Ubuntu 24.04)<br/>- CPU Builds<br/>- CUDA 12.8 Containers<br/>- Dynamic ROCm 10.1.0a+ Resolver"]
+    F --> G2["Hosted macOS 14 Runners (Apple Silicon)<br/>- Native Metal Builds"]
+    F --> G3["Self-Hosted Strix Halo Runner<br/>- Physical gfx1151 Acceleration"]
+    
+    G1 & G2 & G3 --> H["3-Tier Validation Harness (validate_bottle.py)"]
+    H --> I1["Tier 1: Dynamic Linker & ABI Audit (ldd / otool)"]
+    H --> I2["Tier 2: Device Discovery Smoke Test"]
+    H --> I3["Tier 3: Synthetic Deterministic Inference Run"]
+    
+    I1 & I2 & I3 --> J["Cryptographic Proof Log (validation-proof-*.json)"]
+    J --> K["Bottle Packaging & GitHub Releases"]
+    K --> L["Ledger Synchronization & Main Branch Commit"]
+```
+
+### 1. Dynamic AMD TheRock ROCm 10.1.0a+ Resolver ([`.github/scripts/resolve_rocm_sdk.sh`](.github/scripts/resolve_rocm_sdk.sh))
+- Primary index: `https://nightly.repo.amd.com/rocm/core/tarball/` (fallback to `https://rocm.nightlies.amd.com/tarball-multi-arch/`).
+- Resolves daily `10.1.0a+` nightly archives matching `therock-dist-linux-gfx1151-*.tar.gz`, `gfx1150`, or multiarch tarballs.
+- Filters out non-runtime packages (such as `-tests-`).
+- Supports ETag and filename HTTP caching to prevent redundant bandwidth downloads.
+- Unpacks to `/opt/rocm-nightly`, sets `HIP_PATH`, `ROCM_PATH`, and configures clang++ / lld symlinks.
+
+### 2. State Ledger & Change Gate ([`.github/upstream-pins.json`](.github/upstream-pins.json) & [`.github/scripts/check_upstreams.py`](.github/scripts/check_upstreams.py))
+- Tracks current git commit SHAs, release versions, ROCm build timestamps, and formula `.rb` checksums for all 15 projects.
+- Detects new upstream commits and ROCm nightly updates.
+- Skips unsupported hardware configurations with explicit reason strings (preventing fake or broken backend compilation).
+- Emits a clean JSON matrix for GitHub Actions. If everything is up to date, exits cleanly without launching runners.
+
+### 3. Three-Tier Validation Harness ([`.github/scripts/validate_bottle.py`](.github/scripts/validate_bottle.py))
+Every built bottle undergoes rigorous verification before publication:
+1. **Tier 1 (Linkage & ABI Audit)**: Runs `ldd` (Linux) or `otool -L` (macOS) to verify mandatory accelerator libraries (`libamdhip64.so`, `libhipblaslt.so`, `libcuda.so`, `Metal.framework`) link without orphan symbols or `not found` records.
+2. **Tier 2 (Device Discovery Smoke Test)**: Executes `--list-devices`, `--info`, or backend diagnostics to verify hardware hooks initialize properly.
+3. **Tier 3 (Deterministic Inference Run)**: Executes a synthetic golden test pass with assertions on exit code and throughput.
+4. **Proof Generation**: Emits a cryptographically verified `validation-proof-<formula>-<variant>.json` log containing SHA256 checksums, dynamic linker outputs, compiler options, and runtime telemetry.
+
+### 4. Supply Chain Security & Sigstore Attestation
+Nightly bottles and proof logs published to GitHub Releases are attested using GitHub Actions Artifact Attestations (Sigstore):
 ```bash
-# Default: Vulkan RADV acceleration on Linux; Metal on Apple Silicon
-brew install stable-diffusion-cpp
-
-# On Linux, optional acceleration flags:
-brew install stable-diffusion-cpp --with-rocm   # AMD ROCm GPU acceleration (ROCm 7+ / 10.1+)
-brew install stable-diffusion-cpp --with-cpu    # CPU-only baseline
-
-# Run text-to-image generation:
-sd -m /path/to/sdxl.gguf -p "A cinematic view of an ancient library on Mars" -o output.png
-
-# Launch HTTP generation server:
-sd-server --host 0.0.0.0 --port 8080
+# Verify cryptographic provenance of any downloaded bottle:
+gh attestation verify bottle.tar.gz --owner Heretek-AI
 ```
 
 ---
 
-### 🦀 `shimmy`
-A pure-Rust LLM engine by Michael Kuykendall ([`Michael-A-Kuykendall/shimmy`](https://github.com/Michael-A-Kuykendall/shimmy)) using `wgpu` and native CUDA/WebGPU shaders. Single binary with sub-second cold starts and zero Python or C/C++ dependencies.
+## 💻 Local Tap Testing & Development
+
+Run the complete test suite locally:
 
 ```bash
-brew install shimmy
+# Run Python unit tests for resolvers, validators, and gates:
+pytest tests/ -v
 
-# Run OpenAI-compatible inference server on port 11434 (drop-in Ollama replacement):
-shimmy serve --port 11434 --host 0.0.0.0
-```
+# Run dry-run upstream change check:
+python3 .github/scripts/check_upstreams.py --dry-run
 
----
+# Test formula syntax and auditing inside Docker:
+docker run --rm -v "${PWD}:/tap:ro" ghcr.io/homebrew/ubuntu24.04 bash -c \
+  "brew style /tap/Formula/*.rb"
 
-### 🦉 `gufo` / `gufo-franzmoca` / `gufetto` (AMD Strix Halo gfx1151 Native Engines)
-
-Pure C11/C++20/C++23/HIP inference engines built specifically for the AMD Ryzen AI Max+ 395 ("Strix Halo", `gfx1151`) APU:
-
-- **`gufo`** ([`gufo-org/gufo`](https://github.com/gufo-org/gufo)): Modular Source Extension Architecture, `gufo speak` (voice assistant), `gufo decide`, `/v1/realtime` WebSockets, and Qwen-Image-2.1-Turbo.
-- **`gufo-franzmoca`** ([`franzmoca/gufo`](https://github.com/franzmoca/gufo)): 763B DeepSeek-V4.1-Flash (at up to 1M context with NVMe `--stream-experts` and dual-SSD split streaming) + Gemma 4 (26B-A4B & 31B) with MTP speculative decoding.
-- **`gufetto`** ([`fewtarius/gufetto`](https://github.com/fewtarius/gufetto)): C++23 runtime with Flash-Next rotated Q4/Q8 KV cache, multi-prefix pinning (`--pin-prefix-dir`), and Measured Model Admission Planner (`gufo diagnose --plan`).
-
-```bash
-# Install canonical upstream gufo:
-brew install gufo
-
-# Or install franzmoca's DeepSeek-V4.1-Flash & Gemma 4 engine:
-brew install gufo-franzmoca
-
-# Or install fewtarius's rotated KV cache & multi-prefix pinning runtime:
-brew install gufetto
-
-# Start OpenAI-compatible server on port 8080:
-gufo serve --host 127.0.0.1 --port 8080
-```
-
----
-
-### ⚡ `strixite` (Zero-Dependency Qwen3.8-Flash-Next Strix Halo Engine)
-From-scratch C++20/HIP inference runtime by Shawn Shekari ([`shawnshekari/strixite`](https://github.com/shawnshekari/strixite)) for Strix Halo (`gfx1151`). Converts safetensors directly to `.strixw` v2 weights with zero external library dependencies.
-
-```bash
-brew install strixite
-
-# Convert HuggingFace safetensors:
-convert_qwen4exp /path/to/hf-weights /path/to/strixw --int4-shared
-
-# Launch server on port 5300:
-strix_server --model /path/to/strixw --port 5300 --kv-mode fp8 --mtp-draft 3
-```
-
----
-
-### 🏔️ `strata` & `project-maya` (Tiered MoE Multi-Model Engines)
-Hybrid C++/Python engines designed for tiered GPU/CPU MoE inference across Strix Halo, discrete AMD RDNA3/RDNA4 GPUs, Apple Silicon Metal, and NVIDIA CUDA:
-
-- **`strata`** ([`Niko1221/Strata`](https://github.com/Niko1221/Strata)): Tiered inference for Qwen3.8-Flash-Next, Qwen3.6-35B-A3B, and DeepSeek-V4.1-Flash with multi-GPU splitting (`strata-split-2/3/4`).
-- **`project-maya`** ([`mw00/project-maya`](https://github.com/mw00/project-maya)): Tiered inference for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1-Flash, and MiniMax-M3.1-Flash with runtime CPUID AVX-512 expert kernels.
-
-```bash
-# Install Strata:
-brew install strata
-
-# Install Project Maya:
-brew install project-maya
-
-# Launch servers:
-strata-cli --model qwen38 --port 8095
-maya-cli --model glm51 --port 8095
-```
-
----
-
-### 🥋 `kyojin` (ExLlamaV3 Strix Halo & RDNA4 MoE Suite)
-Python + C++20/HIP fork of ExLlamaV3 by Yamz Labs ([`Yamz-Labs/kyojin`](https://github.com/Yamz-Labs/kyojin)) featuring 5 specialized model servers (`qwen`, `glm`, `mimo`, `ds41`, `flint`) with automatic Strix Halo ROCm runtime environment configuration.
-
-```bash
-brew install kyojin
-
-# Start dedicated server:
-kyojin-serve qwen -m /path/to/qwen-exl3 --mtp --port 8000
-kyojin-serve ds41 -m /path/to/dsv41-gguf --ngram --port 8000
-```
-
----
-
-### 🚀 `hyperqwen` (NVIDIA CUDA 13.0 Qwen3.8-27B Appliance)
-Turnkey NVIDIA CUDA 13.0 (`sm_80`/`sm_86`/`sm_89`/`sm_120`) appliance by Syv AI ([`syv-ai/HyperQwen`](https://github.com/syv-ai/HyperQwen)) wrapping a patched vLLM 0.32.0 distribution with custom inline PTX Flash Attention and Local Symbol Acceleration (`liblsa.so`).
-
-```bash
-brew install hyperqwen
-
-# Start OpenAI-compatible vLLM server on port 18020:
-hyperqwen-serve
-```
-
----
-
-## 🛠️ In-Repo Automated Building & Maintenance
-
-All builder workflows are consolidated directly into this repository:
-
-- **`.github/workflows/build-bottles.yml`**: Nightly and dispatch builds of Linux x86_64 bottles across all 11 formulas with AMD TheRock ROCm runtime packaging (dynamic auto-resolution of latest ROCm 7+ / 10.1+ SDK).
-- **`.github/workflows/build-rocmfpx.yml`**: Nightly and dispatch builds of `charlie12345/ROCmFPX` across Ubuntu & Windows with ROCm runtime packaging (dynamic auto-resolution of latest ROCm 7+ / 10.1+ SDK).
-- **`.github/workflows/autobump.yml`**: Scheduled synchronization for upstream releases, commit SHAs, and formula checksums.
-- **`.github/workflows/test-install-and-run.yml`**: Multi-OS install and binary validation suite.
-
-```bash
-# Test formula updater locally:
-python3 scripts/update_formulae.py --repo all --dry-run
+# Run ShellCheck on all bash scripts:
+docker run --rm -v "${PWD}:/mnt" -w /mnt koalaman/shellcheck:stable \
+  .github/scripts/resolve_rocm_sdk.sh .github/scripts/setup_ccache.sh scripts/test_local_tap.sh
 ```
 
 ---
 
 ## 📄 License
-This Homebrew Tap and its automation scripts are licensed under the [MIT License](LICENSE). Individual upstream packages remain licensed under their respective open-source licenses.
+This Homebrew Tap and its CI/CD automation infrastructure are licensed under the [MIT License](LICENSE). Individual upstream packages remain licensed under their respective open-source licenses.

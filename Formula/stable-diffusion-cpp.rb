@@ -78,6 +78,14 @@ class StableDiffusionCpp < Formula
   end
 
   test do
+    if OS.linux? && File.exist?(bin/"sd-cli")
+      out = shell_output("ldd #{bin}/sd-cli")
+      refute_match(/not found/, out)
+    elsif OS.mac? && File.exist?(bin/"sd-cli")
+      out = shell_output("otool -L #{bin}/sd-cli")
+      refute_match(/not found/, out)
+    end
+
     output = pipe_output("#{bin}/sd-cli --help 2>&1")
     assert_match(/options:|usage:|version:|CLI Options:|dyld:|sd-cli/i, output)
   end

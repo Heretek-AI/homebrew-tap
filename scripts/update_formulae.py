@@ -18,79 +18,110 @@ import urllib.request
 
 GITHUB_API_BASE = "https://api.github.com/repos"
 
-CONFIG = {
-    # In-repo multi-arch ROCm release tracking
-    "rocmfpx": {
-        "type": "builder",
-        "repo": "Heretek-AI/homebrew-tap",
-        "fallback_repo": "Heretek-AI/ROCmFPX-BUILDER",
-        "formulae": ["rocmfpx.rb"],
-    },
+def load_config_from_ledger():
+    ledger_path = os.path.join(os.path.dirname(__file__), "..", ".github", "upstream-pins.json")
+    if os.path.exists(ledger_path):
+        try:
+            with open(ledger_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            packages = data.get("packages", {})
+            cfg = {}
+            for name, pdata in packages.items():
+                track = pdata.get("track", "commit")
+                if track == "commit":
+                    ttype = "upstream_commit"
+                elif track == "release":
+                    ttype = "upstream_release"
+                elif track == "rolling_release":
+                    ttype = "rolling_release"
+                elif track == "builder":
+                    ttype = "builder"
+                else:
+                    ttype = "upstream_commit"
 
-    # Upstream source release tracking
-    "shimmy": {
-        "type": "upstream_release",
-        "repo": "Michael-A-Kuykendall/shimmy",
-        "formulae": ["shimmy.rb"],
-    },
+                entry = {
+                    "type": ttype,
+                    "repo": pdata.get("repo", name),
+                    "branch": pdata.get("branch", "main"),
+                    "formulae": [f"{pdata.get('formula', name)}.rb"]
+                }
+                if name == "rocmfpx":
+                    entry["fallback_repo"] = "Heretek-AI/ROCmFPX-BUILDER"
+                cfg[name] = entry
+            if cfg:
+                return cfg
+        except Exception:
+            pass
 
-    # Upstream rolling release tracking (stable-diffusion.cpp)
-    "stable-diffusion-cpp": {
-        "type": "rolling_release",
-        "repo": "leejet/stable-diffusion.cpp",
-        "formulae": ["stable-diffusion-cpp.rb"],
-    },
+    return {
+        # Fallback in-repo multi-arch ROCm release tracking
+        "rocmfpx": {
+            "type": "builder",
+            "repo": "Heretek-AI/homebrew-tap",
+            "fallback_repo": "Heretek-AI/ROCmFPX-BUILDER",
+            "formulae": ["rocmfpx.rb"],
+        },
+        "shimmy": {
+            "type": "upstream_release",
+            "repo": "Michael-A-Kuykendall/shimmy",
+            "formulae": ["shimmy.rb"],
+        },
+        "stable-diffusion-cpp": {
+            "type": "rolling_release",
+            "repo": "leejet/stable-diffusion.cpp",
+            "formulae": ["stable-diffusion-cpp.rb"],
+        },
+        "gufetto": {
+            "type": "upstream_commit",
+            "repo": "community-token-labs/gufetto",
+            "branch": "main",
+            "formulae": ["gufetto.rb"],
+        },
+        "gufo": {
+            "type": "upstream_commit",
+            "repo": "gufo-org/gufo",
+            "branch": "main",
+            "formulae": ["gufo.rb"],
+        },
+        "gufo-franzmoca": {
+            "type": "upstream_commit",
+            "repo": "franzmoca/gufo",
+            "branch": "main",
+            "formulae": ["gufo-franzmoca.rb"],
+        },
+        "strixite": {
+            "type": "upstream_commit",
+            "repo": "shawnshekari/strixite",
+            "branch": "main",
+            "formulae": ["strixite.rb"],
+        },
+        "strata": {
+            "type": "upstream_commit",
+            "repo": "Niko1221/Strata",
+            "branch": "main",
+            "formulae": ["strata.rb"],
+        },
+        "project-maya": {
+            "type": "upstream_commit",
+            "repo": "mw00/project-maya",
+            "branch": "main",
+            "formulae": ["project-maya.rb"],
+        },
+        "kyojin": {
+            "type": "upstream_commit",
+            "repo": "Yamz-Labs/kyojin",
+            "branch": "main",
+            "formulae": ["kyojin.rb"],
+        },
+        "hyperqwen": {
+            "type": "upstream_commit",
+            "repo": "syv-ai/HyperQwen",
+            "branch": "main",
+            "formulae": ["hyperqwen.rb"],
+        },
+    }
 
-    # Local LLM engines & inference runtimes
-    "gufetto": {
-        "type": "upstream_commit",
-        "repo": "fewtarius/gufetto",
-        "branch": "main",
-        "formulae": ["gufetto.rb"],
-    },
-    "gufo": {
-        "type": "upstream_commit",
-        "repo": "gufo-org/gufo",
-        "branch": "main",
-        "formulae": ["gufo.rb"],
-    },
-    "gufo-franzmoca": {
-        "type": "upstream_commit",
-        "repo": "franzmoca/gufo",
-        "branch": "main",
-        "formulae": ["gufo-franzmoca.rb"],
-    },
-    "strixite": {
-        "type": "upstream_commit",
-        "repo": "shawnshekari/strixite",
-        "branch": "main",
-        "formulae": ["strixite.rb"],
-    },
-    "strata": {
-        "type": "upstream_commit",
-        "repo": "Niko1221/Strata",
-        "branch": "main",
-        "formulae": ["strata.rb"],
-    },
-    "project-maya": {
-        "type": "upstream_commit",
-        "repo": "mw00/project-maya",
-        "branch": "main",
-        "formulae": ["project-maya.rb"],
-    },
-    "kyojin": {
-        "type": "upstream_commit",
-        "repo": "Yamz-Labs/kyojin",
-        "branch": "main",
-        "formulae": ["kyojin.rb"],
-    },
-    "hyperqwen": {
-        "type": "upstream_commit",
-        "repo": "syv-ai/HyperQwen",
-        "branch": "main",
-        "formulae": ["hyperqwen.rb"],
-    },
-}
+CONFIG = load_config_from_ledger()
 
 
 def fetch_json(url: str, token: str = None) -> dict:
@@ -254,21 +285,26 @@ def update_upstream_release_formula(formula_path: str, repo: str, token: str = N
         return False
 
 
-def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "main", token: str = None, dry_run: bool = False) -> bool:
+def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "main", token: str = None, commit_sha: str = None, sha256_digest: str = None, dry_run: bool = False) -> bool:
     if not os.path.exists(formula_path):
         print(f"[-] Formula not found: {formula_path}")
         return False
 
-    commit_data = get_latest_commit(repo, branch, token)
-    commit_sha = commit_data.get("sha", "")
-    commit_date = commit_data.get("commit", {}).get("committer", {}).get("date", "")[:10].replace("-", ".")
+    if not commit_sha:
+        commit_data = get_latest_commit(repo, branch, token)
+        commit_sha = commit_data.get("sha", "")
+        commit_date = commit_data.get("commit", {}).get("committer", {}).get("date", "")[:10].replace("-", ".")
+    else:
+        commit_date = time.strftime("%Y.%m.%d", time.gmtime())
+
     if not commit_sha:
         print(f"[-] No commit SHA found for {repo}/{branch}")
         return False
 
     tarball_url = f"https://github.com/{repo}/archive/{commit_sha}.tar.gz"
-    print(f"[*] Computing SHA256 for commit {commit_sha[:7]} ({tarball_url})...")
-    sha256_digest = download_and_compute_sha256(tarball_url, token)
+    if not sha256_digest:
+        print(f"[*] Computing SHA256 for commit {commit_sha[:7]} ({tarball_url})...")
+        sha256_digest = download_and_compute_sha256(tarball_url, token)
 
     with open(formula_path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -420,6 +456,8 @@ def main():
         help="Target builder repo or formula key",
     )
     parser.add_argument("--tag", default="latest", help="Specific release tag or 'latest'")
+    parser.add_argument("--commit", default=None, help="Explicit target commit SHA for upstream_commit formulae")
+    parser.add_argument("--sha256", default=None, help="Precomputed sha256 checksum for the archive")
     parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub API token")
     parser.add_argument("--formula-dir", default=os.path.join(os.path.dirname(__file__), "..", "Formula"), help="Path to Formula directory")
     parser.add_argument("--dry-run", action="store_true", help="Print updates without modifying files")
@@ -506,7 +544,15 @@ def main():
             elif target_type == "upstream_commit":
                 branch = cfg.get("branch", "main")
                 try:
-                    changed = update_upstream_commit_formula(formula_path, repo_name, branch, args.token, args.dry_run)
+                    changed = update_upstream_commit_formula(
+                        formula_path,
+                        repo_name,
+                        branch=branch,
+                        token=args.token,
+                        commit_sha=args.commit,
+                        sha256_digest=args.sha256,
+                        dry_run=args.dry_run
+                    )
                 except Exception as e:
                     print(f"[-] Failed to update upstream commit formula {formula_file}: {e}")
 

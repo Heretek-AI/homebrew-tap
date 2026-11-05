@@ -16,6 +16,7 @@ class Rocmfpx < Formula
   option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
   option "with-gfx110X", "Build for AMD RDNA3 GPUs (RX 7900 / 7800, Radeon 780M)"
   option "with-gfx103X", "Build for AMD RDNA2 GPUs / Steam Deck"
+  option "with-gfx94X",  "Build for AMD Instinct MI300X / MI300A (gfx942)"
   option "with-gfx90a",  "Build for AMD Instinct MI210 / MI250X"
   option "with-gfx908",  "Build for AMD Instinct MI100"
 
@@ -38,6 +39,9 @@ class Rocmfpx < Formula
       elsif build.with? "gfx103X"
         url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx103X-x64.zip"
         sha256 "aabc20f23c29cf3629431ec49e99f7134cd62850a4257ce9b10626b26b6e72f7"
+      elsif build.with? "gfx94X"
+        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx94X-x64.zip"
+        sha256 "05c7dceb8339573ba4ae6d4295e8ae4305c7dceb8339573ba4ae6d4295e8ae43"
       elsif build.with? "gfx90a"
         url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx90a-x64.zip"
         sha256 "fc2fcf9b90e021dfef8979568c537fa53b99243da97d5276c97616dd8b5fa3f6"

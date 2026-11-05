@@ -28,7 +28,9 @@ class Hyperqwen < Formula
   end
 
   def install
-    cuda_home = ENV.fetch("CUDA_HOME", "/usr/local/cuda")
+    cuda_home = [ENV["HOMEBREW_CUDA_PATH"], ENV["CUDA_HOME"], ENV["CUDA_PATH"], "/usr/local/cuda"].compact.find do |d|
+      Dir.exist?(d)
+    end || "/usr/local/cuda"
     nvcc = "#{cuda_home}/bin/nvcc"
     have_nvcc = File.executable?(nvcc)
 
@@ -147,6 +149,12 @@ class Hyperqwen < Formula
       exec "#{libexec}/venv/bin/python" -m vllm.entrypoints.chat "$@"
     EOS
     chmod 0755, bin/"hyperqwen-chat"
+
+    (pkgshare/"build-manifest.json").write JSON.pretty_generate(
+      variant:   "cuda",
+      cuda_home: cuda_home,
+      have_nvcc: have_nvcc,
+    )
   end
 
   def caveats

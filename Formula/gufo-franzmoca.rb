@@ -32,12 +32,14 @@ class GufoFranzmoca < Formula
   conflicts_with "gufo", because: "both install `gufo` and `gufo-server` binaries"
   conflicts_with "gufetto", because: "both install `gufo` and `gufo-server` binaries"
 
-  def install
-    rocm_path = ENV.fetch("ROCM_PATH", "/opt/rocm")
-    unless Dir.exist?(rocm_path)
-      odie "ROCm installation not found at #{rocm_path}. Set ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+)."
-    end
+  def rocm_root
+    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
+      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK (ROCm 7+ / 10.1+).")
+  end
 
+  def install
+    rocm_path = rocm_root
     ENV["ROCM_PATH"] = rocm_path
     ENV["HIP_PATH"] = rocm_path
     ENV.prepend_path "PATH", "#{rocm_path}/bin"
@@ -124,6 +126,13 @@ class GufoFranzmoca < Formula
         bin.install "build/tools/#{tool}" => "gufo-#{tool.tr("_", "-")}" if File.exist?("build/tools/#{tool}")
       end
     end
+
+    (pkgshare/"build-manifest.json").write JSON.pretty_generate(
+      variant:      "rocm",
+      rocm_root:    rocm_path,
+      hip_compiler: hip_compiler,
+      cmake_args:   args,
+    )
   end
 
   def caveats
@@ -148,7 +157,17 @@ class GufoFranzmoca < Formula
   end
 
   test do
+    # 1. Dynamic Linker & ABI Audit
+    out = shell_output("ldd #{bin}/gufo-franzmoca")
+    refute_match(/not found/, out)
+    assert_match(/libamdhip64\.so/, out)
+
+    # 2. CLI Introspection
     assert_match "gufo version", shell_output("#{bin}/gufo-franzmoca version")
     assert_match "--stream-experts", shell_output("#{bin}/gufo-franzmoca --help")
+
+    # 3. Device Discovery Smoke Test
+    probe = shell_output("#{bin}/gufo-franzmoca info 2>&1", nil)
+    assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
   end
 end

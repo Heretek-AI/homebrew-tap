@@ -14,6 +14,11 @@ class Shimmy < Formula
 
   def install
     system "cargo", "install", *std_cargo_args
+
+    (pkgshare/"build-manifest.json").write JSON.pretty_generate(
+      variant: OS.mac? ? "metal" : "cpu",
+      version: version,
+    )
   end
 
   service do
@@ -24,6 +29,17 @@ class Shimmy < Formula
   end
 
   test do
+    # 1. Dynamic Linker & ABI Audit (Pure-Rust binary)
+    if OS.linux?
+      out = shell_output("ldd #{bin}/shimmy")
+      refute_match(/not found/, out)
+    elsif OS.mac?
+      out = shell_output("otool -L #{bin}/shimmy")
+      refute_match(/not found/, out)
+    end
+
+    # 2. CLI Introspection
     assert_match "shimmy", pipe_output("#{bin}/shimmy --version 2>&1")
+    assert_match(/usage|commands/i, pipe_output("#{bin}/shimmy --help 2>&1"))
   end
 end
