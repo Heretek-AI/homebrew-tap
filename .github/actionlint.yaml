@@ -1,0 +1,9 @@
+# actionlint configuration for Heretek-AI repositories
+self-hosted-runner:
+  labels: []
+
+config-variables:
+  - OPENCODE_MODEL
+  - OCR_LLM_URL
+  - OCR_LLM_MODEL
+  - OCR_LLM_USE_ANTHROPIC
