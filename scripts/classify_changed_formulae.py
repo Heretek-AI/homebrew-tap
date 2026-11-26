@@ -42,7 +42,10 @@ CUDA_MARKERS = (
     "CMAKE_CUDA_ARCHITECTURES",
     "CUDAToolkit_ROOT",
 )
-MACOS_MARKERS = ("OS.mac?", "on_macos do", "depends_on macos:", "on_arm do")
+# Linux-only formulae that install prebuilt ROCm artifacts and therefore have
+# no ROCm SDK markers in their source. They still belong to the trusted
+# self-hosted ROCm bottle/validation job.
+PREBUILT_ROCM_FORMULAE = frozenset({"hipfire", "zinc"})
 
 
 def git_changed_formulae(base: str, head: str) -> list[str]:
@@ -62,7 +65,10 @@ def git_changed_formulae(base: str, head: str) -> list[str]:
     names = []
     for line in output.splitlines():
         path = Path(line)
-        if path.parent == FORMULA_DIR and path.suffix == ".rb":
+        if path.parent != FORMULA_DIR or path.suffix != ".rb":
+            continue
+        # Deleted formulae appear in the diff but cannot be read or built.
+        if (FORMULA_DIR / path.name).is_file():
             names.append(path.stem)
     return sorted(set(names))
 
@@ -93,17 +99,24 @@ def is_cuda(source: str) -> bool:
 def classify(names: list[str], runner: str) -> list[str]:
     selected = []
     for name in names:
+        if not (FORMULA_DIR / f"{name}.rb").is_file():
+            continue
+
         source = read_formula(name)
         rocm = is_rocm(source)
         cuda = is_cuda(source)
+        prebuilt_rocm = name in PREBUILT_ROCM_FORMULAE
         if runner == "stx-halo":
-            keep = rocm
+            keep = rocm or prebuilt_rocm
         elif runner == "hosted-cuda":
-            keep = cuda and not rocm
-        elif runner == "hosted-macos":
-            keep = not is_linux_only(source) and not rocm and not cuda
-        elif runner == "hosted-linux":
-            keep = not is_linux_only(source) and not rocm and not cuda
+            keep = cuda and not rocm and not prebuilt_rocm
+        elif runner == "hosted-macos" or runner == "hosted-linux":
+            keep = (
+                not is_linux_only(source)
+                and not rocm
+                and not cuda
+                and not prebuilt_rocm
+            )
         else:
             raise SystemExit(f"unknown runner class: {runner}")
         if keep:
