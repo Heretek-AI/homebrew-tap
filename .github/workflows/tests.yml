@@ -15,7 +15,9 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  # Include the head SHA so a stale queued run for an older commit cannot block
+  # the current push (GitHub keeps a run queued while a self-hosted job waits).
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 defaults:
@@ -491,6 +493,7 @@ jobs:
     # Only same-repository PRs, pushes to main and manual dispatches are trusted.
     if: >-
       always() &&
+      vars.STX_HALO_ENABLED == 'true' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event_name == 'push' ||
        (github.event_name == 'pull_request' &&
