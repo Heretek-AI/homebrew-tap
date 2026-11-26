@@ -9,14 +9,17 @@ matching pair of markers is replaced; every other byte of README.md is kept.
 Data sources:
 
 * ``Formula/*.rb`` and ``Casks/*.rb`` decide which items belong to the tap.
+  Formula source is also scanned for ``gfx`` targets and CUDA architecture
+  hints that ``brew info`` does not expose.
 * ``brew info --json=v2 heretek-ai/tap/<formula>`` supplies the formula
   description, homepage, dependencies, options, requirements and version.
 * ``brew info --cask --json=v2 heretek-ai/tap/<cask>`` supplies the cask
   description, homepage, and platform requirements.
 * ``.github/validation-specs.json`` supplies backend coverage hints for each
   formula (``rocm``, ``cuda``, ``metal``, ``vulkan`` and ``cpu`` keys).
-* ``.github/upstream-pins.json`` supplies enabled hardware variants and their
-  ``amdgpu_targets`` values for the hardware matrix.
+* ``.github/upstream-pins.json`` supplies enabled hardware variants, their
+  ``default`` backend selection, and their ``amdgpu_targets`` values for the
+  hardware matrix.
 * ``scripts/port_registry.json`` supplies the service port table.
 
 The installed Homebrew on the development machines used for this tap does not
@@ -481,7 +484,9 @@ def formula_cuda_arches(formula: dict) -> set[int]:
             if token:
                 arches.add(int(token))
 
-    for match in re.findall(r"TORCH_CUDA_ARCH_LIST\s*=\s*[\"']([^\"']+)[\"']", source):
+    for match in re.findall(
+        r"TORCH_CUDA_ARCH_LIST[^=]*=\s*[\"']([^\"']+)[\"']", source
+    ):
         for token in re.split(r"[;\s]+", match):
             if re.fullmatch(r"\d+\.\d+", token):
                 major, minor = token.split(".")
@@ -491,7 +496,6 @@ def formula_cuda_arches(formula: dict) -> set[int]:
 
 
 def hardware_membership(formula: dict, pins: dict, validation: dict) -> dict[str, bool]:
-    name = formula["name"]
     targets = formula_targets(formula, pins)
     backends = enabled_backends(formula, pins, validation)
     cuda_arches = formula_cuda_arches(formula)
@@ -511,32 +515,51 @@ def hardware_membership(formula: dict, pins: dict, validation: dict) -> dict[str
         "blackwell": supports_blackwell,
         "cuda-8-9": supports_cuda_8_9,
         "apple-silicon": "macOS" in formula_platforms(formula),
-        "cpu-vulkan": bool(backends & {"CPU", "Vulkan"}),
+        "cpu-vulkan": bool(backends & {"CPU", "Vulkan"})
+        and "Linux" in formula_platforms(formula),
     }
 
 
-def matrix_install_args(formula: dict, row_key: str) -> list[str]:
+def default_backends(formula: dict, pins: dict) -> set[str]:
+    name = formula["name"]
+    package = pins.get("packages", {}).get(name, {})
+    defaults = {
+        BACKEND_LABELS[variant.get("backend")]
+        for variant in package.get("variants", {}).values()
+        if variant.get("status") == "enabled"
+        and variant.get("default") is True
+        and variant.get("backend") in BACKEND_LABELS
+    }
+    if defaults:
+        return defaults
+
+    dependencies = " ".join(
+        str(dependency).lower() for dependency in formula["dependencies"]
+    )
+    if "rocm-runtime" in dependencies:
+        defaults.add("ROCm")
+    if "cuda-runtime" in dependencies:
+        defaults.add("CUDA")
+    return defaults
+
+
+def matrix_install_args(formula: dict, row_key: str, pins: dict) -> list[str]:
     name = formula["name"]
     options = set(formula["options"])
+    defaults = default_backends(formula, pins)
 
-    if row_key == "rdna3":
-        if name == "hipfire" and "--with-gfx1100" in options:
+    if row_key in {"strix-halo", "rdna3", "rdna4"}:
+        if "--with-rocm" in options and "ROCm" not in defaults:
+            return ["--with-rocm"]
+        if row_key == "rdna3" and name == "hipfire" and "--with-gfx1100" in options:
             return ["--with-gfx1100"]
-        if name == "rocmfpx" and "--with-gfx110X" in options:
-            return ["--with-gfx110X"]
-        if name in {"project-maya", "strata"} and "--with-all-amdgpu" in options:
-            return ["--with-all-amdgpu"]
-        if name == "stable-diffusion-cpp" and "--with-rocm" in options:
-            return ["--with-rocm"]
-    elif row_key == "rdna4":
-        if name == "hipfire" and "--with-gfx1201" in options:
+        if row_key == "rdna4" and name == "hipfire" and "--with-gfx1201" in options:
             return ["--with-gfx1201"]
-        if name == "rocmfpx" and "--with-gfx120X" in options:
-            return ["--with-gfx120X"]
-        if name in {"project-maya", "strata"} and "--with-all-amdgpu" in options:
-            return ["--with-all-amdgpu"]
-        if name == "stable-diffusion-cpp" and "--with-rocm" in options:
-            return ["--with-rocm"]
+        if row_key == "rdna4" and name == "kyojin" and "--with-rdna4" in options:
+            return ["--with-rdna4"]
+    elif row_key in {"blackwell", "cuda-8-9"}:
+        if "--with-cuda" in options and "CUDA" not in defaults:
+            return ["--with-cuda"]
     elif row_key == "cpu-vulkan":
         if name == "zinc" and "--with-vulkan" in options:
             return ["--with-vulkan"]
@@ -579,7 +602,7 @@ def hardware_matrix_table(formulae: list[dict], pins: dict, validation: dict) ->
         else:
             lines_for_row.append("Runtime: none")
         for name in names:
-            arguments = matrix_install_args(formula_by_name[name], row_key)
+            arguments = matrix_install_args(formula_by_name[name], row_key, pins)
             command = " ".join(["brew", "install", *arguments, f"{TAP_PREFIX}{name}"])
             lines_for_row.append(f"`{command}`")
         if not names:

@@ -186,7 +186,7 @@
       "repo": "IIIIIllllIIIIIlllll/Qwenox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "44443bcec1a56cb77a5f9f5e12cf3667a9f479b9f10bfb3625b3e5f081bb40b0",
+      "formula_sha256": "3916a4602563608e453da38984c2bb3eb2fb7c5227bacd708108ffbef9ec8095",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -462,7 +462,7 @@
       "repo": "jaedync/crucible-strix-halo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "8e83cafc09c499d5f60617f9c3cfc1b880f70415b57956bb6af1d35647097140",
+      "formula_sha256": "40eba6e8dee92a7253f078181b5fe5e4b2b51737d340e4e0134a34333a975d27",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -501,7 +501,7 @@
       "repo": "charlie12345/ROCmFPX",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "85125aea050ecc6847558491220cb367d069a0added4d81919bf4db2ce4e65ab",
+      "formula_sha256": "02542bb6b2876a95d42cc900720fcca060607bdda85fdf4289154cf22e96ab47",
       "variants": {
         "rocm": {
           "status": "enabled",

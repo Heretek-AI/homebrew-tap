@@ -49,7 +49,7 @@
       "port": 18007,
       "executable": "rocmfpx",
       "configurable": true,
-      "notes": "Set with --host 127.0.0.1 --port 18007 in the service block. Serves the bundled llama-server endpoint."
+      "notes": "Set with --host 127.0.0.1 --port 18007 in the service block. Serves the built llama-server endpoint."
     },
     "stable-diffusion-cpp": {
       "port": 18008,

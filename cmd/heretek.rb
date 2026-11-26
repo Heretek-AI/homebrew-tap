@@ -251,7 +251,7 @@ module Homebrew
         if nvidia_gpus.any? && !installed["cuda-runtime"]
           steps << "Install the shared CUDA runtime: `brew install #{TAP}/cuda-runtime`."
         end
-        if ttm && (ttm.zero? || (ttm * PAGE_SIZE_BYTES) / (1024.0**3) < TTM_MIN_GIB)
+        if amd_targets.any? && ttm && (ttm.zero? || (ttm * PAGE_SIZE_BYTES) / (1024.0**3) < TTM_MIN_GIB)
           suggested = (TTM_MIN_GIB * (1024**3)) / PAGE_SIZE_BYTES
           steps << "For AMD GPUs with large models, set `ttm.pages_limit=#{suggested}` and reboot."
         end

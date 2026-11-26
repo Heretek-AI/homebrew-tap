@@ -12,6 +12,7 @@ class Libosmos < Formula
 
   option "with-npu", "Enable AMD XDNA NPU support (NPU=1)"
 
+  depends_on "patchelf" => :build
   depends_on arch: :x86_64
   depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
@@ -47,6 +48,11 @@ class Libosmos < Formula
     lib.install "lib/libosmos_hip.a" if File.exist?("lib/libosmos_hip.a")
     include.install "include/osmos"
 
+    runtime_rpath = "#{formula_opt_lib("rocm-runtime")}:#{HOMEBREW_PREFIX}/lib"
+    [bin/"osmos-api", bin/"osmos-serve"].each do |binary|
+      system "patchelf", "--set-rpath", runtime_rpath, binary
+    end
+
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
       variant:          "rocm",
       rocm_root:        rocm,
@@ -54,7 +60,7 @@ class Libosmos < Formula
       npu:              npu == "1",
       make_args:        make_args,
       runtime_lib:      formula_opt_lib("rocm-runtime").to_s,
-      rpath_limitation: "Makefile hardcodes HIP_RUNPATH to $(ROCM)/lib and does not consume LDFLAGS",
+      rpath_limitation: "Makefile hardcodes HIP_RUNPATH and ignores LDFLAGS; ELF RPATH is normalized with patchelf",
     )
   end
 
@@ -64,10 +70,10 @@ class Libosmos < Formula
       installation with HIP. The build defaults to /opt/rocm; set
       HOMEBREW_ROCM_PATH to use a ROCm SDK installed elsewhere.
 
-      libosmos links the shared runtime from heretek-ai/tap/rocm-runtime, but
-      the upstream Makefile hardcodes its RUNPATH to the ROCm SDK lib directory
-      and does not consume LDFLAGS, so source builds still resolve HIP from the
-      SDK in HOMEBREW_ROCM_PATH.
+      libosmos links the shared runtime from heretek-ai/tap/rocm-runtime. The
+      upstream Makefile hardcodes its RUNPATH to the ROCm SDK lib directory and
+      does not consume LDFLAGS, so the installed ELF RPATH is normalized to the
+      shared runtime with patchelf after build.
 
       Start the OpenAI-compatible API with a pack's own config:
         osmos-api --config /path/to/pack/osmos.json

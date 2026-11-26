@@ -43,9 +43,10 @@ brew heretek recommend
 - `rocm-runtime` and `cuda-runtime` are keg-only shared runtimes. Engine
   formulae link against their `opt_lib` or `opt_prefix`; do not expect them on
   the default linker path.
-- Options such as `--with-gfx1100`, `--with-gfx110X`, and `--with-all-amdgpu`
-  select the matching kernel or artifact. If a formula is already installed
-  with a different variant, reinstall it with the same arguments.
+- Options such as `--with-gfx1100` and `--with-gfx1201` select the hipfire
+  kernel pack, while `--with-cuda`, `--with-rocm`, `--with-rdna4`, and
+  `--with-vulkan` select a backend or target family. If a formula is already
+  installed with a different variant, reinstall it with the same arguments.
 - Source builds still need the external toolchain: a ROCm SDK with `hipcc` for
   AMD options and a CUDA toolkit with `nvcc` for CUDA options. The runtime
   formulae provide shared libraries, not compilers.

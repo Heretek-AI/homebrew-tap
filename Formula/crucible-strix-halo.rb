@@ -11,6 +11,7 @@ class CrucibleStrixHalo < Formula
     skip "Tracks upstream commit"
   end
 
+  depends_on "patchelf" => :build
   depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
   depends_on "openssl@3"
@@ -56,19 +57,26 @@ class CrucibleStrixHalo < Formula
       chmod 0755, bin/"crucible-strix-halo-server"
     end
 
+    runtime_rpath = "#{formula_opt_lib("rocm-runtime")}:#{HOMEBREW_PREFIX}/lib"
+    system "patchelf", "--set-rpath", runtime_rpath, bin/"crucible-strix-halo"
+
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
-      variant:   "rocm",
-      gpu_arch:  "gfx1151",
-      rocm_root: rocm,
-      hipcc:     hipcc,
-      ldflags:   runtime_ldflags,
-      commit:    "aac3e4894a695fbf0db10c2de5607c9c2e6906f5",
+      variant:          "rocm",
+      gpu_arch:         "gfx1151",
+      rocm_root:        rocm,
+      hipcc:            hipcc,
+      ldflags:          runtime_ldflags,
+      rpath_limitation: "upstream flags may leave the SDK RUNPATH; installed ELF RPATH is normalized with patchelf",
+      commit:           "aac3e4894a695fbf0db10c2de5607c9c2e6906f5",
     )
   end
 
   def caveats
     <<~EOS
       crucible-strix-halo is compiled natively for AMD Strix Halo (gfx1151).
+      The installed binary RPATH is normalized to the shared
+      heretek-ai/tap/rocm-runtime with patchelf, even if the upstream Makefile
+      leaves the ROCm SDK RUNPATH in place.
       Run the engine verification harness:
         crucible-strix-halo --help
     EOS

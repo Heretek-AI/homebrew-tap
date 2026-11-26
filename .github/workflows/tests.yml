@@ -112,6 +112,11 @@ jobs:
           cd "${TAP_DIR}"
           brew audit --cask --strict --tap=heretek-ai/tap
 
+      - name: Install Python for README verification
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3
+
       - name: Verify README is generated from current metadata
         run: |
           cd "${TAP_DIR}"

@@ -1,10 +1,9 @@
 # Heretek-AI Homebrew Tap
 
-A Homebrew tap for 26 accelerator-focused inference runtimes, servers, and kernel harnesses, plus two macOS GUI casks. Most formulae target AMD ROCm on Linux; the tap also covers NVIDIA CUDA, Apple Metal, Vulkan, SYCL, and CPU paths where the pinned upstream project supports them.
+A Homebrew tap for 26 accelerator-focused inference runtimes, servers, and kernel harnesses, two keg-only shared runtime formulae (`rocm-runtime` and `cuda-runtime`), and two macOS GUI casks. Most formulae target AMD ROCm on Linux; the tap also covers NVIDIA CUDA, Apple Metal, Vulkan, SYCL, and CPU paths where the pinned upstream project supports them.
 
-[![Nightly CI Matrix](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/nightly-matrix.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/nightly-matrix.yml)
 [![brew test-bot](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml)
-[![Build ROCmFPX](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocmfpx.yml)
+[![brew pr-pull](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/publish.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 The formula files under [`Formula/`](Formula/), the cask files under [`Casks/`](Casks/), and the automation ledger at [`.github/upstream-pins.json`](.github/upstream-pins.json) are the source of truth for upstream revisions, supported targets, installed command names, and options. This README describes the state of that pinned set, not every feature of every upstream project.
@@ -20,6 +19,23 @@ brew install heretek-ai/tap/gufo
 ```
 
 Replace `gufo` with any formula name from the [catalog](#formula-catalog). Direct installation is the safest one-off path because it does not trust the rest of the tap.
+
+### Check hardware and get recommendations
+
+`brew heretek doctor` reports the detected OS, CPU, memory, AMD ROCm, NVIDIA CUDA, Apple Metal, Vulkan, and tap runtime status without failing when a tool or GPU is absent. `brew heretek recommend` prints exact install commands for the detected GPU family and points at a curated Brewfile when one matches.
+
+```bash
+brew heretek doctor
+brew heretek recommend
+```
+
+The external command lives in [`cmd/heretek.rb`](cmd/heretek.rb). Homebrew 6 and later may ask you to trust it before the first run:
+
+```bash
+brew trust --command heretek-ai/tap/heretek
+```
+
+Neither subcommand changes the system; they only print diagnostics and install commands.
 
 ### Manual tap
 
@@ -89,6 +105,23 @@ brew "heretek-ai/tap/gufo", trusted: true
 
 `brew bundle cleanup` resets Homebrew's trust store to the declarations in the selected Brewfile, so keep the trust entries you intend to retain.
 
+### Curated Brewfiles
+
+[`Brewfiles/`](Brewfiles/) contains tested bundles for common accelerator families. Each file declares selector trust for exactly the formulae it installs:
+
+| Brewfile | Target hardware |
+| :--- | :--- |
+| [`Brewfiles/strix-halo.Brewfile`](Brewfiles/strix-halo.Brewfile) | AMD Strix Halo / Ryzen AI Max (`gfx1151`) on Linux |
+| [`Brewfiles/rdna3.Brewfile`](Brewfiles/rdna3.Brewfile) | AMD RDNA3 (`gfx1100` family) on Linux |
+| [`Brewfiles/blackwell.Brewfile`](Brewfiles/blackwell.Brewfile) | NVIDIA Blackwell (`sm_120`) and DGX Spark (`sm_121`) on Linux |
+| [`Brewfiles/apple-silicon.Brewfile`](Brewfiles/apple-silicon.Brewfile) | Apple Silicon macOS |
+
+```bash
+brew bundle --file=Brewfiles/strix-halo.Brewfile
+```
+
+Use `brew heretek recommend` if you are unsure which file matches your machine. [`Brewfiles/README.md`](Brewfiles/README.md) documents the variants, runtime prerequisites, and check-only usage with `brew bundle list`.
+
 ### Installing a non-default variant
 
 Formula options are evaluated when the formula is installed from source. If a bottle is available for your platform, force a source build so the option takes effect:
@@ -97,10 +130,9 @@ Formula options are evaluated when the formula is installed from source. If a bo
 brew install --build-from-source --with-tools heretek-ai/tap/gufo
 ```
 
-For `rocmfpx` and `stable-diffusion-cpp`, options select a different prebuilt artifact rather than changing a compiler build:
+For `stable-diffusion-cpp`, options select a different prebuilt artifact rather than changing a compiler build:
 
 ```bash
-brew install --with-gfx120X heretek-ai/tap/rocmfpx
 brew install --with-rocm heretek-ai/tap/stable-diffusion-cpp
 ```
 
@@ -126,32 +158,34 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 <!-- BEGIN GENERATED: formula-catalog -->
 | Formula | Upstream | Purpose | Platforms / backends |
 | :--- | :--- | :--- | :--- |
-| [`basalt`](#basalt) | [jesdga95/basalt](https://github.com/jesdga95/basalt) | Blackwell-native MoE inference engine with OpenAI and Anthropic APIs | Linux x86_64 CUDA `sm_120` (prebuilt); Linux arm64 DGX Spark `sm_121` (source) |
-| [`colibri`](#colibri) | [JustVugg/colibri](https://github.com/JustVugg/colibri) | Tiny C engine for large MoE models with SSD-streamed experts | Linux x86_64/arm64 CPU and Vulkan; macOS arm64 Metal |
-| [`crucible-strix-halo`](#crucible-strix-halo) | [jaedync/crucible-strix-halo](https://github.com/jaedync/crucible-strix-halo) | Strix Halo kernel harness and memory allocator tuners | Linux, ROCm `gfx1151` |
-| [`gemma-cpp`](#gemma-cpp) | [google/gemma.cpp](https://github.com/google/gemma.cpp) | Google's standalone Gemma-2, Gemma-3, and PaliGemma-2 C++ engine | Linux and macOS, CPU with Highway SIMD |
-| [`gufetto`](#gufetto) | [community-token-labs/gufetto](https://github.com/community-token-labs/gufetto) | C11/C++23 multimodal runtime with rotated KV cache and prefix pinning | Linux, ROCm `gfx1151`; optional XDNA 2 NPU |
-| [`gufo`](#gufo) | [gufo-org/gufo](https://github.com/gufo-org/gufo) | C11/C++20/HIP multimodal inference engine | Linux, ROCm `gfx1151` |
-| [`gufo-franzmoca`](#gufo-franzmoca) | [franzmoca/gufo](https://github.com/franzmoca/gufo) | Strix Halo engine with DeepSeek-V4.1-Flash and Gemma 4 MTP workflows | Linux, ROCm `gfx1151` |
-| [`hipfire`](#hipfire) | [warpfront/hipfire](https://github.com/warpfront/hipfire) | Rust + HIP inference engine for AMD RDNA and CDNA GPUs | Linux x86_64, ROCm `gfx1151` default; `gfx1100`, `gfx1201`, `gfx906` kernel packs |
-| [`hyperqwen`](#hyperqwen) | [syv-ai/HyperQwen](https://github.com/syv-ai/HyperQwen) | Patched vLLM appliance for Qwen3.8-27B-AWQ | Linux, NVIDIA CUDA `sm_80`/`sm_86`/`sm_89`/`sm_120` |
-| [`infr`](#infr) | [kryptic-sh/infr](https://github.com/kryptic-sh/infr) | Vulkan-first and Metal-native LLM inference engine | Linux x86_64/arm64 Vulkan; macOS arm64/Intel Metal or CPU |
-| [`kyojin`](#kyojin) | [Yamz-Labs/kyojin](https://github.com/Yamz-Labs/kyojin) | EXL3/GGUF inference engine with five model server entrypoints | Linux, ROCm (default) or CUDA |
-| [`libosmos`](#libosmos) | [mrsirg97-rgb/libosmos](https://github.com/mrsirg97-rgb/libosmos) | Strix Halo MoE engine with SSD-streamed experts and OpenAI API | Linux x86_64, ROCm `gfx1151`; optional XDNA NPU |
-| [`lucebox`](#lucebox) | [Luce-Org/lucebox](https://github.com/Luce-Org/lucebox) | Speculative LLM inference server for consumer GPUs | Linux, CUDA (default) or ROCm |
-| [`magnitude`](#magnitude) | [magnitudedev/magnitude](https://github.com/magnitudedev/magnitude) | Local inference runtime and agent harness with a CLI | macOS arm64/Intel; Linux x86_64/arm64 |
-| [`nib`](#nib) | [Chromadera/nib](https://github.com/Chromadera/nib) | C++17 / HIP inference engine for Inkling 2 Mini on AMD RDNA3 | Linux x86_64, ROCm `gfx1100` (source) |
-| [`project-maya`](#project-maya) | [mw00/project-maya](https://github.com/mw00/project-maya) | Tiered MoE engine for GLM, Qwen, DeepSeek, and MiniMax models | Linux ROCm/CUDA, macOS Metal |
-| [`qwenox`](#qwenox) | [IIIIIllllIIIIIlllll/Qwenox](https://github.com/IIIIIllllIIIIIlllll/Qwenox) | Qwen runtime and kernel primitives | Linux, ROCm `gfx1151` |
-| [`rocmfpx`](#rocmfpx) | [charlie12345/ROCmFPX](https://github.com/charlie12345/ROCmFPX) | llama.cpp-compatible ROCm inference stack with bundled runtimes | Linux, ROCm; artifact selected by gfx target |
-| [`saient-quartz`](#saient-quartz) | [SaientAI/saient-quartz](https://github.com/SaientAI/saient-quartz) | Pure-Rust GGUF chat and image/video inference runtime | Linux and macOS, CPU; optional Vulkan |
-| [`shimmy`](#shimmy) | [Michael-A-Kuykendall/shimmy](https://github.com/Michael-A-Kuykendall/shimmy) | Pure-Rust local LLM inference server | Linux CPU; macOS Metal |
-| [`snowllm`](#snowllm) | [snowllm/snowllm](https://github.com/snowllm/snowllm) | HIP kernels and embedded LLM runner for Ryzen AI Max | Linux, ROCm |
-| [`stable-diffusion-cpp`](#stable-diffusion-cpp) | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | Stable Diffusion, SDXL, Flux, SD3, and Wan inference | Linux Vulkan/ROCm/CPU; macOS arm64 Metal |
-| [`strata`](#strata) | [Niko1221/Strata](https://github.com/Niko1221/Strata) | Tiered MoE engine for Qwen and DeepSeek models | Linux ROCm/CUDA/SYCL, macOS Metal |
-| [`strixite`](#strixite) | [shawnshekari/strixite](https://github.com/shawnshekari/strixite) | Zero-dependency C++20/HIP Qwen runtime | Linux, ROCm `gfx1151` |
-| [`uzu`](#uzu) | [trymirai/uzu](https://github.com/trymirai/uzu) | Apple Silicon inference engine and Mirai CLI | macOS arm64 Metal; macOS Intel CPU |
-| [`zinc`](#zinc) | [zolotukhin/zinc](https://github.com/zolotukhin/zinc) | Zig inference engine with ROCm, Vulkan, and Metal backends | Linux x86_64 ROCm (default) or Vulkan |
+| [`basalt`](#basalt) | [jesdga95/basalt](https://github.com/jesdga95/basalt) | NVIDIA CUDA 13 inference engine for Blackwell GPUs | Linux, CUDA |
+| [`colibri`](#colibri) | [JustVugg/colibri](https://github.com/JustVugg/colibri) | Run large MoE models locally with a tiny C engine | Linux + macOS, Metal/CPU |
+| [`crucible-strix-halo`](#crucible-strix-halo) | [jaedync/crucible-strix-halo](https://github.com/jaedync/crucible-strix-halo) | AMD Strix Halo (gfx1151) kernel harness and memory allocator tuners | Linux, ROCm |
+| [`cuda-runtime`](#cuda-runtime) | [developer.nvidia.com/cuda-toolkit](https://developer.nvidia.com/cuda-toolkit) | Shared NVIDIA CUDA runtime libraries for GPU inference engines | Linux x86_64 + arm64, CUDA runtime |
+| [`gemma-cpp`](#gemma-cpp) | [google/gemma.cpp](https://github.com/google/gemma.cpp) | C++ inference engine for Gemma and PaliGemma models | Linux + macOS, CPU |
+| [`gufetto`](#gufetto) | [community-token-labs/gufetto](https://github.com/community-token-labs/gufetto) | C11/C++23/HIP Strix Halo runtime with rotated KV cache & prefix pinning | Linux, ROCm |
+| [`gufo`](#gufo) | [gufo-org/gufo](https://github.com/gufo-org/gufo) | Pure C11/C++20/HIP multimodal inference engine for AMD Strix Halo (gfx1151) | Linux, ROCm |
+| [`gufo-franzmoca`](#gufo-franzmoca) | [franzmoca/gufo](https://github.com/franzmoca/gufo) | Strix Halo engine with DeepSeek-V4.1-Flash (763B) & Gemma 4 MTP | Linux, ROCm |
+| [`hipfire`](#hipfire) | [warpfront/hipfire](https://github.com/warpfront/hipfire) | Native LLM inference engine for AMD RDNA and CDNA GPUs | Linux x86_64, ROCm |
+| [`hyperqwen`](#hyperqwen) | [syv-ai/HyperQwen](https://github.com/syv-ai/HyperQwen) | NVIDIA CUDA 13.0 patched vLLM 0.32.0 appliance for Qwen3.8-27B-AWQ | Linux, CUDA |
+| [`infr`](#infr) | [kryptic-sh/infr](https://github.com/kryptic-sh/infr) | Vulkan-first and Metal-native LLM inference engine | Linux + macOS, Metal/Vulkan |
+| [`kyojin`](#kyojin) | [Yamz-Labs/kyojin](https://github.com/Yamz-Labs/kyojin) | Strix Halo (gfx1151) & RDNA4 EXL3/GGUF inference engine with 5 model servers | Linux, ROCm/CUDA |
+| [`libosmos`](#libosmos) | [mrsirg97-rgb/libosmos](https://github.com/mrsirg97-rgb/libosmos) | HIP inference engine and OpenAI-compatible server for AMD Strix Halo | Linux x86_64, ROCm |
+| [`lucebox`](#lucebox) | [Luce-Org/lucebox](https://github.com/Luce-Org/lucebox) | LLM speculative inference server for heterogeneous hardware & consumer GPUs | Linux, ROCm/CUDA |
+| [`magnitude`](#magnitude) | [magnitudedev/magnitude](https://github.com/magnitudedev/magnitude) | Local inference runtime and agent harness | Linux + macOS, Metal/CPU |
+| [`nib`](#nib) | [Chromadera/nib](https://github.com/Chromadera/nib) | C++17 HIP inference engine for Inkling 2 Mini on AMD RDNA3 | Linux x86_64, ROCm |
+| [`project-maya`](#project-maya) | [mw00/project-maya](https://github.com/mw00/project-maya) | Tiered MoE engine for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1 & MiniMax | Linux + macOS, ROCm/CUDA/Metal |
+| [`qwenox`](#qwenox) | [IIIIIllllIIIIIlllll/Qwenox](https://github.com/IIIIIllllIIIIIlllll/Qwenox) | High-performance Qwen runtime and kernel primitives for Strix Halo | Linux, ROCm |
+| [`rocm-runtime`](#rocm-runtime) | [ROCm/TheRock](https://github.com/ROCm/TheRock) | Shared AMD ROCm runtime libraries for GPU inference engines | Linux x86_64, ROCm runtime |
+| [`rocmfpx`](#rocmfpx) | [charlie12345/ROCmFPX](https://github.com/charlie12345/ROCmFPX) | High-Performance AMD ROCm llama.cpp Inference Stack (Upstream) | Linux x86_64, ROCm |
+| [`saient-quartz`](#saient-quartz) | [SaientAI/saient-quartz](https://github.com/SaientAI/saient-quartz) | Pure-Rust GGUF LLM and Stable Diffusion inference engine | Linux + macOS, Vulkan/CPU |
+| [`shimmy`](#shimmy) | [Michael-A-Kuykendall/shimmy](https://github.com/Michael-A-Kuykendall/shimmy) | Pure-Rust WebGPU & CUDA LLM inference engine | Linux + macOS, Metal/CPU |
+| [`snowllm`](#snowllm) | [snowllm/snowllm](https://github.com/snowllm/snowllm) | Hand-written HIP kernels and embedded LLM runner for AMD Ryzen AI Max | Linux, ROCm |
+| [`stable-diffusion-cpp`](#stable-diffusion-cpp) | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++ | Linux + macOS, ROCm/Metal/Vulkan/CPU |
+| [`strata`](#strata) | [Niko1221/Strata](https://github.com/Niko1221/Strata) | Tiered MoE engine for Qwen3.8-Flash-Next, Qwen3.6 & DeepSeek-V4.1 | Linux + macOS, ROCm/CUDA/Metal/SYCL |
+| [`strixite`](#strixite) | [shawnshekari/strixite](https://github.com/shawnshekari/strixite) | Zero-dependency C++20/HIP inference engine for AMD Strix Halo (gfx1151) | Linux, ROCm |
+| [`uzu`](#uzu) | [trymirai/uzu](https://github.com/trymirai/uzu) | Apple Silicon inference engine and Mirai CLI | macOS, Metal/CPU |
+| [`zinc`](#zinc) | [zolotukhin/zinc](https://github.com/zolotukhin/zinc) | Zig inference engine with ROCm, Vulkan, and Metal backends | Linux x86_64, ROCm/Vulkan |
 <!-- END GENERATED: formula-catalog -->
 
 ### Cask catalog
@@ -159,8 +193,8 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 <!-- BEGIN GENERATED: cask-catalog -->
 | Cask | Upstream | Purpose | Platforms |
 | :--- | :--- | :--- | :--- |
-| [`hatchlight`](#hatchlight) | [hatchlight/hatchlight](https://github.com/hatchlight/hatchlight) | Compare image and video generation models side by side | macOS, Apple Silicon and Intel |
-| [`kokon`](#kokon) | [GabrieleLozupone/kokon](https://github.com/GabrieleLozupone/kokon) | Local AI photo editor with on-device generation and editing | macOS 15+, Apple Silicon |
+| [`hatchlight`](#hatchlight) | [hatchlight/hatchlight](https://github.com/hatchlight/hatchlight) | Compare AI image and video generation models side by side | macOS, Apple Silicon and Intel |
+| [`kokon`](#kokon) | [GabrieleLozupone/kokon](https://github.com/GabrieleLozupone/kokon) | Local AI photo editor that runs on your own GPU | macOS 15+, Apple Silicon |
 <!-- END GENERATED: cask-catalog -->
 
 ### Command and option map
@@ -170,6 +204,7 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | `basalt` | `basalt`, `basalt-bench`, `basalt-probe`, `basalt-vision` | None |
 | `colibri` | `coli`; engine and tool binaries remain under `libexec/colibri` | None |
 | `crucible-strix-halo` | `crucible-strix-halo`; `crucible-strix-halo-server` when upstream ships `server/server.py` | None |
+| `cuda-runtime` | None (keg-only; installs shared libraries and headers) | None |
 | `gemma-cpp` | `gemma-cpp` | None |
 | `gufetto` | `gufetto`, `gufetto-server`; `gufetto-kernel-bench` when built; with `--with-tools`: `gufetto-bench-q8-1`, `gufetto-tune-hipblaslt`, `gufetto-simple-chat` | `--with-bf16-k-control`, `--with-npu`, `--with-tools`, `--with-znver4` |
 | `gufo` | `gufo`, `gufo-server`; `gufo-kernel-bench` when built; with `--with-tools`: `gufo-bench-q8-1`, `gufo-tune-hipblaslt`, `gufo-verify-gemma4`, `gufo-verify-vae`, `gufo-simple-chat` | `--with-tools`, `--with-znver4` |
@@ -184,7 +219,8 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | `nib` | `nib` | None |
 | `project-maya` | Linux build outputs: `maya`, `maya-ds4`, `maya-mm3`, `maya-vision`; macOS: `maya`, `maya-metal`, `maya-vision`; all: `maya-server`, `maya-cli`, `maya-chat`, `maya-setup`; Linux tools when built: `maya-tune-hipblaslt`, `maya-peer-probe`, `maya-plan`, `maya-device`, `maya-gguf`, `maya-dequant`, `maya-load`, `maya-concurrent`, `maya-overlap` | `--with-wave64`, `--with-all-amdgpu`, `--with-cuda`, `--with-native` |
 | `qwenox` | `qwenox-engine`, `qwenox`, `qwenox-bench`, `qwenox-server`; when built: `qwenox-tok-cli`, `qwenox-tpl-cli`, `qwenox-eng-cli` | None |
-| `rocmfpx` | `rocmfpx` and `rocmfpx-server` from the bundled `llama-server`; `rocmfpx-cli`, `rocmfpx-quantize`, `rocmfpx-bench`, `rocmfpx-perplexity` when present in the artifact | `--with-multi-arch`, `--with-gfx1150`, `--with-gfx120X`, `--with-gfx110X`, `--with-gfx103X`, `--with-gfx90a`, `--with-gfx908` |
+| `rocm-runtime` | None (keg-only; installs shared libraries and kernel packs) | None |
+| `rocmfpx` | `rocmfpx` and `rocmfpx-server` from the built `llama-server`; `rocmfpx-cli`, `rocmfpx-quantize`, `rocmfpx-bench`, `rocmfpx-perplexity`, `rocmfpx-mtmd-cli` when built | None |
 | `saient-quartz` | `quartz` | `--with-vulkan` |
 | `shimmy` | `shimmy` | None |
 | `snowllm` | `snowllm`; upstream also declares `snowllm-mineru` (optional MinerU dependencies are not installed by this formula) | None |
@@ -245,6 +281,24 @@ coli serve --model /path/to/model
 crucible-strix-halo --help
 crucible-strix-halo --list-devices
 ```
+
+### cuda-runtime
+
+**Upstream:** [NVIDIA CUDA toolkit](https://developer.nvidia.com/cuda-toolkit)
+**Purpose:** Keg-only shared NVIDIA CUDA 13 runtime used by the tap's CUDA engines. It installs `libcudart.so.13` from the `cuda_cudart` archive and `libcublas.so.13`/`libcublasLt.so.13` from the separate `libcublas` archive, plus the matching headers.
+**Platforms/backends:** Linux x86_64 and Linux arm64 (SBSA/DGX Spark); CUDA runtime only.
+**Commands:** None. The formula installs shared libraries and headers under its keg prefix.
+**Options:** None.
+
+`cuda-runtime` is keg-only because it provides shared libraries for other formulae. Engines resolve it with `formula_opt_prefix("cuda-runtime")` and link against its `lib` directory. For a manual build or a shell session:
+
+```bash
+export CUDA_HOME="$(brew --prefix cuda-runtime)"
+export CUDAToolkit_ROOT="$CUDA_HOME"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+```
+
+The formula does not include `nvcc`, the CUDA compiler, or the rest of the toolkit. Building CUDA code from source still needs a full CUDA 13 toolkit with `nvcc`; set `HOMEBREW_CUDA_PATH`, `CUDA_HOME`, or `CUDA_PATH` to that toolkit. `basalt`'s prebuilt x86_64 archive expects `libcudart.so.13` and `libcublas.so.13` on the loader path, which this formula supplies without installing a full toolkit.
 
 ### gemma-cpp
 
@@ -490,19 +544,30 @@ qwenox-bench --help
 
 `qwenox` is a symlink to `qwenox-engine`. The tokenizer, template, and engine CLIs are installed as `qwenox-tok-cli`, `qwenox-tpl-cli`, and `qwenox-eng-cli` when the build produces them.
 
+### rocm-runtime
+
+**Upstream:** [ROCm/TheRock](https://github.com/ROCm/TheRock)
+**Purpose:** Keg-only shared AMD ROCm runtime for the tap's HIP engines. It provides `libamdhip64`, `libhsa-runtime64`, `libamd_comgr`, rocBLAS/hipBLAS/hipBLASLt, rocSOLVER, and the `.kpack` kernel packs, without the compiler or profiler payloads.
+**Platforms/backends:** Linux x86_64; ROCm runtime. The formula downloads four GPU-family tarballs (`gfx1151`, `gfx110X`, `gfx1150`, and `gfx120X`) and installs roughly 1.4 GB of runtime libraries and kernel packs.
+**Commands:** None. The formula installs shared libraries and kernel packs under its keg prefix.
+**Options:** None.
+
+`rocm-runtime` is keg-only because engines link against it through `formula_opt_lib("rocm-runtime")` or `formula_opt_prefix("rocm-runtime")` rather than the default Homebrew prefix. For a manual run or shell session:
+
+```bash
+export ROCM_PATH="$(brew --prefix rocm-runtime)"
+export ROCM_KPACK_PATH="$ROCM_PATH/.kpack"
+export LD_LIBRARY_PATH="$ROCM_PATH/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+```
+
+The formula installs runtime libraries only. Compiler, LLVM, profiler, MIOpen, and other SDK payloads are excluded. Source builds still need a full ROCm SDK with HIP headers and `hipcc`; set `HOMEBREW_ROCM_PATH` to that SDK. The installed engines only need this shared runtime plus the kernel packs.
+
 ### rocmfpx
 
 **Upstream:** [charlie12345/ROCmFPX](https://github.com/charlie12345/ROCmFPX)
-**Purpose:** Canonical upstream ROCmFPX llama.cpp stack, distributed with bundled AMD ROCm runtime libraries.
-**Platforms/backends:** Linux x86_64; AMD ROCm. Each option selects a different prebuilt release artifact. The default artifact is `gfx1151`.
-**Options (choose one target artifact):**
-- `--with-multi-arch` — one binary for `gfx1100` + `gfx1151`.
-- `--with-gfx1150` — Strix Point APUs (`gfx1150`).
-- `--with-gfx120X` — RDNA4 discrete GPUs.
-- `--with-gfx110X` — RDNA3 GPUs.
-- `--with-gfx103X` — RDNA2 GPUs / Steam Deck.
-- `--with-gfx90a` — Instinct MI210 / MI250X.
-- `--with-gfx908` — Instinct MI100.
+**Purpose:** Canonical upstream ROCmFPX llama.cpp stack, built against the tap's shared `rocm-runtime`.
+**Platforms/backends:** Linux x86_64; AMD ROCm. The formula builds one fat binary for `gfx1100`, `gfx1101`, `gfx1102`, `gfx1150`, `gfx1151`, `gfx1200`, and `gfx1201`.
+**Options:** None. The target list is fixed by the formula.
 
 ```bash
 rocmfpx --help
@@ -513,7 +578,8 @@ rocmfpx-bench --help
 rocmfpx-perplexity --help
 ```
 
-`rocmfpx` and `rocmfpx-server` are both links to the bundled `llama-server` when that binary is present in the artifact. The tap does not link any bare `llama-*` command into `PATH`. This formula has no `gfx94X` option; older documentation that lists `gfx942` is out of date for the current formula.
+`rocmfpx` and `rocmfpx-server` are both links to the bundled `llama-server`; `rocmfpx-cli`, `rocmfpx-quantize`, `rocmfpx-bench`, `rocmfpx-perplexity`, and `rocmfpx-mtmd-cli` are linked when the corresponding upstream binary is present. The tap does not link any bare `llama-*` command into `PATH`. The `brew services` endpoint listens on `127.0.0.1:18007`. Building from source still needs a full ROCm SDK with HIP headers and a HIP compiler; the installed binary only needs `rocm-runtime`.
+
 
 ### saient-quartz
 
@@ -670,7 +736,7 @@ brew install --cask heretek-ai/tap/kokon
 
 The tap avoids linking upstream generic names that would collide with other packages:
 
-- **No bare `llama-*`.** `rocmfpx` exposes `rocmfpx`, `rocmfpx-server`, `rocmfpx-cli`, `rocmfpx-quantize`, `rocmfpx-bench`, and `rocmfpx-perplexity`; the bundled `llama-*` binaries stay under the formula's `libexec`.
+- **No bare `llama-*`.** `rocmfpx` exposes `rocmfpx`, `rocmfpx-server`, `rocmfpx-cli`, `rocmfpx-quantize`, `rocmfpx-bench`, `rocmfpx-perplexity`, and `rocmfpx-mtmd-cli`; the bundled `llama-*` binaries stay under the formula's `libexec`.
 - **No bare `gemma`.** `gemma-cpp` installs the upstream `gemma` CLI as `gemma-cpp`, leaving any other `gemma` command untouched.
 - **No bare `sd`.** `stable-diffusion-cpp` installs the upstream names `sd-cli` and `sd-server`, plus the tap alias `stable-diffusion` for `sd-cli`. Homebrew-core's `sd` is a different program and is not replaced.
 - **No bare engine or daemon names.** `colibri` links only its `coli` launcher; the `colibri`, `colibri-tui`, and per-family engine binaries stay under `libexec/colibri`. `hipfire` links only `hipfire`; its `daemon` helper stays at `libexec/bin/daemon`. `magnitude` installs its upstream `magnitude-cli` archive as `magnitude`, and `uzu` installs its `mirai-*-apple-darwin` archive as `mirai`.
@@ -681,16 +747,25 @@ If a short name is ambiguous with a core formula, use the fully qualified tap na
 
 ## Hardware and backend compatibility
 
-This matrix reflects targets that are actually selected in the formula files. "Source" means the formula installs from the pinned source revision and compiles it (or, for Python packages, installs it into a virtualenv) unless a matching CI bottle is published.
+This generated matrix combines the pinned variant ledger, the validation specs, and formula metadata. "Source" means the formula installs from the pinned source revision and compiles it (or, for Python packages, installs it into a virtualenv) unless a matching CI bottle is published.
 
 <!-- BEGIN GENERATED: hardware-matrix -->
+| Hardware family | Recommended formulae / install commands |
+| :--- | :--- |
+| AMD Strix Halo (`gfx1151`) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install heretek-ai/tap/crucible-strix-halo`<br>`brew install heretek-ai/tap/gufetto`<br>`brew install heretek-ai/tap/gufo`<br>`brew install heretek-ai/tap/gufo-franzmoca`<br>`brew install heretek-ai/tap/hipfire`<br>`brew install heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/libosmos`<br>`brew install --with-rocm heretek-ai/tap/lucebox`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/qwenox`<br>`brew install heretek-ai/tap/rocmfpx`<br>`brew install heretek-ai/tap/snowllm`<br>`brew install heretek-ai/tap/strata`<br>`brew install heretek-ai/tap/strixite` |
+| AMD RDNA3 (`gfx1100` family) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install --with-gfx1100 heretek-ai/tap/hipfire`<br>`brew install heretek-ai/tap/nib`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/rocmfpx`<br>`brew install heretek-ai/tap/strata` |
+| AMD RDNA4 (`gfx1200` family) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install --with-gfx1201 heretek-ai/tap/hipfire`<br>`brew install --with-rdna4 heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/rocmfpx`<br>`brew install heretek-ai/tap/strata` |
+| NVIDIA Blackwell (CUDA `sm_120`/`sm_121`) | Runtime: `brew install heretek-ai/tap/cuda-runtime`<br>`brew install heretek-ai/tap/basalt`<br>`brew install heretek-ai/tap/hyperqwen`<br>`brew install --with-cuda heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/lucebox`<br>`brew install --with-cuda heretek-ai/tap/project-maya`<br>`brew install --with-cuda heretek-ai/tap/strata` |
+| NVIDIA CUDA (`sm_80`-`sm_90`) | Runtime: `brew install heretek-ai/tap/cuda-runtime`<br>`brew install heretek-ai/tap/hyperqwen`<br>`brew install --with-cuda heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/lucebox`<br>`brew install --with-cuda heretek-ai/tap/project-maya`<br>`brew install --with-cuda heretek-ai/tap/strata` |
+| Apple Silicon (macOS) | Runtime: none<br>`brew install heretek-ai/tap/colibri`<br>`brew install heretek-ai/tap/gemma-cpp`<br>`brew install heretek-ai/tap/infr`<br>`brew install heretek-ai/tap/magnitude`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/saient-quartz`<br>`brew install heretek-ai/tap/shimmy`<br>`brew install heretek-ai/tap/stable-diffusion-cpp`<br>`brew install heretek-ai/tap/strata`<br>`brew install heretek-ai/tap/uzu` |
+| CPU / Vulkan fallback | Runtime: none<br>`brew install heretek-ai/tap/colibri`<br>`brew install heretek-ai/tap/gemma-cpp`<br>`brew install heretek-ai/tap/infr`<br>`brew install heretek-ai/tap/magnitude`<br>`brew install heretek-ai/tap/saient-quartz`<br>`brew install heretek-ai/tap/shimmy`<br>`brew install heretek-ai/tap/stable-diffusion-cpp`<br>`brew install --with-vulkan heretek-ai/tap/zinc` |
 <!-- END GENERATED: hardware-matrix -->
 
 ### Target notes
 
 - `gfx1151` is AMD Strix Halo / Ryzen AI Max. `gfx1150` is Strix Point. `gfx1100` and `gfx110X` are RDNA3 families; `gfx1200`, `gfx1201`, and `gfx120X` are RDNA4; `gfx103X` is RDNA2. `gfx908` is Instinct MI100 and `gfx90a` is Instinct MI210/MI250X.
-- `gfx906`, `gfx942`, and `gfx950` are available through Project Maya's `--with-wave64` option. `hipfire` also ships a `gfx906` kernel-pack option. `gfx908` is available as a `rocmfpx` target.
-- `rocmfpx` does **not** provide a `gfx94X` artifact in the current formula. Do not apply the old `gfx942` claim from earlier documentation.
+- `gfx906`, `gfx942`, and `gfx950` are available through Project Maya's `--with-wave64` option. `hipfire` also ships a `gfx906` kernel-pack option.
+- `rocmfpx` builds one fat binary for `gfx1100`, `gfx1101`, `gfx1102`, `gfx1150`, `gfx1151`, `gfx1200`, and `gfx1201`. It does not provide RDNA2, CDNA, or Instinct targets in the current formula; older documentation that lists `gfx908`, `gfx90a`, or `gfx942` is out of date.
 - macOS support covers `colibri` (arm64 only), `infr` (arm64 and Intel), `magnitude` (arm64 and Intel), `project-maya`, `strata`, `shimmy`, `stable-diffusion-cpp`, `gemma-cpp`, `saient-quartz`, and `uzu` (arm64 and Intel); the two casks are macOS GUI applications. The other formulae declare Linux only. `colibri` declares an arm64 requirement on macOS because upstream publishes no Intel archive.
 - CUDA support is limited to `basalt`, `hyperqwen`, `kyojin --with-cuda`, `lucebox` (default), `project-maya --with-cuda`, and `strata --with-cuda`. `shimmy`'s pinned upstream CUDA feature is not enabled here. `saient-quartz` has an upstream CUDA Cargo feature, but this formula does not enable it.
 - Vulkan is supported by `colibri` (Linux archive), `infr` (Linux archive), `stable-diffusion-cpp` (default Linux artifact), `saient-quartz --with-vulkan`, and `zinc --with-vulkan`. SYCL is supported by `strata --with-sycl`. The CPU-only paths are `gemma-cpp`, `shimmy` on Linux, `saient-quartz`, and `stable-diffusion-cpp --with-cpu`; `infr`, `colibri`, and `uzu` include a CPU fallback, and Project Maya and Strata compile a CPU fallback into their GPU builds but do not offer a standalone CPU option.
@@ -698,10 +773,10 @@ This matrix reflects targets that are actually selected in the formula files. "S
 
 ### Prebuilt artifacts and source builds
 
-- **Always prebuilt:** `rocmfpx` installs a ROCmFPX release zip with bundled AMD ROCm runtime libraries; `stable-diffusion-cpp` installs upstream release zips for Vulkan, ROCm, CPU, or macOS Metal; `colibri`, `hipfire`, `infr`, `magnitude`, `uzu`, and `zinc` install upstream CLI/engine archives. None of these needs a compiler for its default artifact.
+- **Always prebuilt:** `stable-diffusion-cpp` installs upstream release zips for Vulkan, ROCm, CPU, or macOS Metal; `colibri`, `hipfire`, `infr`, `magnitude`, `uzu`, and `zinc` install upstream CLI/engine archives. None of these needs a compiler for its default artifact.
 - **Hybrid:** `basalt` installs the upstream Blackwell archive on Linux x86_64 and builds the verified source tag on Linux arm64 (DGX Spark).
-- **Source by default:** the other 17 formulae install from pinned source revisions. This includes `nib`, which builds with CMake and `hipcc` against the host ROCm SDK. Homebrew may pour a matching bottle produced by the nightly matrix; if no bottle matches your OS/architecture/variant, it builds from source.
-- **Toolchain coupling:** source-built binaries link against the ROCm or CUDA installation present at build time. Prebuilt ROCm binaries such as `hipfire` and `zinc` load the host ROCm runtime dynamically and need a compatible SDK on the loader path. Rebuild or reinstall if that SDK moves. `rocmfpx` is the formula that bundles ROCm runtime libraries into the installed prefix; `basalt`'s x86_64 archive expects a CUDA 13 runtime on the loader path.
+- **Source by default:** the remaining formulae install from pinned source revisions, including `rocmfpx` and `nib`, which build with CMake and the HIP compiler against the host ROCm SDK. Homebrew may pour a matching CI bottle; if no bottle matches your OS/architecture/variant, it builds from source.
+- **Toolchain coupling:** source-built binaries link against the ROCm or CUDA installation present at build time. Prebuilt ROCm binaries such as `hipfire` and `zinc` load the host ROCm runtime dynamically and need a compatible SDK on the loader path. Rebuild or reinstall if that SDK moves. The tap's `rocm-runtime` and `cuda-runtime` formulae provide shared runtimes without compilers; `basalt`'s x86_64 archive expects the CUDA 13 runtime on the loader path.
 - **Bottles are platform- and variant-specific.** There is no universal bottle for a formula with `gfx` or backend options. Use `--build-from-source` when you need a non-default option.
 
 ## Build prerequisites and the ROCm path
@@ -729,9 +804,9 @@ export HOMEBREW_ROCM_PATH=/opt/rocm
 brew install --build-from-source heretek-ai/tap/gufo
 ```
 
-If no path contains the HIP headers, installation stops with a message asking you to set `HOMEBREW_ROCM_PATH`. The tap's CI resolves AMD TheRock nightly ROCm tarballs (the ledger's minimum is `10.1.0`) into `/opt/rocm-nightly`; that directory is a CI convention, not a requirement. A normal `/opt/rocm` installation works when selected explicitly.
+If no path contains the HIP headers, installation stops with a message asking you to set `HOMEBREW_ROCM_PATH`. Source builds in CI use a full pinned SDK in the `stx-halo` runner or the `brew-rocm` toolchain image; `/opt/rocm-nightly` remains a local fallback, not a requirement. A normal `/opt/rocm` installation works when selected explicitly.
 
-The formulae bake the chosen ROCm library path into the binary's RPATH. Moving or replacing the SDK after installation can leave the binary unable to find `libamdhip64.so` or related libraries; rebuild or reinstall after such a change.
+Bottles link against the shared keg-only `rocm-runtime` (`Formula["rocm-runtime"].opt_lib`) and record that relocatable path in RPATH, so they do not embed the SDK path. Source builds still need the SDK for headers and `hipcc`. Moving or replacing the `rocm-runtime` keg after installation can leave a binary unable to find `libamdhip64.so` or related libraries; reinstall the engine after such a change.
 
 `libosmos` uses the same resolution order and additionally builds for Strix Halo `gfx1151` with `HIP_ARCH=gfx1151`. Pass `--with-npu` only when AMD XRT and the NPU kernels are already available; the formula does not install XRT.
 
@@ -748,7 +823,7 @@ brew install --build-from-source heretek-ai/tap/lucebox
 
 `hyperqwen` compiles `liblsa.so` only when `nvcc` is found; without it, the package still installs but the helper library is skipped. `lucebox` builds CUDA by default, so AMD users must pass `--with-rocm`.
 
-`basalt` is CUDA 13 only. On Linux x86_64 it installs upstream's prebuilt Blackwell `sm_120` archive, which expects the CUDA 13 runtime libraries (`libcudart.so.13`, `libcublas.so.13`, `libcublasLt.so.13`) to be visible; the archive's RUNPATH points at `/usr/local/cuda-13.0`. On Linux arm64 (DGX Spark GB10) the formula builds the same tag from source for `sm_121` and requires a CUDA 13 toolkit with `nvcc` plus GCC 13+; set `HOMEBREW_CUDA_PATH` if the toolkit is not at `/usr/local/cuda`.
+`basalt` is CUDA 13 only. On Linux x86_64 it installs upstream's prebuilt Blackwell `sm_120` archive, and the formula depends on `cuda-runtime`; its wrappers prepend `Formula["cuda-runtime"].opt_lib` to `LD_LIBRARY_PATH`, so the CUDA 13 runtime libraries (`libcudart.so.13`, `libcublas.so.13`, `libcublasLt.so.13`) come from the shared runtime instead of a hard-coded toolkit path. On Linux arm64 (DGX Spark GB10) the formula builds the same tag from source for `sm_121` and requires a CUDA 13 toolkit with `nvcc` plus GCC 13+; set `HOMEBREW_CUDA_PATH` if the toolkit is not at `/usr/local/cuda`.
 
 Two formulae need extra care in the current revision: `project-maya` and `strata` resolve a ROCm root before selecting `--with-cuda` or `--with-sycl`, so those source builds still need a ROCm SDK with HIP headers available even when they compile a non-HIP backend. The formula file is authoritative if this changes.
 
@@ -756,16 +831,28 @@ Two formulae need extra care in the current revision: `project-maya` and `strata
 
 Only `colibri`, `infr`, `magnitude`, `project-maya`, `strata`, `shimmy`, `stable-diffusion-cpp`, `gemma-cpp`, `saient-quartz`, and `uzu` support macOS in this tap, and the `kokon` and `hatchlight` casks install macOS GUI applications. There is no ROCm or CUDA path on macOS. Prebuilt CI bottles target `arm64_sonoma`. `colibri` installs an upstream arm64 Metal archive and requires `libomp`; `infr` installs arm64 or Intel archives; `magnitude` installs arm64 or Intel CLI archives; `uzu` installs the arm64 Metal or Intel CPU CLI archive. `project-maya`, `strata`, `shimmy`, `gemma-cpp`, and `saient-quartz` can build from source on macOS; `stable-diffusion-cpp` currently declares only an arm64 macOS artifact. `gemma-cpp` and `saient-quartz` are CPU builds on macOS; `saient-quartz --with-vulkan` depends on a MoltenVK/Vulkan loader if you provide one.
 
-### Nightly matrix and ROCmFPX builds
+## CI and publishing pipeline
 
-The tap uses two separate build systems:
+The tap uses a single bottle pipeline: [`tests.yml`](.github/workflows/tests.yml) runs `brew test-bot`, [`publish.yml`](.github/workflows/publish.yml) runs `brew pr-pull`, and built bottles are stored in GHCR at `https://ghcr.io/v2/heretek-ai/tap`. There is no separate nightly-matrix or ROCmFPX-builder workflow.
 
-- **Nightly matrix** ([`.github/workflows/nightly-matrix.yml`](.github/workflows/nightly-matrix.yml)) runs at 02:00 UTC or by manual dispatch. A change gate reads [`.github/upstream-pins.json`](.github/upstream-pins.json), compares pinned upstream commits and the AMD ROCm index, and emits a build matrix. Builds run on Ubuntu 24.04 for ROCm/CUDA variants, macOS 14 for Metal variants, and optionally a self-hosted `gfx1151` runner for hardware validation. The workflow resolves ROCm into `/opt/rocm-nightly`, runs formula tests and a three-tier linkage/device/inference validation harness, publishes validation proofs and release assets, and merges bottle blocks and ledger updates back into `main`.
-- **ROCmFPX builder** ([`.github/workflows/build-rocmfpx.yml`](.github/workflows/build-rocmfpx.yml)) is a separate workflow that builds ROCmFPX plus bundled ROCm for Linux and Windows. The Linux `gfx` artifacts feed the `rocmfpx` formula; the workflow publishes `b####` releases. This is not the same pipeline as the nightly matrix.
+- **Test and build (`tests.yml`).** `brew test-bot` runs on macOS and Linux, including a hosted CUDA job and a self-hosted `stx-halo` ROCm job. The self-hosted job builds ROCm bottles and runs the hardware validation harness; it is gated to same-repository pull requests, pushes to `main`, and manual dispatches so fork code never runs on maintainer hardware. The workflow also runs the Python suites, ShellCheck, `brew style` for formulae, casks, and `cmd/`, and `python3 scripts/generate_readme.py --check`.
+- **Publish (`publish.yml`).** A maintainer dispatches `brew pr-pull` with the pull request number and an optional reviewed head SHA. It downloads the GHCR bottles, merges the bottle blocks into `main`, pushes the commit, and records build provenance attestations. Passing `--head-sha` makes publishing fail if the branch moved after review.
+- **Autobump (`autobump.yml`).** Release-tag and livecheck bumps run every six hours; commit-tracking and rolling bumps run weekly and on `builder-release` dispatches. Both paths open pull requests labelled `autobump` and run `brew test-bot` before merge. Configure the optional GitHub App with `vars.APP_ID` and `secrets.APP_PRIVATE_KEY`; without the App the workflow falls back to `GITHUB_TOKEN`, and pull requests created with that token do not trigger `brew test-bot`.
+- **Auto-publish (`auto-publish.yml`).** A `workflow_run` listener waits for `brew test-bot` to finish. When a successful, same-repository pull request carries the `autobump` label, it dispatches `publish.yml`; human pull requests remain manual. Fork pull requests are never auto-published.
+- **Self-hosted `stx-halo` gate.** The ROCm/hardware job only accepts trusted refs: same-repository pull requests, `main` pushes, and manual runs. This keeps untrusted fork code and secrets off the maintainer machine.
 
 ## Usage examples
 
 Every command below is installed by the corresponding formula. Use `--help` for the full flag set; this tap does not guarantee flags that are not shown here.
+
+### Hardware detection
+
+```bash
+brew heretek doctor      # diagnostics and actionable next steps
+brew heretek recommend   # exact install commands for the detected GPU
+```
+
+`doctor` prints the TTM `pages_limit`, driver and runtime library status, and the install commands for missing tap runtimes. `recommend` maps AMD `gfx1151`, `gfx1100`-family, `gfx1200`-family, NVIDIA `sm_80`-`sm_121`, Apple Silicon, and the CPU/Vulkan fallback to formula sets and Brewfiles.
 
 ### AMD Strix Halo runtimes
 
@@ -952,22 +1039,22 @@ Service logs live under `$(brew --prefix)/var/log/`. Where a service block defin
 The table between the generated markers is maintained from the registry. `zinc` is the documented exception: upstream exposes no `--host` flag and always binds `0.0.0.0`, so its service passes only `--port` and the registry records the limitation in its notes.
 
 <!-- BEGIN GENERATED: port-registry -->
-| Formula | Port | Host | Executable |
-| :--- | ---: | :--- | :--- |
-| `gufo` | 18001 | `127.0.0.1` | `gufo serve` |
-| `gufetto` | 18002 | `127.0.0.1` | `gufetto serve` |
-| `gufo-franzmoca` | 18003 | `127.0.0.1` | `gufo-franzmoca serve` |
-| `strixite` | 18004 | `127.0.0.1` | `strixite-server` |
-| `project-maya` | 18005 | `127.0.0.1` | `maya-cli` |
-| `strata` | 18006 | `127.0.0.1` | `strata-cli` |
-| `rocmfpx` | 18007 | `127.0.0.1` | `rocmfpx` |
-| `stable-diffusion-cpp` | 18008 | `127.0.0.1` | `sd-server` |
-| `zinc` | 18009 | `0.0.0.0` | `zinc serve` |
-| `kyojin` | 18010 | `127.0.0.1` | `kyojin-serve qwen` |
-| `hipfire` | 18011 | `127.0.0.1` | `hipfire serve` |
-| `basalt` | 18012 | `127.0.0.1` | `basalt serve` |
-| `shimmy` | 11434 | `127.0.0.1` | `shimmy serve` |
-| `hyperqwen` | 18020 | `127.0.0.1` | `hyperqwen-serve` |
+| Formula | Service executable | Default endpoint | Notes |
+| :--- | :--- | :--- | :--- |
+| [`gufo`](#gufo) | `gufo serve` | `127.0.0.1:18001` | Set with --host 127.0.0.1 --port 18001 in the service block. Upstream default is 8080. |
+| [`gufetto`](#gufetto) | `gufetto serve` | `127.0.0.1:18002` | Set with --host 127.0.0.1 --port 18002 in the service block. Upstream default is 8080. |
+| [`gufo-franzmoca`](#gufo-franzmoca) | `gufo-franzmoca serve` | `127.0.0.1:18003` | Set with --host 127.0.0.1 --port 18003 in the service block. Upstream default is 8080. |
+| [`strixite`](#strixite) | `strixite-server` | `127.0.0.1:18004` | Configured by host/port in etc/strixite/strix_server.conf and overridden explicitly with --host 127.0.0.1 --port 18004 in the service block. Upstream default is 5300. |
+| [`project-maya`](#project-maya) | `maya-cli` | `127.0.0.1:18005` | Set with --host 127.0.0.1 --port 18005 in the service block. maya-server upstream default is 8080. |
+| [`strata`](#strata) | `strata-cli` | `127.0.0.1:18006` | Port changed to 18006 in the existing strata-cli service invocation. The launcher and server default to 127.0.0.1; that command shape exposes no --host flag, so this service relies on the default loopback bind. |
+| [`rocmfpx`](#rocmfpx) | `rocmfpx` | `127.0.0.1:18007` | Set with --host 127.0.0.1 --port 18007 in the service block. Serves the built llama-server endpoint. |
+| [`stable-diffusion-cpp`](#stable-diffusion-cpp) | `sd-server` | `127.0.0.1:18008` | Set with --host 127.0.0.1 --port 18008 in the service block. Upstream default is 8080. |
+| [`zinc`](#zinc) | `zinc serve` | `0.0.0.0:18009` | Set with --port 18009. Upstream has no --host flag and always binds 0.0.0.0, so the registry bind_host cannot be enforced for this service; use a host firewall or an isolating network namespace. |
+| [`kyojin`](#kyojin) | `kyojin-serve qwen` | `127.0.0.1:18010` | Set with --host 127.0.0.1 --port 18010 in the service block; the service starts the qwen engine. Upstream default is 8000. |
+| [`hipfire`](#hipfire) | `hipfire serve` | `127.0.0.1:18011` | Set with the documented positional bind 127.0.0.1:18011; hipfire serve has no --port flag. Upstream default is 11435. |
+| [`basalt`](#basalt) | `basalt serve` | `127.0.0.1:18012` | Configured by server.port in etc/basalt/basalt_config.json; the service also passes --host 127.0.0.1 --port 18012. Upstream default is 8080. |
+| [`hyperqwen`](#hyperqwen) | `hyperqwen-serve` | `127.0.0.1:18020` | Set explicitly to 18020 through HYPERQWEN_PORT in the service block; the wrapper passes the value to vLLM with --host 127.0.0.1 --port. Upstream default is 18020. |
+| [`shimmy`](#shimmy) | `shimmy serve` | `127.0.0.1:11434` | Set with --host 127.0.0.1 --port 11434 in the service block. Retained because 11434 is the upstream/Ollama-compatible default. |
 <!-- END GENERATED: port-registry -->
 
 ## Updating
@@ -1042,23 +1129,26 @@ More documentation: <https://docs.brew.sh>, including [Tap Trust](https://docs.b
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and pull-request flow, formula conventions, local verification commands, and CI requirements.
 
-Changes land through pull requests; do not push directly to `main`. The nightly publish job is the automation that commits bottle blocks and ledger updates directly to `main`.
+Changes land through pull requests; do not push directly to `main`. The publish workflow (`brew pr-pull`) is the only automation that merges reviewed bottles and ledger updates into `main`. The auto-publish workflow dispatches it only for green, same-repository pull requests labelled `autobump`; human pull requests remain manual.
 
 ### Local checks
 
 ```bash
-brew style Formula/ Casks/
+brew style Formula/ Casks/ cmd/
 brew audit --strict --online --tap=heretek-ai/tap
 ./scripts/test_local_tap.sh
+python3 scripts/generate_readme.py --check
 pytest tests/ -v
 ```
 
-`./scripts/test_local_tap.sh` syncs tracked tap paths (including `Casks/`) into Homebrew's tap directory, runs `brew style` on both formulae and casks, runs the strict audit across the tap, and executes the Python test suites. `pytest tests/ -v` runs the resolver, ledger, formula-update, and validation-harness tests directly.
+`./scripts/test_local_tap.sh` syncs tracked tap paths (including `Casks/`, `cmd/`, and `Brewfiles/`) into Homebrew's tap directory, runs `brew style` on formulae, casks, and commands, runs the strict audit across the tap, checks the generated README tables against the synced metadata, and executes the Python test suites. `pytest tests/ -v` runs the resolver, ledger, formula-update, and validation-harness tests directly.
+
+`README.md` contains generated catalog, cask, port, and hardware tables between `<!-- BEGIN GENERATED: ... -->` markers. Do not edit those tables by hand. Run `python3 scripts/generate_readme.py --write` after changing formulae, casks, the ledger, or [`scripts/port_registry.json`](scripts/port_registry.json); `--check` fails with the stale section names when the README does not match the current metadata. The generator reads live `brew info --json=v2` output and works from any directory.
 
 ### CI and pull requests
 
-- [`tests.yml`](.github/workflows/tests.yml) runs `brew test-bot --only-cleanup-before`, `--only-setup`, and `--only-tap-syntax`, provisions ROCm on Linux, runs `brew test-bot --only-formulae --root-url=https://ghcr.io/v2/heretek-ai/tap`, and runs `pytest tests/ -v` plus ShellCheck.
-- Pull-request bottles use the GHCR root URL `https://ghcr.io/v2/heretek-ai/tap`.
+- [`tests.yml`](.github/workflows/tests.yml) runs `brew test-bot` on macOS and Linux, including hosted CUDA and the self-hosted `stx-halo` ROCm gate. It builds bottles with the GHCR root URL `https://ghcr.io/v2/heretek-ai/tap`, runs the Python suites and ShellCheck, checks `brew style` for `Formula/`, `Casks/`, and `cmd/`, and verifies the generated README.
+- Self-hosted hardware is restricted to same-repository pull requests, `main` pushes, and manual dispatches; fork pull requests never execute on it.
 - After review, publish with the `publish` workflow (`brew pr-pull`) or locally:
 
 ```bash
@@ -1071,15 +1161,17 @@ Passing `--head-sha` makes the publish fail if the pull request head moves after
 
 - Update the pinned revision in the formula and the matching entry in [`.github/upstream-pins.json`](.github/upstream-pins.json) together.
 - `basalt` carries two stable artifacts: the source tag used by arm64 and the prebuilt x86_64 release archive. Review autobump changes against both URL/SHA256 pairs.
-- The autobump workflow runs `brew bump --no-fork --open-pr --bump-synced --tap=heretek-ai/tap` on a schedule and also handles builder-release dispatches through `scripts/update_formulae.py`. Both paths open a pull request; `brew test-bot` must pass before merge.
-- The nightly matrix and the ROCmFPX builder are separate build systems: the matrix produces per-formula bottles and validation proofs, while the ROCmFPX builder produces the `b####` release archives consumed by `rocmfpx`.
+- The autobump workflow runs release and livecheck bumps every six hours and commit-tracking or rolling bumps weekly. Both paths run `brew bump --no-fork --open-pr --bump-synced --tap=heretek-ai/tap` or `scripts/update_formulae.py`, open a pull request labelled `autobump`, and require `brew test-bot` to pass.
+- Configure the optional GitHub App with the repository variable `vars.APP_ID` and the secret `secrets.APP_PRIVATE_KEY`. The App needs Contents and Pull requests write access (and Issues write to manage the `autobump` label). Without it, the workflows fall back to `secrets.GITHUB_TOKEN`, but pull requests created with that token do not trigger `brew test-bot`; a maintainer must then rerun the tests before auto-publish can act.
+- `auto-publish.yml` listens for `brew test-bot` completion and dispatches `publish.yml` only for successful, same-repository pull requests carrying the `autobump` label. It never publishes forks or unlabelled human pull requests.
 
 ### Adding or changing a formula
 
 1. Add or edit the formula under [`Formula/`](Formula/).
 2. Add the ledger entry and variant policy to [`.github/upstream-pins.json`](.github/upstream-pins.json).
-3. Run `brew style`, the strict online audit, the local tap script, and `pytest`.
-4. Open a pull request and let `brew test-bot` and the nightly matrix validate it.
+3. Update the documented ports in [`scripts/port_registry.json`](scripts/port_registry.json) and run `python3 scripts/generate_readme.py --write`.
+4. Run `brew style`, the strict online audit, the local tap script, and `pytest`.
+5. Open a pull request and let `brew test-bot` and the self-hosted `stx-halo` gate validate it.
 
 ## License and attribution
 
@@ -1088,9 +1180,9 @@ The tap's own code and automation are licensed under the [MIT License](LICENSE).
 | License | Formulae |
 | :--- | :--- |
 | `Apache-2.0` | `colibri`, `crucible-strix-halo`, `gemma-cpp`, `gufetto`, `gufo`, `gufo-franzmoca`, `hipfire`, `lucebox`, `magnitude`, `nib`, `shimmy`, `snowllm` |
-| `MIT` | `basalt`, `infr`, `kyojin`, `libosmos`, `rocmfpx`, `saient-quartz`, `stable-diffusion-cpp`, `uzu`, `zinc` |
+| `MIT` | `basalt`, `infr`, `kyojin`, `libosmos`, `rocm-runtime`, `rocmfpx`, `saient-quartz`, `stable-diffusion-cpp`, `uzu`, `zinc` |
 | `AGPL-3.0-only` | `qwenox`, `strixite` |
-| `:cannot_represent` | `hyperqwen`, `project-maya`, `strata` |
+| `:cannot_represent` | `cuda-runtime`, `hyperqwen`, `project-maya`, `strata` |
 
 Casks do not carry a Homebrew license stanza in the same way as formulae. Upstream licensing is `AGPL-3.0` for `kokon` and `MIT` for `hatchlight`; consult each upstream repository for the full terms.
 

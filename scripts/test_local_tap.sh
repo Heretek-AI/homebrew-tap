@@ -28,11 +28,13 @@ echo " 1. Syncing tracked tap files"
 echo "=========================================="
 TAP_PATHS=(
     ".github"
+    "Brewfiles"
     "Casks"
     "Formula"
     "LICENSE"
     "README.md"
     ".gitignore"
+    "cmd"
     "scripts"
     "tests"
     "utils"
@@ -55,11 +57,12 @@ done
 
 echo ""
 echo "=========================================="
-echo " 2. Running Homebrew formula and cask style checks"
+echo " 2. Running Homebrew formula, cask and command style checks"
 echo "=========================================="
 shopt -s nullglob
 formulae=("${TAP_DIR}"/Formula/*.rb)
 casks=("${TAP_DIR}"/Casks/*.rb)
+commands=("${TAP_DIR}"/cmd/*.rb)
 shopt -u nullglob
 
 if [ "${#formulae[@]}" -eq 0 ]; then
@@ -67,10 +70,18 @@ if [ "${#formulae[@]}" -eq 0 ]; then
     exit 1
 fi
 
-echo "Discovered ${#formulae[@]} formulae and ${#casks[@]} casks."
-"$BREW_BIN" style "$TAP_DIR/Formula/"
+if [ "${#commands[@]}" -eq 0 ]; then
+    echo "[-] Error: no cmd/*.rb external commands found" >&2
+    exit 1
+fi
+
+echo "Discovered ${#formulae[@]} formulae, ${#casks[@]} casks and ${#commands[@]} commands."
+# Style the synced tap copy, not the checkout. When both a checkout and an
+# installed copy exist, Homebrew's cross-file RuboCop cops see the same
+# constants and methods twice and report false duplicate/reassignment errors.
+"$BREW_BIN" style "$TAP_INSTALL_PATH/Formula/" "$TAP_INSTALL_PATH/cmd/"
 if [ "${#casks[@]}" -gt 0 ]; then
-    "$BREW_BIN" style "$TAP_DIR/Casks/"
+    "$BREW_BIN" style "$TAP_INSTALL_PATH/Casks/"
 fi
 
 echo ""
@@ -96,6 +107,15 @@ echo "=========================================="
     else
         echo "[*] pytest not installed; skipped pytest suite."
     fi
+)
+
+echo ""
+echo "=========================================="
+echo " 5. Verifying generated README against synced tap metadata"
+echo "=========================================="
+(
+    cd "$TAP_INSTALL_PATH"
+    python3 scripts/generate_readme.py --check
 )
 
 echo ""

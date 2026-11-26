@@ -98,7 +98,7 @@ class RocmRuntime < Formula
       full ROCm SDK with hipcc; point HOMEBREW_ROCM_PATH at that SDK.
 
       The formula downloads four GPU-family tarballs (about 12 GB) but installs
-      only about 1.3 GB of runtime libraries, kpack kernels and BLAS libraries.
+      about 1.4 GB of runtime libraries, kpack kernels and BLAS libraries.
     EOS
   end
 
