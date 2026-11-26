@@ -855,6 +855,316 @@
         ],
         "throughput_regex": "(?i)(gemma|weights|usage)"
       }
+    },
+    "colibri": {
+      "binaries": [
+        "bin/coli"
+      ],
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/coli",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/coli",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/coli",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(colibri|\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(colibri|\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/coli",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(colibri|\\d+\\.\\d+)"
+      },
+      "metal": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/coli",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/coli",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/coli",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(colibri|\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(colibri|\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/coli",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(colibri|\\d+\\.\\d+)"
+      }
+    },
+    "hipfire": {
+      "binaries": [
+        "bin/hipfire"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/hipfire",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/hipfire",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/hipfire",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(hipfire|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(hipfire|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/hipfire",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(hipfire|\\d+\\.\\d+\\.\\d+)"
+      }
+    },
+    "zinc": {
+      "binaries": [
+        "bin/zinc",
+        "bin/zinc-tokenize"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/zinc",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/zinc",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/zinc",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/zinc",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)"
+      },
+      "vulkan": {
+        "required_libs": [
+          "libvulkan.so"
+        ],
+        "version_cmd": [
+          "bin/zinc",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/zinc",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/zinc",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/zinc",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)"
+      }
+    },
+    "infr": {
+      "binaries": [
+        "bin/infr"
+      ],
+      "vulkan": {
+        "required_libs": [
+          "libvulkan.so"
+        ],
+        "version_cmd": [
+          "bin/infr",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/infr",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/infr",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(infr|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(infr|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/infr",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(infr|\\d+\\.\\d+\\.\\d+)"
+      },
+      "metal": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/infr",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/infr",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/infr",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(infr|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(infr|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/infr",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(infr|\\d+\\.\\d+\\.\\d+)"
+      }
+    },
+    "magnitude": {
+      "binaries": [
+        "bin/magnitude"
+      ],
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/magnitude",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/magnitude",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/magnitude",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(magnitude|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(magnitude|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/magnitude",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(magnitude|\\d+\\.\\d+\\.\\d+)"
+      },
+      "metal": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/magnitude",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/magnitude",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/magnitude",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(magnitude|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(magnitude|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/magnitude",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(magnitude|\\d+\\.\\d+\\.\\d+)"
+      }
+    },
+    "uzu": {
+      "binaries": [
+        "bin/mirai"
+      ],
+      "metal": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/mirai",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/mirai",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/mirai",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(mirai|cli|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(mirai|cli|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/mirai",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(mirai|cli|\\d+\\.\\d+\\.\\d+)"
+      },
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/mirai",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/mirai",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/mirai",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(mirai|cli|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(mirai|cli|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/mirai",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(mirai|cli|\\d+\\.\\d+\\.\\d+)"
+      }
+    },
+    "nib": {
+      "binaries": [
+        "bin/nib"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/nib",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/nib",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/nib",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(nib|\\d+\\.\\d+\\.\\d+)",
+        "no_device_ok_regex": "(?i)(nib|\\d+\\.\\d+\\.\\d+)",
+        "golden_cmd": [
+          "bin/nib",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(nib|\\d+\\.\\d+\\.\\d+)"
+      }
     }
   }
 }
