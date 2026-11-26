@@ -632,7 +632,7 @@
       "repo": "leejet/stable-diffusion.cpp",
       "branch": "master",
       "track": "rolling_release",
-      "formula_sha256": "485f35123c1f24200f9ff23afce51264f5d3d0a6d4d437c8fc5722071caf1c88",
+      "formula_sha256": "53b4f096d712426bbf8c598bf370714b8fce43f1e042fb342596bbf720e2e403",
       "variants": {
         "vulkan": {
           "status": "enabled",

@@ -1,6 +1,8 @@
 class Hipfire < Formula
   desc "Native LLM inference engine for AMD RDNA and CDNA GPUs"
   homepage "https://github.com/warpfront/hipfire"
+  url "https://github.com/warpfront/hipfire/releases/download/v0.4.8/hipfire-v0.4.8-linux-rocm-gfx1151-x64.tar.gz"
+  sha256 "be498c980456f4b53d7b558beab40557a68e363edfe86181705ec6ddce50b0ab"
   license "Apache-2.0"
 
   livecheck do

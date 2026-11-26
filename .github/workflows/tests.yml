@@ -93,9 +93,9 @@ jobs:
           brew test-bot --only-cleanup-before
           brew test-bot --only-setup
 
-      - name: Tap syntax check
+      - name: Tap readall check
         run: |
-          brew test-bot --only-tap-syntax
+          brew readall --aliases --os=all --arch=all heretek-ai/tap
 
       - name: Formula, cask and command style
         run: |
@@ -357,10 +357,40 @@ jobs:
           name: bottles_linux
           path: '*.bottle.*'
 
-  bottles-cuda:
-    name: CUDA bottles (hosted toolchain image)
+  toolchain-image:
+    name: Check CUDA toolchain image
     needs: changes
     if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      cuda: ${{ steps.check.outputs.cuda }}
+    steps:
+      - name: Check for published brew-cuda image
+        id: check
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if printf '%s' "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null 2>&1
+          then
+            if docker manifest inspect ghcr.io/heretek-ai/brew-cuda:13.5.0 >/dev/null 2>&1
+            then
+              echo "cuda=true" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+          fi
+          echo "cuda=false" >> "${GITHUB_OUTPUT}"
+          echo "::notice::ghcr.io/heretek-ai/brew-cuda:13.5.0 is not published yet; CUDA bottles will be skipped."
+
+  bottles-cuda:
+    name: CUDA bottles (hosted toolchain image)
+    needs: [changes, toolchain-image]
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true') &&
+      needs.toolchain-image.outputs.cuda == 'true'
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/heretek-ai/brew-cuda:13.5.0

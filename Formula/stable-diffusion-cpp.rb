@@ -1,7 +1,9 @@
 class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
+  url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1141-e637c7b/sd-master-e637c7b-bin-Linux-Ubuntu-26.04-x86_64-vulkan.zip"
   version "1141"
+  sha256 "70c577cfe447f3550a93e3973cc67f635e2f2676b4ada9c92b2e2b52a90f6bbc"
   license "MIT"
 
   livecheck do

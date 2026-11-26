@@ -1,6 +1,8 @@
 class Zinc < Formula
   desc "Zig inference engine with ROCm, Vulkan, and Metal backends"
   homepage "https://github.com/zolotukhin/zinc"
+  url "https://github.com/zolotukhin/zinc/releases/download/v0.1.1/zinc-v0.1.1-linux-x86_64-rocm.tar.gz"
+  sha256 "fd5a70764fbd92396b8c23cfb8e2772c99bbedb54478aeebd17dd6232b16e97f"
   license "MIT"
 
   livecheck do
