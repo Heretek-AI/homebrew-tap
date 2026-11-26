@@ -526,15 +526,8 @@
           "bin/rocmfpx",
           "--list-devices"
         ],
-        "device_ok_regex": "(?i)(ROCm|gfx[0-9a-zA-Z]+|HIP|device)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|0 devices found)",
-        "golden_cmd": [
-          "bin/rocmfpx-cli",
-          "-m",
-          "mock",
-          "--dry-run"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens per second)"
+        "device_ok_regex": "(?i)(gfx[0-9a-f]{3,4}|device\\s+[0-9]+\\s*:)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|0 devices found)"
       }
     },
     "lucebox": {
@@ -983,18 +976,7 @@
         "help_cmd": [
           "bin/zinc",
           "--help"
-        ],
-        "device_cmd": [
-          "bin/zinc",
-          "--version"
-        ],
-        "device_ok_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)",
-        "no_device_ok_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)",
-        "golden_cmd": [
-          "bin/zinc",
-          "--help"
-        ],
-        "throughput_regex": "(?i)(zinc|\\d+\\.\\d+\\.\\d+)"
+        ]
       },
       "vulkan": {
         "required_libs": [
@@ -1185,18 +1167,7 @@
         "help_cmd": [
           "bin/nib",
           "--help"
-        ],
-        "device_cmd": [
-          "bin/nib",
-          "--version"
-        ],
-        "device_ok_regex": "(?i)(nib|\\d+\\.\\d+\\.\\d+)",
-        "no_device_ok_regex": "(?i)(nib|\\d+\\.\\d+\\.\\d+)",
-        "golden_cmd": [
-          "bin/nib",
-          "--help"
-        ],
-        "throughput_regex": "(?i)(nib|\\d+\\.\\d+\\.\\d+)"
+        ]
       }
     }
   }

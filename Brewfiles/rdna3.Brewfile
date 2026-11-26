@@ -14,10 +14,10 @@ tap "heretek-ai/tap", trusted: { formulae: [
 
 brew "rocm-runtime"
 
-brew "hipfire", args: ["--with-gfx1100"]
+brew "hipfire", args: ["with-gfx1100"]
 brew "nib"
 brew "project-maya"
 brew "rocmfpx"
-brew "stable-diffusion-cpp", args: ["--with-rocm"]
+brew "stable-diffusion-cpp", args: ["with-rocm"]
 brew "strata"
 brew "zinc"

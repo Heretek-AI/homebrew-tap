@@ -47,6 +47,9 @@ brew heretek recommend
   kernel pack, while `--with-cuda`, `--with-rocm`, `--with-rdna4`, and
   `--with-vulkan` select a backend or target family. If a formula is already
   installed with a different variant, reinstall it with the same arguments.
+  In a Brewfile, write `args` entries **without** the leading dashes, for
+  example `brew "hipfire", args: ["with-gfx1100"]`; Homebrew Bundle adds the
+  `--` prefix itself.
 - Source builds still need the external toolchain: a ROCm SDK with `hipcc` for
   AMD options and a CUDA toolkit with `nvcc` for CUDA options. The runtime
   formulae provide shared libraries, not compilers.

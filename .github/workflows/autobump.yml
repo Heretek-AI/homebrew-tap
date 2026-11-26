@@ -89,10 +89,11 @@ jobs:
             find "${tap_dir}/Formula" -maxdepth 1 -name '*.rb' -printf '%f\n' \
               | sed 's/\.rb$//' \
               | grep -vxE 'rocm-runtime|cuda-runtime' \
-              | sort
+              | sort \
+              | sed "s#^#${TAP_NAME}/#"
           )
 
-          brew bump --no-fork --open-pr --bump-synced --tap="${TAP_NAME}" \
+          brew bump --formula --no-fork --open-pr --bump-synced \
             "${formulae[@]}" 2>&1 | tee bump-output.txt
           brew bump --no-fork --open-pr --cask --tap="${TAP_NAME}" 2>&1 | tee -a bump-output.txt
 

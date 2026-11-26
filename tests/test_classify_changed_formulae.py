@@ -52,6 +52,8 @@ class TestClassifyChangedFormulae(unittest.TestCase):
         self.assertEqual(classifier.classify(["rocmfpx"], "hosted-linux"), [])
         self.assertEqual(classifier.classify(["basalt"], "hosted-cuda"), ["basalt"])
         self.assertEqual(classifier.classify(["basalt"], "stx-halo"), [])
+        self.assertEqual(classifier.classify(["lucebox"], "hosted-cuda"), ["lucebox"])
+        self.assertEqual(classifier.classify(["lucebox"], "stx-halo"), [])
 
     def test_hosted_formulae(self) -> None:
         self.assertEqual(classifier.classify(["shimmy"], "hosted-macos"), ["shimmy"])
@@ -59,6 +61,10 @@ class TestClassifyChangedFormulae(unittest.TestCase):
             classifier.classify(["stable-diffusion-cpp"], "hosted-linux"),
             ["stable-diffusion-cpp"],
         )
+        self.assertEqual(
+            classifier.classify(["cuda-runtime"], "hosted-linux"), ["cuda-runtime"]
+        )
+        self.assertEqual(classifier.classify(["cuda-runtime"], "hosted-cuda"), [])
 
 
 if __name__ == "__main__":

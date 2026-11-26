@@ -56,7 +56,22 @@ jobs:
             brew pr-pull --debug --retain-bottle-dir --tap="$GITHUB_REPOSITORY" "$PULL_REQUEST"
           fi
 
+      - name: Detect retained bottles
+        id: bottles
+        run: |
+          bottle_dir="${{ steps.pull_bottles.outputs.bottle_path }}"
+          shopt -s nullglob
+          archives=("${bottle_dir}"/*.tar.gz)
+          if (( ${#archives[@]} > 0 ))
+          then
+            echo "present=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "present=false" >> "${GITHUB_OUTPUT}"
+            echo "No bottle archives were retained; skipping provenance attestation."
+          fi
+
       - name: Generate build provenance
+        if: steps.bottles.outputs.present == 'true'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: "${{ steps.pull_bottles.outputs.bottle_path }}/*.tar.gz"

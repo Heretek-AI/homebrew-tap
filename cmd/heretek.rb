@@ -35,6 +35,7 @@ module Homebrew
 
       RDNA4_FORMULAE = %w[
         hipfire
+        kyojin
         project-maya
         rocmfpx
         strata
@@ -74,6 +75,20 @@ module Homebrew
         stable-diffusion-cpp
         zinc
       ].freeze
+
+      PROFILE_FLAGS = {
+        "AMD RDNA3 (gfx1100 family)" => {
+          "hipfire"              => ["--with-gfx1100"],
+          "stable-diffusion-cpp" => ["--with-rocm"],
+        }.freeze,
+        "AMD RDNA4 (gfx1200 family)" => {
+          "hipfire" => ["--with-gfx1201"],
+          "kyojin"  => ["--with-rdna4"],
+        }.freeze,
+        "CPU / Vulkan fallback"      => {
+          "zinc" => ["--with-vulkan"],
+        }.freeze,
+      }.freeze
 
       TTM_MIN_GIB = 24
       PAGE_SIZE_BYTES = 4096
@@ -327,7 +342,11 @@ module Homebrew
           puts "Recommended profile: #{name}"
           puts "  brew install #{TAP}/#{runtime}" if runtime
           formulae.sort.each do |formula|
-            puts "  brew install #{TAP}/#{formula}"
+            flags = PROFILE_FLAGS.fetch(name, {}).fetch(formula, [])
+            command = "brew install"
+            command += " #{flags.join(" ")}" unless flags.empty?
+            command += " #{TAP}/#{formula}"
+            puts "  #{command}"
           end
           if name == "NVIDIA CUDA 8.x/9.x"
             puts "  Note: shimmy uses its CPU build on Linux in this tap; Metal is used on macOS."

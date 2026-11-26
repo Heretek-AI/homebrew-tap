@@ -46,6 +46,11 @@ CUDA_MARKERS = (
 # no ROCm SDK markers in their source. They still belong to the trusted
 # self-hosted ROCm bottle/validation job.
 PREBUILT_ROCM_FORMULAE = frozenset({"hipfire", "zinc"})
+# Formulae that contain both backend markers but build CUDA by default.
+CUDA_DEFAULT_FORMULAE = frozenset({"lucebox"})
+# Runtime-only formula that downloads prebuilt CUDA libraries and needs no
+# toolkit, so it can be bottled on ordinary hosted Linux.
+HOSTED_LINUX_FORMULAE = frozenset({"cuda-runtime"})
 
 
 def git_changed_formulae(base: str, head: str) -> list[str]:
@@ -106,16 +111,26 @@ def classify(names: list[str], runner: str) -> list[str]:
         rocm = is_rocm(source)
         cuda = is_cuda(source)
         prebuilt_rocm = name in PREBUILT_ROCM_FORMULAE
+        cuda_default = name in CUDA_DEFAULT_FORMULAE
         if runner == "stx-halo":
-            keep = rocm or prebuilt_rocm
+            keep = (rocm or prebuilt_rocm) and not cuda_default
         elif runner == "hosted-cuda":
-            keep = cuda and not rocm and not prebuilt_rocm
-        elif runner == "hosted-macos" or runner == "hosted-linux":
+            keep = cuda_default or (
+                cuda
+                and not rocm
+                and not prebuilt_rocm
+                and name not in HOSTED_LINUX_FORMULAE
+            )
+        elif runner == "hosted-macos":
             keep = (
                 not is_linux_only(source)
                 and not rocm
                 and not cuda
                 and not prebuilt_rocm
+            )
+        elif runner == "hosted-linux":
+            keep = name in HOSTED_LINUX_FORMULAE or (
+                not rocm and not cuda and not prebuilt_rocm
             )
         else:
             raise SystemExit(f"unknown runner class: {runner}")

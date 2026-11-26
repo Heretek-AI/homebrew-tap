@@ -11,6 +11,7 @@ class Nib < Formula
   end
 
   depends_on "cmake" => :build
+  depends_on "patchelf" => :build
   depends_on arch: :x86_64
   depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
@@ -48,6 +49,9 @@ class Nib < Formula
 
     bin.install "build/nib"
 
+    runtime_rpath = "#{formula_opt_lib("rocm-runtime")}:#{HOMEBREW_PREFIX}/lib"
+    system "patchelf", "--set-rpath", runtime_rpath, bin/"nib"
+
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
       variant:      "rocm",
       version:      version,
@@ -55,6 +59,8 @@ class Nib < Formula
       rocm_root:    rocm,
       hip_compiler: hipcc,
       gpu_target:   "gfx1100",
+      runtime_lib:  formula_opt_lib("rocm-runtime").to_s,
+      rpath:        runtime_rpath,
       cmake_args:   args,
     )
   end

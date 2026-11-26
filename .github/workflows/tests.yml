@@ -258,7 +258,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bottles_macos
-          path: '*.bottle.*'
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
   bottles-linux:
     name: Linux CPU bottles (hosted)
@@ -355,7 +355,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bottles_linux
-          path: '*.bottle.*'
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
   toolchain-image:
     name: Check CUDA toolchain image
@@ -482,7 +482,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bottles_cuda
-          path: '*.bottle.*'
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
   bottles-rocm:
     name: ROCm bottles and GPU validation (stx-halo)
@@ -582,7 +582,7 @@ jobs:
         run: |
           cd "${TAP_DIR}"
           shopt -s nullglob
-          bottles=(*.bottle.*.tar.gz)
+          bottles=(*.bottle*.tar.gz)
           if (( ${#bottles[@]} == 0 ))
           then
             echo "::warning::No bottle archives were produced; skipping hardware validation."
@@ -614,5 +614,5 @@ jobs:
         with:
           name: bottles_rocm_stx_halo
           path: |
-            *.bottle.*
-            validation-*.json
+            ${{ env.TAP_DIR }}/*.bottle*.tar.gz
+            ${{ env.TAP_DIR }}/validation-*.json
