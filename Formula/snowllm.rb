@@ -13,6 +13,7 @@ class Snowllm < Formula
     skip "Tracks upstream commit"
   end
 
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
   depends_on "python@3.12"
 
@@ -30,14 +31,26 @@ class Snowllm < Formula
     ENV.prepend_path "PATH", "#{rocm}/llvm/bin"
 
     venv = virtualenv_create(libexec, "python3.12")
+    ENV.prepend "LDFLAGS", "-Wl,-rpath,#{formula_opt_lib("rocm-runtime")}"
     venv.pip_install_and_link buildpath
 
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
-      variant:   "rocm",
-      rocm_root: rocm,
-      python:    formula_opt_bin("python@3.12")/"python3.12",
-      commit:    "52b4bac0914d202fd2877f576c4db462b21815a7",
+      variant:          "rocm",
+      rocm_root:        rocm,
+      python:           formula_opt_bin("python@3.12")/"python3.12",
+      runtime_lib:      formula_opt_lib("rocm-runtime").to_s,
+      rpath_limitation: "kernels come from the prebuilt snowllm-kernels wheel; pip does not relink it",
+      commit:           "52b4bac0914d202fd2877f576c4db462b21815a7",
     )
+  end
+
+  def caveats
+    <<~EOS
+      SnowLLM depends on the prebuilt snowllm-kernels wheel, so pip does not
+      relink the HIP kernels. The LDFLAGS RPATH for
+      heretek-ai/tap/rocm-runtime therefore cannot be embedded at install time;
+      the wheel keeps the RUNPATH chosen by its manylinux build.
+    EOS
   end
 
   test do

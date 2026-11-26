@@ -14,3 +14,10 @@ build/
 *.bottle.*
 *.bottle.tar.gz
 bottle/
+/review/
+/GSQHalo.cpp/
+/gufo/
+/kyojin/
+/lucebox/
+/rulith-inference/
+/strixite/

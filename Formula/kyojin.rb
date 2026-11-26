@@ -16,6 +16,7 @@ class Kyojin < Formula
 
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on :linux
@@ -23,11 +24,13 @@ class Kyojin < Formula
 
   def install
     python3 = formula_opt_bin("python@3.12")/"python3.12"
+    runtime_prefix = formula_opt_prefix("rocm-runtime")
 
     system python3, "-m", "venv", libexec/"venv"
     pip = libexec/"venv/bin/pip"
     system pip, "install", "--upgrade", "pip", "setuptools", "wheel", "ninja"
 
+    rocm_include = ""
     if build.with?("cuda")
       ENV["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6;8.9;9.0;12.0"
       system pip, "install", "torch", "torchvision"
@@ -39,6 +42,7 @@ class Kyojin < Formula
         "/opt/rocm",
       ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
                   odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
+      rocm_include = " -I#{rocm_path}/include"
       ENV["ROCM_PATH"] = rocm_path
       ENV["HIP_PATH"] = rocm_path
       ENV["PYTORCH_ROCM_ARCH"] = build.with?("rdna4") ? "gfx1151;gfx1150;gfx1200;gfx1201" : "gfx1151"
@@ -67,8 +71,8 @@ class Kyojin < Formula
            "jinja2>=3.1.0"
 
     # Enable AVX2/FMA/F16C SIMD kernels in cpu_IQ1_M.cpp and quantize_row_q8_K
-    ENV["CFLAGS"] = "-O3 -mavx2 -mfma -mf16c -I#{rocm_path}/include"
-    ENV["CXXFLAGS"] = "-O3 -mavx2 -mfma -mf16c -I#{rocm_path}/include"
+    ENV["CFLAGS"] = "-O3 -mavx2 -mfma -mf16c#{rocm_include}"
+    ENV["CXXFLAGS"] = "-O3 -mavx2 -mfma -mf16c#{rocm_include}"
     ENV["MAX_JOBS"] = ENV.make_jobs.to_s
 
     # AOT-compile exllamav3_ext C++/HIP extension into libexec/venv
@@ -82,7 +86,8 @@ class Kyojin < Formula
     (libexec/"kyojin-env.sh").write <<~EOS
       #!/usr/bin/env bash
       set -e
-      export ROCM_PATH="${ROCM_PATH:-#{rocm_path}}"
+      export ROCM_PATH="${ROCM_PATH:-#{runtime_prefix}}"
+      export ROCM_KPACK_PATH="${ROCM_KPACK_PATH:-#{runtime_prefix}/.kpack}"
       export EXL3_ROCM_SDK="${EXL3_ROCM_SDK:-${ROCM_PATH}}"
       unset HSA_OVERRIDE_GFX_VERSION
       if [ -f "${ROCM_PATH}/lib/libhsa-runtime64.so.1" ]; then
@@ -153,18 +158,20 @@ class Kyojin < Formula
   def caveats
     <<~EOS
       Kyojin wrappers automatically configure Strix Halo ROCm environment variables:
+        - Sets ROCM_PATH to the shared heretek-ai/tap/rocm-runtime prefix
+        - Sets ROCM_KPACK_PATH to the runtime's .kpack kernel packs
         - Sets LD_PRELOAD to ${ROCM_PATH}/lib/libhsa-runtime64.so.1
         - Unsets HSA_OVERRIDE_GFX_VERSION
         - Seeds ~/.triton/cache from #{pkgshare}/triton-3.7.0-gfx1151.tar.xz on first run
 
-      Start an OpenAI-compatible server (port 8000):
-        kyojin-serve qwen -m /path/to/Qwen3.8-35B-A3B-EXL3 --mtp --port 8000
-        kyojin-serve ds41 -m /path/to/DeepSeek-V4.1-Flash-GGUF --ngram --port 8000
+      Start an OpenAI-compatible server (port 18010):
+        kyojin-serve qwen -m /path/to/Qwen3.8-35B-A3B-EXL3 --mtp --port 18010
+        kyojin-serve ds41 -m /path/to/DeepSeek-V4.1-Flash-GGUF --ngram --port 18010
     EOS
   end
 
   service do
-    run [opt_bin/"kyojin-serve", "qwen", "--host", "127.0.0.1", "--port", "8000"]
+    run [opt_bin/"kyojin-serve", "qwen", "--host", "127.0.0.1", "--port", "18010"]
     keep_alive true
     working_dir var
     log_path var/"log/kyojin.log"

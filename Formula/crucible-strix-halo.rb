@@ -11,6 +11,7 @@ class CrucibleStrixHalo < Formula
     skip "Tracks upstream commit"
   end
 
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
   depends_on "openssl@3"
   depends_on "python@3.12"
@@ -40,7 +41,9 @@ class CrucibleStrixHalo < Formula
     ENV["GPU_ARCH"] = "gfx1151"
 
     # Disable split kernel compilation in CI to use direct hipcc compilation
-    system "make", "engine", "SPLIT=0", "ROCM_PATH=#{rocm}", "HIPCC=#{hipcc}", "GPU_ARCH=gfx1151"
+    runtime_ldflags = "-Wl,-rpath,#{formula_opt_lib("rocm-runtime")}"
+    system "make", "engine", "SPLIT=0", "ROCM_PATH=#{rocm}", "HIPCC=#{hipcc}", "GPU_ARCH=gfx1151",
+           "LDFLAGS=#{runtime_ldflags}"
 
     bin.install "build/engine/crucible" => "crucible-strix-halo"
 
@@ -58,6 +61,7 @@ class CrucibleStrixHalo < Formula
       gpu_arch:  "gfx1151",
       rocm_root: rocm,
       hipcc:     hipcc,
+      ldflags:   runtime_ldflags,
       commit:    "aac3e4894a695fbf0db10c2de5607c9c2e6906f5",
     )
   end

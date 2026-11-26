@@ -49,8 +49,6 @@ def load_config_from_ledger():
                     "branch": pdata.get("branch", "main"),
                     "formulae": [f"{pdata.get('formula', name)}.rb"],
                 }
-                if name == "rocmfpx":
-                    entry["fallback_repo"] = "Heretek-AI/ROCmFPX-BUILDER"
                 cfg[name] = entry
             if cfg:
                 return cfg
@@ -58,11 +56,10 @@ def load_config_from_ledger():
             pass
 
     return {
-        # Fallback in-repo multi-arch ROCm release tracking
         "rocmfpx": {
-            "type": "builder",
-            "repo": "Heretek-AI/homebrew-tap",
-            "fallback_repo": "Heretek-AI/ROCmFPX-BUILDER",
+            "type": "upstream_commit",
+            "repo": "charlie12345/ROCmFPX",
+            "branch": "main",
             "formulae": ["rocmfpx.rb"],
         },
         "shimmy": {
@@ -621,39 +618,27 @@ update_formula_content = update_builder_formula_content
 
 
 def _resolve_builder_release(cfg, formula_path, token, tag):
-    repos = [cfg["repo"]]
-    fallback = cfg.get("fallback_repo")
-    if fallback:
-        repos.append(fallback)
+    repo = cfg["repo"]
 
     if tag == "latest":
-        candidates = []
-        for repo in repos:
-            try:
-                release = find_latest_release_with_assets(repo, formula_path, token)
-            except Exception as e:
-                print(f"[-] Failed to fetch release for {repo}: {e}")
-                continue
-            if release:
-                candidates.append((release, repo))
-
-        if not candidates:
-            return None, None
-
-        def release_number(candidate):
-            match = re.search(r"b(\d+)", candidate[0].get("tag_name", ""))
-            return int(match.group(1)) if match else 0
-
-        return max(candidates, key=release_number)
-
-    for repo in repos:
         try:
-            release = get_latest_release(repo, token, tag)
+            release = find_latest_release_with_assets(repo, formula_path, token)
         except Exception as e:
             print(f"[-] Failed to fetch release for {repo}: {e}")
-            continue
+            return None, None
+
         if release:
             return release, repo
+        return None, None
+
+    try:
+        release = get_latest_release(repo, token, tag)
+    except Exception as e:
+        print(f"[-] Failed to fetch release for {repo}: {e}")
+        return None, None
+
+    if release:
+        return release, repo
 
     return None, None
 

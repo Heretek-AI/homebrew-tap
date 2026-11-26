@@ -123,6 +123,7 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 
 ### Catalog
 
+<!-- BEGIN GENERATED: formula-catalog -->
 | Formula | Upstream | Purpose | Platforms / backends |
 | :--- | :--- | :--- | :--- |
 | [`basalt`](#basalt) | [jesdga95/basalt](https://github.com/jesdga95/basalt) | Blackwell-native MoE inference engine with OpenAI and Anthropic APIs | Linux x86_64 CUDA `sm_120` (prebuilt); Linux arm64 DGX Spark `sm_121` (source) |
@@ -151,13 +152,16 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | [`strixite`](#strixite) | [shawnshekari/strixite](https://github.com/shawnshekari/strixite) | Zero-dependency C++20/HIP Qwen runtime | Linux, ROCm `gfx1151` |
 | [`uzu`](#uzu) | [trymirai/uzu](https://github.com/trymirai/uzu) | Apple Silicon inference engine and Mirai CLI | macOS arm64 Metal; macOS Intel CPU |
 | [`zinc`](#zinc) | [zolotukhin/zinc](https://github.com/zolotukhin/zinc) | Zig inference engine with ROCm, Vulkan, and Metal backends | Linux x86_64 ROCm (default) or Vulkan |
+<!-- END GENERATED: formula-catalog -->
 
 ### Cask catalog
 
+<!-- BEGIN GENERATED: cask-catalog -->
 | Cask | Upstream | Purpose | Platforms |
 | :--- | :--- | :--- | :--- |
 | [`hatchlight`](#hatchlight) | [hatchlight/hatchlight](https://github.com/hatchlight/hatchlight) | Compare image and video generation models side by side | macOS, Apple Silicon and Intel |
 | [`kokon`](#kokon) | [GabrieleLozupone/kokon](https://github.com/GabrieleLozupone/kokon) | Local AI photo editor with on-device generation and editing | macOS 15+, Apple Silicon |
+<!-- END GENERATED: cask-catalog -->
 
 ### Command and option map
 
@@ -211,7 +215,7 @@ python3 -m venv "$(brew --prefix)/opt/basalt/libexec/.venv"
 "$(brew --prefix)/opt/basalt/libexec/.venv/bin/pip" install -r "$(brew --prefix)/opt/basalt/libexec/requirements.txt"
 ```
 
-Edit `basalt_config.json` to point at your `.basalt` model packs, then start the service. A CUDA 13 runtime must be visible to the loader; the prebuilt archive carries a `/usr/local/cuda-13.0` RUNPATH, so install the toolkit there or set `LD_LIBRARY_PATH` to your CUDA 13 library directory.
+Edit `basalt_config.json` to point at your `.basalt` model packs, then start the service. The shipped config and service listen on `127.0.0.1:18012`. A CUDA 13 runtime must be visible to the loader; the prebuilt archive carries a `/usr/local/cuda-13.0` RUNPATH, so install the toolkit there or set `LD_LIBRARY_PATH` to your CUDA 13 library directory.
 
 ### colibri
 
@@ -272,7 +276,7 @@ The formula vendors the five dependencies that upstream's CMake normally fetches
 ```bash
 gufetto --help
 gufetto info
-gufetto serve --host 127.0.0.1 --port 8080
+gufetto serve --host 127.0.0.1 --port 18002
 gufetto diagnose --plan --model /path/to/model.gguf --context-len 32768
 ```
 
@@ -291,7 +295,7 @@ gufetto diagnose --plan --model /path/to/model.gguf --context-len 32768
 gufo --help
 gufo version
 gufo info
-gufo serve --host 127.0.0.1 --port 8080
+gufo serve --host 127.0.0.1 --port 18001
 ```
 
 Models are stored under `~/.cache/gufo/models` by default; override with `GUFO_MODELS_DIR` or `--model-dir`.
@@ -308,7 +312,7 @@ Models are stored under `~/.cache/gufo/models` by default; override with `GUFO_M
 ```bash
 gufo-franzmoca --help
 gufo-franzmoca info
-gufo-franzmoca serve --host 127.0.0.1 --port 8080
+gufo-franzmoca serve --host 127.0.0.1 --port 18003
 ```
 
 `gufo-franzmoca`, `gufo`, and `gufetto` can be installed side-by-side: each exposes a distinct command name and the tap does not install a bare `gufo` binary from the variants.
@@ -328,11 +332,11 @@ Only one kernel-pack option may be selected. The release binaries themselves are
 ```bash
 hipfire --help
 hipfire pull qwen3.8:27b-mq4-xts
-hipfire serve --no-prewarm
+hipfire serve 127.0.0.1:18011 --no-prewarm
 hipfire profile
 ```
 
-The service listens on `127.0.0.1:11435`. ROCm 7.2 or newer is required for `gfx1151`; RDNA4 needs ROCm 6.4 or newer. The CLI's `daemon` helper stays under `libexec/bin`, beside the kernel packs, so `PATH` does not gain a generic `daemon` command.
+The service listens on `127.0.0.1:18011`. hipfire has no `--port` flag; the service uses the documented positional `HOST:PORT` bind. ROCm 7.2 or newer is required for `gfx1151`; RDNA4 needs ROCm 6.4 or newer. The CLI's `daemon` helper stays under `libexec/bin`, beside the kernel packs, so `PATH` does not gain a generic `daemon` command.
 
 ### hyperqwen
 
@@ -348,7 +352,7 @@ hyperqwen bench --url http://127.0.0.1:18020 -c 1 4 8 16
 hyperqwen chat --help
 ```
 
-`hyperqwen-serve` reads `HYPERQWEN_MODEL`, `HYPERQWEN_PORT` (default `18020`), `HYPERQWEN_KV_CACHE_DTYPE`, `HYPERQWEN_GPU_MEMORY_UTILIZATION`, `HYPERQWEN_MAX_MODEL_LEN`, and `HYPERQWEN_MAX_NUM_SEQS`. If `nvcc` is not found at install time, the package still installs but `liblsa.so` is not compiled.
+`hyperqwen-serve` reads `HYPERQWEN_MODEL`, `HYPERQWEN_PORT` (default `18020`), `HYPERQWEN_KV_CACHE_DTYPE`, `HYPERQWEN_GPU_MEMORY_UTILIZATION`, `HYPERQWEN_MAX_MODEL_LEN`, and `HYPERQWEN_MAX_NUM_SEQS`. The service block sets `HYPERQWEN_PORT=18020` explicitly. If `nvcc` is not found at install time, the package still installs but `liblsa.so` is not compiled.
 
 ### infr
 
@@ -377,8 +381,8 @@ infr serve unsloth/Qwen3-14B-GGUF:Q4_K_M
 
 ```bash
 kyojin-serve --help
-kyojin-serve qwen -m /path/to/Qwen3.8-35B-A3B-EXL3 --mtp --port 8000
-kyojin-serve ds41 -m /path/to/DeepSeek-V4.1-Flash-GGUF --ngram --port 8000
+kyojin-serve qwen -m /path/to/Qwen3.8-35B-A3B-EXL3 --mtp --port 18010
+kyojin-serve ds41 -m /path/to/DeepSeek-V4.1-Flash-GGUF --ngram --port 18010
 kyojin-bench --help
 kyojin-convert --help
 kyojin-chat --help
@@ -462,7 +466,7 @@ Model packs are not bundled. Download the Inkling 2 Mini Nib pack from Hugging F
 
 ```bash
 maya-cli --help
-maya-cli --model glm51 --port 8095
+maya-cli --model glm51 --host 127.0.0.1 --port 18005
 maya --help
 maya-server --help
 maya-vision --help
@@ -502,7 +506,7 @@ qwenox-bench --help
 
 ```bash
 rocmfpx --help
-rocmfpx --host 127.0.0.1 --port 8080
+rocmfpx --host 127.0.0.1 --port 18007
 rocmfpx-cli --help
 rocmfpx-quantize --help
 rocmfpx-bench --help
@@ -564,7 +568,7 @@ The pinned upstream package also declares `snowllm-mineru`; its optional MinerU 
 ```bash
 stable-diffusion --help
 sd-cli --help
-sd-server --host 127.0.0.1 --port 8080
+sd-server --host 127.0.0.1 --port 18008
 ```
 
 `stable-diffusion` is this tap's alias for `sd-cli`. It is not homebrew-core's `sd`, which is an unrelated find-and-replace CLI.
@@ -582,7 +586,7 @@ sd-server --host 127.0.0.1 --port 8080
 
 ```bash
 strata-cli --help
-strata-cli --model qwen38 --port 8095
+strata-cli --model qwen38 --host 127.0.0.1 --port 18006
 strata-server --help
 strata-q36 --help
 strata-dsv41 --help
@@ -601,11 +605,11 @@ strata-dsv41 --help
 ```bash
 strixite --help
 strixite-convert-qwen4exp /path/to/Qwen3.8-Flash-Next /path/to/qwen4exp-strixw --int4-shared
-strixite-server --model /path/to/qwen4exp-strixw --port 5300 --kv-mode fp8 --mtp-draft 3
+strixite-server --model /path/to/qwen4exp-strixw --host 127.0.0.1 --port 18004 --kv-mode fp8 --mtp-draft 3
 strixite-server --config "$(brew --prefix)/etc/strixite/strix_server.example.conf"
 ```
 
-`strixite` is a symlink to `strixite-server`. The formula installs an example configuration at `$(brew --prefix)/etc/strixite/strix_server.example.conf` and creates `strix_server.conf` from it if that file does not already exist.
+`strixite` is a symlink to `strixite-server`. The formula installs an example configuration at `$(brew --prefix)/etc/strixite/strix_server.example.conf` and creates `strix_server.conf` from it if that file does not already exist. The installed example uses `host = 127.0.0.1` and `port = 18004`, and the service passes the same values explicitly.
 
 ### uzu
 
@@ -635,10 +639,10 @@ The server defaults to `127.0.0.1:8000` and accepts `--host` and `--port`. The C
 zinc --version
 zinc model pull qwen35-9b-q4k-m
 zinc model use qwen35-9b-q4k-m
-zinc serve
+zinc serve --port 18009
 ```
 
-The ROCm build needs the matching ROCm runtime and runtime-compilation headers. The Vulkan build needs a Vulkan loader and ICD. ZINC's HTTP listener binds all interfaces on port `8080` by default and upstream exposes no `--host` flag; use a host firewall if the API must stay loopback-only. Run `zinc model pull` and `zinc model use` before starting the service, because `zinc serve` exits when no active model is configured.
+The ROCm build needs the matching ROCm runtime and runtime-compilation headers. The Vulkan build needs a Vulkan loader and ICD. ZINC's HTTP listener binds all interfaces on port `8080` by default and upstream exposes no `--host` flag; the tap service passes `--port 18009`. Use a host firewall if the API must stay loopback-only. Run `zinc model pull` and `zinc model use` before starting the service, because `zinc serve` exits when no active model is configured.
 
 ### hatchlight
 
@@ -679,34 +683,8 @@ If a short name is ambiguous with a core formula, use the fully qualified tap na
 
 This matrix reflects targets that are actually selected in the formula files. "Source" means the formula installs from the pinned source revision and compiles it (or, for Python packages, installs it into a virtualenv) unless a matching CI bottle is published.
 
-| Formula | AMD ROCm (Linux) | macOS Metal | NVIDIA CUDA | CPU / Vulkan / other | Install path |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `basalt` | — | — | `sm_120` on x86_64; `sm_121` on arm64 DGX Spark | — | Prebuilt x86_64 archive; arm64 source build |
-| `colibri` | — | arm64 (prebuilt Metal) | — | Linux x86_64/arm64 CPU + Vulkan; macOS Metal | Prebuilt archive |
-| `crucible-strix-halo` | `gfx1151` | — | — | — | Source |
-| `gemma-cpp` | — | — | — | CPU with Highway SIMD on Linux and macOS | Source (CMake) |
-| `gufetto` | `gfx1151` | — | — | Optional XDNA 2 NPU (`--with-npu`, external XRT) | Source |
-| `gufo` | `gfx1151` | — | — | — | Source |
-| `gufo-franzmoca` | `gfx1151` | — | — | — | Source |
-| `hipfire` | `gfx1151` default; `--with-gfx1100`, `--with-gfx1201`, or `--with-gfx906` | — | — | — | Prebuilt Linux binary plus per-GFX kernel pack |
-| `hyperqwen` | — | — | `sm_80`, `sm_86`, `sm_89`, `sm_120` | — | Source |
-| `infr` | — | arm64 and Intel | — | Linux x86_64/arm64 Vulkan with CPU fallback; macOS CPU fallback | Prebuilt archive |
-| `kyojin` | `gfx1151` default; `--with-rdna4` adds `gfx1150`, `gfx1200`, `gfx1201` | — | `--with-cuda` | — | Source |
-| `libosmos` | `gfx1151` | — | — | Optional XDNA NPU (`--with-npu`, external XRT) | Source (Makefile + HIP) |
-| `lucebox` | `--with-rocm`: `gfx1150`, `gfx1151` | — | Default build: compute `75;80;86;89;90;120` | — | Source |
-| `magnitude` | — | arm64 (CLI) | — | Linux x86_64/arm64; macOS Intel | Prebuilt CLI archive |
-| `nib` | `gfx1100` (source build) | — | — | — | Source (CMake + HIP) |
-| `project-maya` | Default: `gfx1100`, `gfx1150`, `gfx1151`; `--with-all-amdgpu`: `gfx1100`–`gfx1201`; `--with-wave64`: `gfx906`, `gfx908`, `gfx942`, `gfx950` | Yes | `--with-cuda`: `70;75;80;86;89;90;100;120` | CPU fallback compiled into GPU builds | Source |
-| `qwenox` | `gfx1151` | — | — | — | Source |
-| `rocmfpx` | Default `gfx1151`; `gfx1150`; `gfx120X`; `gfx110X`; `gfx103X`; `gfx90a`; `gfx908`; multi-arch `gfx1100`+`gfx1151` | — | — | — | Prebuilt ROCm zip with bundled runtime |
-| `saient-quartz` | — | — | — | CPU; `--with-vulkan` | Source (Rust) |
-| `shimmy` | — | Yes | — | Linux CPU | Source (Rust) |
-| `snowllm` | `gfx1151` (Ryzen AI Max kernels) | — | — | — | Python/HIP install; requires ROCm |
-| `stable-diffusion-cpp` | `--with-rocm` prebuilt ROCm 10.1.0 artifact | Yes (arm64) | — | Default Linux Vulkan; `--with-cpu` | Prebuilt upstream zip |
-| `strata` | Default: `gfx1100`, `gfx1150`, `gfx1151`; `--with-all-amdgpu`: upstream `all` (option describes `gfx906`–`gfx1201`) | Yes | `--with-cuda`: `75;80;86;89;90;100;120` | `--with-sycl` (Intel oneAPI); CPU fallback compiled into GPU builds | Source |
-| `strixite` | `gfx1151` | — | — | — | Source |
-| `uzu` | — | arm64 Metal; Intel CPU | — | — | Prebuilt macOS CLI archive |
-| `zinc` | ROCm/HIP default | — | — | `--with-vulkan` | Prebuilt Linux archive |
+<!-- BEGIN GENERATED: hardware-matrix -->
+<!-- END GENERATED: hardware-matrix -->
 
 ### Target notes
 
@@ -799,16 +777,16 @@ crucible-strix-halo --list-devices
 # Gufo family
 gufo --help
 gufo info
-gufo serve --host 127.0.0.1 --port 8080
+gufo serve --host 127.0.0.1 --port 18001
 
 gufetto --help
 gufetto info
-gufetto serve --host 127.0.0.1 --port 8080
+gufetto serve --host 127.0.0.1 --port 18002
 gufetto diagnose --plan --model /path/to/model.gguf --context-len 32768
 
 gufo-franzmoca --help
 gufo-franzmoca info
-gufo-franzmoca serve --host 127.0.0.1 --port 8080
+gufo-franzmoca serve --host 127.0.0.1 --port 18003
 
 # Qwen runtime
 qwenox-engine --info
@@ -824,7 +802,7 @@ snowllm --help
 
 # Strixite conversion and server
 strixite-convert-qwen4exp /path/to/Qwen3.8-Flash-Next /path/to/qwen4exp-strixw --int4-shared
-strixite-server --model /path/to/qwen4exp-strixw --port 5300 --kv-mode fp8 --mtp-draft 3
+strixite-server --model /path/to/qwen4exp-strixw --host 127.0.0.1 --port 18004 --kv-mode fp8 --mtp-draft 3
 ```
 
 ### llama.cpp, diffusion, and local servers
@@ -832,13 +810,13 @@ strixite-server --model /path/to/qwen4exp-strixw --port 5300 --kv-mode fp8 --mtp
 ```bash
 # ROCmFPX / llama.cpp stack
 rocmfpx --help
-rocmfpx --host 127.0.0.1 --port 8080
+rocmfpx --host 127.0.0.1 --port 18007
 rocmfpx-cli --help
 
 # Stable Diffusion / Flux / SD3 / Wan
 stable-diffusion --help
 sd-cli --help
-sd-server --host 127.0.0.1 --port 8080
+sd-server --host 127.0.0.1 --port 18008
 
 # Shimmy
 shimmy --help
@@ -864,14 +842,14 @@ coli serve --model /path/to/model
 # Hipfire (AMD RDNA/CDNA kernel packs)
 hipfire --help
 hipfire pull qwen3.8:27b-mq4-xts
-hipfire serve --no-prewarm
+hipfire serve 127.0.0.1:18011 --no-prewarm
 hipfire profile
 
 # ZINC (ROCm default, Vulkan with --with-vulkan)
 zinc --version
 zinc model pull qwen35-9b-q4k-m
 zinc model use qwen35-9b-q4k-m
-zinc serve
+zinc serve --port 18009
 
 # Infr (Linux Vulkan, macOS Metal/CPU)
 infr --help
@@ -906,20 +884,20 @@ basalt serve --config "$(brew --prefix)/etc/basalt/basalt_config.json" --host 12
 ```bash
 # Strata
 strata-cli --help
-strata-cli --model qwen38 --port 8095
+strata-cli --model qwen38 --host 127.0.0.1 --port 18006
 strata-server --help
 strata-q36 --help
 strata-dsv41 --help
 
 # Project Maya
 maya-cli --help
-maya-cli --model glm51 --port 8095
+maya-cli --model glm51 --host 127.0.0.1 --port 18005
 maya-server --help
 maya-vision --help
 
 # Kyojin
 kyojin-serve --help
-kyojin-serve qwen -m /path/to/Qwen3.8-35B-A3B-EXL3 --mtp --port 8000
+kyojin-serve qwen -m /path/to/Qwen3.8-35B-A3B-EXL3 --mtp --port 18010
 kyojin-bench --help
 
 # HyperQwen
@@ -939,20 +917,20 @@ Only the formulae below declare a `service` block. Start a service with `brew se
 
 | Formula | Service executable | Default endpoint | Notes |
 | :--- | :--- | :--- | :--- |
-| `basalt` | `basalt serve --config ...` | `127.0.0.1:8080` | Config at `$(brew --prefix)/etc/basalt/basalt_config.json` |
-| `gufo` | `gufo serve` | `127.0.0.1:8080` | Logs to `$(brew --prefix)/var/log/gufo.log` |
-| `gufetto` | `gufetto serve` | `127.0.0.1:8080` | Logs to `$(brew --prefix)/var/log/gufetto.log` |
-| `gufo-franzmoca` | `gufo-franzmoca serve` | `127.0.0.1:8080` | Logs to `$(brew --prefix)/var/log/gufo-franzmoca.log` |
-| `hipfire` | `hipfire serve --no-prewarm` | `127.0.0.1:11435` | Loads the configured default model on demand |
-| `hyperqwen` | `hyperqwen-serve` | `127.0.0.1:18020` | Port overridable with `HYPERQWEN_PORT` |
-| `kyojin` | `kyojin-serve qwen` | `127.0.0.1:8000` | Starts the Qwen engine by default |
-| `project-maya` | `maya-cli --port 8095` | port `8095` | Host selection is left to the application |
-| `rocmfpx` | `rocmfpx` | `127.0.0.1:8080` | `llama-server` endpoint |
-| `shimmy` | `shimmy serve` | `127.0.0.1:11434` | Default port is `11434` |
-| `stable-diffusion-cpp` | `sd-server` | `127.0.0.1:8080` | Diffusion HTTP server |
-| `strata` | `strata-cli --port 8095` | port `8095` | Host selection is left to the application |
-| `strixite` | `strixite-server --config ...` | config-defined | Shipped example defaults to port `5300` |
-| `zinc` | `zinc serve --port 8080` | all interfaces on port `8080` | Upstream has no `--host` flag; configure an active model first |
+| `basalt` | `basalt serve --config ...` | `127.0.0.1:18012` | Config at `$(brew --prefix)/etc/basalt/basalt_config.json`; the shipped config uses `server.port` 18012 |
+| `gufo` | `gufo serve` | `127.0.0.1:18001` | Logs to `$(brew --prefix)/var/log/gufo.log` |
+| `gufetto` | `gufetto serve` | `127.0.0.1:18002` | Logs to `$(brew --prefix)/var/log/gufetto.log` |
+| `gufo-franzmoca` | `gufo-franzmoca serve` | `127.0.0.1:18003` | Logs to `$(brew --prefix)/var/log/gufo-franzmoca.log` |
+| `hipfire` | `hipfire serve 127.0.0.1:18011 --no-prewarm` | `127.0.0.1:18011` | Loads the configured default model on demand; port uses the positional bind |
+| `hyperqwen` | `hyperqwen-serve` | `127.0.0.1:18020` | Service sets `HYPERQWEN_PORT=18020` explicitly |
+| `kyojin` | `kyojin-serve qwen` | `127.0.0.1:18010` | Starts the Qwen engine by default |
+| `project-maya` | `maya-cli --host 127.0.0.1 --port 18005` | `127.0.0.1:18005` | Host and port set in the service block |
+| `rocmfpx` | `rocmfpx` | `127.0.0.1:18007` | `llama-server` endpoint |
+| `shimmy` | `shimmy serve` | `127.0.0.1:11434` | Retains the upstream/Ollama-compatible port `11434` |
+| `stable-diffusion-cpp` | `sd-server` | `127.0.0.1:18008` | Diffusion HTTP server |
+| `strata` | `strata-cli --port 18006` | `127.0.0.1:18006` | The launcher defaults to loopback; the service changes the port |
+| `strixite` | `strixite-server --config ...` | `127.0.0.1:18004` | Shipped config and service use port `18004` |
+| `zinc` | `zinc serve --port 18009` | all interfaces on port `18009` | Upstream has no `--host` flag; configure an active model first |
 
 `colibri`, `crucible-strix-halo`, `gemma-cpp`, `infr`, `libosmos`, `lucebox`, `magnitude`, `nib`, `qwenox`, `saient-quartz`, `snowllm`, and `uzu` have no service block and must be launched manually.
 
@@ -966,6 +944,31 @@ brew services info gufo
 ```
 
 Service logs live under `$(brew --prefix)/var/log/`. Where a service block defines a working directory, it is `$(brew --prefix)/var`.
+
+## Service port registry
+
+[`scripts/port_registry.json`](scripts/port_registry.json) is the single source of truth for every service's port, executable, and configurability. The tap reserves ports `18000-18099` for its own services; `shimmy` keeps the upstream/Ollama-compatible `11434` and `hyperqwen` keeps `18020`. A new or changed service must update the registry, the formula's `service` block, its caveats, and the generated table below in the same pull request.
+
+The table between the generated markers is maintained from the registry. `zinc` is the documented exception: upstream exposes no `--host` flag and always binds `0.0.0.0`, so its service passes only `--port` and the registry records the limitation in its notes.
+
+<!-- BEGIN GENERATED: port-registry -->
+| Formula | Port | Host | Executable |
+| :--- | ---: | :--- | :--- |
+| `gufo` | 18001 | `127.0.0.1` | `gufo serve` |
+| `gufetto` | 18002 | `127.0.0.1` | `gufetto serve` |
+| `gufo-franzmoca` | 18003 | `127.0.0.1` | `gufo-franzmoca serve` |
+| `strixite` | 18004 | `127.0.0.1` | `strixite-server` |
+| `project-maya` | 18005 | `127.0.0.1` | `maya-cli` |
+| `strata` | 18006 | `127.0.0.1` | `strata-cli` |
+| `rocmfpx` | 18007 | `127.0.0.1` | `rocmfpx` |
+| `stable-diffusion-cpp` | 18008 | `127.0.0.1` | `sd-server` |
+| `zinc` | 18009 | `0.0.0.0` | `zinc serve` |
+| `kyojin` | 18010 | `127.0.0.1` | `kyojin-serve qwen` |
+| `hipfire` | 18011 | `127.0.0.1` | `hipfire serve` |
+| `basalt` | 18012 | `127.0.0.1` | `basalt serve` |
+| `shimmy` | 11434 | `127.0.0.1` | `shimmy serve` |
+| `hyperqwen` | 18020 | `127.0.0.1` | `hyperqwen-serve` |
+<!-- END GENERATED: port-registry -->
 
 ## Updating
 
@@ -1036,6 +1039,8 @@ man brew
 More documentation: <https://docs.brew.sh>, including [Tap Trust](https://docs.brew.sh/Tap-Trust) and [How to Create and Maintain a Tap](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap).
 
 ## Maintenance and contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and pull-request flow, formula conventions, local verification commands, and CI requirements.
 
 Changes land through pull requests; do not push directly to `main`. The nightly publish job is the automation that commits bottle blocks and ledger updates directly to `main`.
 

@@ -21,6 +21,7 @@ class ProjectMaya < Formula
   depends_on "cmake" => :build
   depends_on "git" => :build
   depends_on "ninja" => :build
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "python@3.12"
@@ -64,7 +65,7 @@ class ProjectMaya < Formula
       elsif build.with?("all-amdgpu")
         "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
       else
-        "gfx1100;gfx1150;gfx1151"
+        "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
       end
 
       backend_args = if build.with?("cuda")
@@ -90,7 +91,7 @@ class ProjectMaya < Formula
           -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
           -DHIP_ROOT_DIR=#{rocm_path}
           -DHIP_PATH=#{rocm_path}
-          -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
+          -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
         ]
         hip_args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
@@ -203,12 +204,12 @@ class ProjectMaya < Formula
         - `maya-vision` : Multimodal vision encoder
 
       Quick start:
-        maya-cli --model glm51 --port 8095
+        maya-cli --model glm51 --host 127.0.0.1 --port 18005
     EOS
   end
 
   service do
-    run [opt_bin/"maya-cli", "--port", "8095"]
+    run [opt_bin/"maya-cli", "--host", "127.0.0.1", "--port", "18005"]
     keep_alive true
     working_dir var
     log_path var/"log/project-maya.log"

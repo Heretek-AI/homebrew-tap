@@ -56,7 +56,7 @@ class StableDiffusionCpp < Formula
   end
 
   service do
-    run [opt_bin/"sd-server", "--host", "127.0.0.1", "--port", "8080"]
+    run [opt_bin/"sd-server", "--host", "127.0.0.1", "--port", "18008"]
     keep_alive true
     log_path var/"log/stable-diffusion-cpp.log"
     error_log_path var/"log/stable-diffusion-cpp.error.log"

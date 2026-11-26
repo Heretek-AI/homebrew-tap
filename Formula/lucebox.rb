@@ -16,6 +16,7 @@ class Lucebox < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "curl"
+  depends_on "heretek-ai/tap/cuda-runtime"
   depends_on :linux
 
   def install
@@ -27,9 +28,9 @@ class Lucebox < Formula
       -DLUCE_SERVER=ON
       -DLUCE_TESTS=OFF
       -DLUCE_GPU_BACKEND=#{backend}
-      -DCMAKE_INSTALL_RPATH=#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
+    rpath = "#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib"
 
     if build.with?("rocm")
       rocm = [
@@ -47,6 +48,7 @@ class Lucebox < Formula
       args << "-DHIP_ROOT_DIR=#{rocm}"
       args << "-DHIP_PATH=#{rocm}"
       args << "-DLUCE_HIP_ARCHITECTURES=gfx1150;gfx1151"
+      rpath = "#{rocm}/lib;#{HOMEBREW_PREFIX}/lib"
     else
       cuda_root = [ENV["HOMEBREW_CUDA_PATH"], ENV["CUDA_PATH"], "/usr/local/cuda"].compact.find { |d| Dir.exist?(d) }
       if cuda_root
@@ -55,6 +57,7 @@ class Lucebox < Formula
       end
       args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
     end
+    args << "-DCMAKE_INSTALL_RPATH=#{rpath}"
 
     system "cmake", "-S", "server", "-B", "build", *std_cmake_args, *args
     system "cmake", "--build", "build", "--target", "luce_server"
@@ -69,6 +72,7 @@ class Lucebox < Formula
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
       variant:    backend,
       cmake_args: args,
+      rpath:      rpath,
       commit:     "34b20876f97001ba4d9f936dbc68b6d406192688",
     )
   end
@@ -77,6 +81,12 @@ class Lucebox < Formula
     <<~EOS
       Lucebox server starts with:
         lucebox-server --help
+
+      The default CUDA build links the shared runtime from
+      heretek-ai/tap/cuda-runtime. A --with-rocm source build keeps the ROCm SDK
+      lib directory in its RUNPATH instead and deliberately does not depend on
+      heretek-ai/tap/rocm-runtime, so CUDA users do not download the ~12 GB ROCm
+      runtime.
     EOS
   end
 

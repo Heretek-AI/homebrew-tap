@@ -20,6 +20,7 @@ class GufoFranzmoca < Formula
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "icu4c"
   depends_on "jpeg-turbo"
   depends_on "libpng"
@@ -92,7 +93,7 @@ class GufoFranzmoca < Formula
       -DGUFO_WERROR=OFF
       -DGUFO_ENABLE_SANITIZERS=OFF
       -DGUFO_ENABLE_TOOLS=#{tools_flag}
-      -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
+      -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
@@ -155,7 +156,7 @@ class GufoFranzmoca < Formula
   end
 
   service do
-    run [opt_bin/"gufo-franzmoca", "serve", "--host", "127.0.0.1", "--port", "8080"]
+    run [opt_bin/"gufo-franzmoca", "serve", "--host", "127.0.0.1", "--port", "18003"]
     keep_alive true
     working_dir var
     log_path var/"log/gufo-franzmoca.log"

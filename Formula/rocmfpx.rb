@@ -1,93 +1,131 @@
 class Rocmfpx < Formula
   desc "High-Performance AMD ROCm llama.cpp Inference Stack (Upstream)"
   homepage "https://github.com/charlie12345/ROCmFPX"
-  url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx1151-x64.zip"
-  version "1136"
-  sha256 "4e6fab169b35d6337b1f7a874fd630dc06c4d98d58ff85ad2bdbcf799f508b2f"
+  url "https://github.com/charlie12345/ROCmFPX/archive/fb08d7cdb67082ddda15a25e64dc7ec413afc41c.tar.gz"
+  version "2026.09.23"
+  sha256 "ddcda52aa6dafa2cf99109b428b6c3f3e37b23786b34cf78e47634b0d38cfa58"
   license "MIT"
+  head "https://github.com/charlie12345/ROCmFPX.git", branch: "main"
 
   livecheck do
-    skip "Multi-asset in-repo releases are updated by the autobump workflow."
+    skip "Tracks upstream commit"
   end
 
-  option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
-  option "with-gfx1150", "Build for AMD Strix Point APU (Radeon 890M / 880M)"
-  option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
-  option "with-gfx110X", "Build for AMD RDNA3 GPUs (RX 7900 / 7800, Radeon 780M)"
-  option "with-gfx103X", "Build for AMD RDNA2 GPUs / Steam Deck"
-  option "with-gfx90a",  "Build for AMD Instinct MI210 / MI250X"
-  option "with-gfx908",  "Build for AMD Instinct MI100"
-
+  depends_on "cmake" => :build
+  depends_on "ninja" => :build
+  depends_on "pkgconf" => :build
+  depends_on arch: :x86_64
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
 
-  on_linux do
-    on_intel do
-      if build.with? "multi-arch"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-multiarch-x64.zip"
-        sha256 "4dcca64792e20d4d3d79132da09bb43a3d8ab971c319fbac9661598af85783c8"
-      elsif build.with? "gfx1150"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx1150-x64.zip"
-        sha256 "30d4da89565d53c98e21c7cf6f28d6151e4c3ec5dbee5e2e08d3815e14363149"
-      elsif build.with? "gfx120X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx120X-x64.zip"
-        sha256 "93e82c23131acfbda70be274bf2d5cab7fd394ff8d746d578d3ad72f9ee875f9"
-      elsif build.with? "gfx110X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx110X-x64.zip"
-        sha256 "837baab2f58af097ca2050e47307ec8793ed5ae4ad3e269ae721ab9c3904d01d"
-      elsif build.with? "gfx103X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx103X-x64.zip"
-        sha256 "aabc20f23c29cf3629431ec49e99f7134cd62850a4257ce9b10626b26b6e72f7"
-      elsif build.with? "gfx90a"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx90a-x64.zip"
-        sha256 "fc2fcf9b90e021dfef8979568c537fa53b99243da97d5276c97616dd8b5fa3f6"
-      elsif build.with? "gfx908"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx908-x64.zip"
-        sha256 "2a2ee81b9a0f2119ca293c906e8471495e6386cb421f4eeb8d4b94de0d169f0c"
-      end
-    end
+  def rocm_root
+    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
+      .compact.find { |path| File.exist?("#{path}/include/hip/hip_runtime.h") } ||
+      odie("ROCm SDK not found. Set HOMEBREW_ROCM_PATH to a full ROCm SDK with HIP headers (ROCm 7+ / 10.1+).")
   end
 
   def install
-    if (buildpath/"bin").directory?
-      (libexec/"bin").install Dir["bin/*"]
-      (libexec/".kpack").install Dir[".kpack/*"]
-      base = libexec/"bin"
-    else
-      libexec.install Dir["*"]
-      base = libexec
+    rocm_path = rocm_root
+    runtime_lib = formula_opt_lib("rocm-runtime")
+    gpu_targets = "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
+    compiler = [
+      "#{rocm_path}/lib/llvm/bin/clang++",
+      "#{rocm_path}/llvm/bin/clang++",
+      "#{rocm_path}/bin/amdclang++",
+      "#{rocm_path}/bin/clang++",
+    ].find { |path| File.executable?(path) } ||
+               odie("HIP compiler not found under #{rocm_path}. Set HOMEBREW_ROCM_PATH to a full ROCm SDK.")
+
+    ENV["ROCM_PATH"] = rocm_path
+    ENV["HIP_PATH"] = rocm_path
+    ENV.prepend_path "PATH", "#{rocm_path}/bin"
+    ENV.prepend_path "PATH", "#{rocm_path}/lib/llvm/bin"
+    ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
+
+    args = %W[
+      -G Ninja
+      -DCMAKE_BUILD_TYPE=Release
+      -DGGML_HIP=ON
+      -DGPU_TARGETS=#{gpu_targets}
+      -DCMAKE_HIP_ARCHITECTURES=#{gpu_targets}
+      -DCMAKE_HIP_COMPILER=#{compiler}
+      -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
+      -DHIP_ROOT_DIR=#{rocm_path}
+      -DHIP_PATH=#{rocm_path}
+      -DLLAMA_BUILD_TESTS=OFF
+      -DLLAMA_BUILD_EXAMPLES=OFF
+      -DLLAMA_BUILD_TOOLS=ON
+      -DLLAMA_BUILD_SERVER=ON
+      -DLLAMA_BUILD_WEBUI=OFF
+      -DLLAMA_USE_PREBUILT_WEBUI=OFF
+      -DLLAMA_CURL=OFF
+      -DGGML_NATIVE=OFF
+      -DGGML_CCACHE=OFF
+      -DCMAKE_INSTALL_RPATH=#{runtime_lib};#{HOMEBREW_PREFIX}/lib
+      -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
+    ]
+
+    system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
+           "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
+    system "cmake", "--build", "build", "--parallel", ENV.make_jobs.to_s
+
+    (libexec/"bin").install Dir["build/bin/llama-*"]
+
+    base = libexec/"bin"
+    {
+      "rocmfpx"            => "llama-server",
+      "rocmfpx-server"     => "llama-server",
+      "rocmfpx-cli"        => "llama-cli",
+      "rocmfpx-quantize"   => "llama-quantize",
+      "rocmfpx-bench"      => "llama-bench",
+      "rocmfpx-perplexity" => "llama-perplexity",
+      "rocmfpx-mtmd-cli"   => "llama-mtmd-cli",
+    }.each do |name, target|
+      bin.install_symlink base/target => name if (base/target).exist?
     end
 
-    %w[cli server quantize bench perplexity].each do |tool|
-      source = base/"llama-#{tool}"
-      next unless source.exist?
-
-      chmod 0755, source
-      bin.install_symlink source => "rocmfpx-#{tool}"
-    end
-
-    server = base/"llama-server"
-    bin.install_symlink server => "rocmfpx" if server.exist?
+    (pkgshare/"build-manifest.json").write JSON.pretty_generate(
+      variant:     "rocm",
+      commit:      "fb08d7cdb67082ddda15a25e64dc7ec413afc41c",
+      gpu_targets: gpu_targets,
+      runtime_lib: runtime_lib.to_s,
+      rocm_root:   rocm_path,
+      cmake_args:  args,
+    )
   end
 
   def caveats
     <<~EOS
-      This formula distributes canonical upstream ROCmFPX (charlie12345/ROCmFPX)
-      with bundled AMD ROCm runtimes (supporting ROCm 7+ and 10.1+).
+      rocmfpx is a fat binary compiled for:
+        gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201
+
+      It links the shared runtime from heretek-ai/tap/rocm-runtime instead of
+      bundling ROCm libraries. For manual runs set:
+        export ROCM_PATH="#{formula_opt_prefix("rocm-runtime")}"
+        export ROCM_KPACK_PATH="#{formula_opt_prefix("rocm-runtime")}/.kpack"
+      The brew service sets both automatically.
+
+      Building from source still needs a full ROCm SDK (HIP headers and a HIP
+      compiler). Point HOMEBREW_ROCM_PATH at that SDK; the installed binary only
+      needs the shared runtime.
+
+      Model files are not included. Pass a GGUF model explicitly, for example:
+        rocmfpx --model /path/to/model.gguf --host 127.0.0.1 --port 18007
     EOS
   end
 
   service do
-    run [opt_bin/"rocmfpx", "--host", "127.0.0.1", "--port", "8080"]
+    run [opt_bin/"rocmfpx", "--host", "127.0.0.1", "--port", "18007"]
+    environment_variables ROCM_PATH:       formula_opt_prefix("rocm-runtime"),
+                          ROCM_KPACK_PATH: "#{formula_opt_prefix("rocm-runtime")}/.kpack"
     keep_alive true
     log_path var/"log/rocmfpx.log"
     error_log_path var/"log/rocmfpx.error.log"
   end
 
   test do
-    if (libexec/"llama-server").exist? || (libexec/"bin/llama-server").exist?
-      assert_match(/version:|usage:|llama/i, pipe_output("#{bin}/rocmfpx --version 2>&1"))
-    else
-      assert_match(/usage:|llama/i, pipe_output("#{bin}/rocmfpx-cli --help 2>&1"))
-    end
+    output = pipe_output("#{bin}/rocmfpx --version 2>&1")
+    output = pipe_output("#{bin}/rocmfpx --help 2>&1") unless output.match?(/version|usage|llama/i)
+    assert_match(/version|usage|llama/i, output)
   end
 end

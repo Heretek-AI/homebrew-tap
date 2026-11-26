@@ -1,0 +1,127 @@
+name: Toolchain images
+
+on:
+  pull_request:
+    paths:
+      - "docker/**"
+      - ".github/workflows/toolchain-images.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "docker/**"
+      - ".github/workflows/toolchain-images.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: toolchain-images-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ROCM_VERSION: 10.3.0a20261126
+  ROCM_FAMILY: gfx1151
+  ROCM_SHA256: 874371b060a4ea2a8be617aee1107e7703628e28609642f706a691a690524abd
+  CUDA_VERSION: 13.5.0
+
+jobs:
+  rocm:
+    name: brew-rocm
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/heretek-ai/brew-rocm
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ env.ROCM_VERSION }}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: docker/brew-rocm
+          file: docker/brew-rocm/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ROCM_VERSION=${{ env.ROCM_VERSION }}
+            ROCM_FAMILY=${{ env.ROCM_FAMILY }}
+            ROCM_SHA256=${{ env.ROCM_SHA256 }}
+          cache-from: type=gha,scope=brew-rocm
+          cache-to: type=gha,mode=max,scope=brew-rocm
+          provenance: true
+
+  cuda:
+    name: brew-cuda
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/heretek-ai/brew-cuda
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ env.CUDA_VERSION }}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: docker/brew-cuda
+          file: docker/brew-cuda/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=brew-cuda
+          cache-to: type=gha,mode=max,scope=brew-cuda
+          provenance: true

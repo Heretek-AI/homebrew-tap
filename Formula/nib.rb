@@ -12,6 +12,7 @@ class Nib < Formula
 
   depends_on "cmake" => :build
   depends_on arch: :x86_64
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
 
   def rocm_root
@@ -38,6 +39,8 @@ class Nib < Formula
       -DROCM_PATH=#{rocm}
       -DHIP_COMPILER=#{hipcc}
       -DGPU_TARGET=gfx1100
+      -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib
+      -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
 
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args

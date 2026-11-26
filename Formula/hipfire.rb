@@ -72,13 +72,14 @@ class Hipfire < Formula
 
       Pull a model and start the loopback daemon:
         hipfire pull qwen3.8:27b-mq4-xts
-        hipfire serve --no-prewarm
-      The service listens on 127.0.0.1:11435 by default.
+        hipfire serve 127.0.0.1:18011 --no-prewarm
+      The service listens on 127.0.0.1:18011. hipfire has no --port flag, so the
+      port is set with the documented positional HOST:PORT bind.
     EOS
   end
 
   service do
-    run [opt_bin/"hipfire", "serve", "--no-prewarm"]
+    run [opt_bin/"hipfire", "serve", "127.0.0.1:18011", "--no-prewarm"]
     keep_alive true
     working_dir var
     log_path var/"log/hipfire.log"

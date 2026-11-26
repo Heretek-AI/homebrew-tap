@@ -17,6 +17,7 @@ class Strixite < Formula
   depends_on "lld" => :build
   depends_on "ninja" => :build
   depends_on "gcc"
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
 
   def rocm_root
@@ -72,7 +73,7 @@ class Strixite < Formula
       -DHIP_PATH=#{rocm_path}
       -DSTRIX_ROCM_ROOT=#{rocm_path}
       -DSTRIX_HOST_ARCH=#{host_arch}
-      -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{formula_opt_lib("gcc")}/gcc/current
+      -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{formula_opt_lib("gcc")}/gcc/current
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DSTRIX_GCC_INSTALL_DIR=#{gcc_install_dir}" if gcc_install_dir
@@ -90,9 +91,14 @@ class Strixite < Formula
     bin.install "build/check_stream_calls" => "strixite-check-stream-calls"
 
     if File.exist?("deploy/strix-server.conf")
+      example_conf = etc/"strixite/strix_server.example.conf"
       (etc/"strixite").install "deploy/strix-server.conf" => "strix_server.example.conf"
+      inreplace example_conf do |s|
+        s.gsub!(/^host\s*=\s*.*$/, "host = 127.0.0.1")
+        s.gsub!(/^port\s*=\s*.*$/, "port = 18004")
+      end
       default_conf = etc/"strixite/strix_server.conf"
-      default_conf.write (etc/"strixite/strix_server.example.conf").read unless default_conf.exist?
+      default_conf.write example_conf.read unless default_conf.exist?
     end
     doc.install "README.md"
     doc.install "docs" if Dir.exist?("docs")
@@ -110,15 +116,20 @@ class Strixite < Formula
       1. Convert HuggingFace Qwen3.8-Flash-Next safetensors to Strixite .strixw v2 format:
            strixite-convert-qwen4exp /path/to/Qwen3.8-Flash-Next /path/to/qwen4exp-strixw --int4-shared
 
-      2. Start the Strixite server (default port 5300):
-           strixite-server --model /path/to/qwen4exp-strixw --port 5300 --kv-mode fp8 --mtp-draft 3
+      2. Start the Strixite server (the tap config uses port 18004):
+           strixite-server --model /path/to/qwen4exp-strixw --host 127.0.0.1 --port 18004 --kv-mode fp8 --mtp-draft 3
          Or using a config file based on #{etc}/strixite/strix_server.example.conf:
            strixite-server --config #{etc}/strixite/strix_server.example.conf
     EOS
   end
 
   service do
-    run [opt_bin/"strixite-server", "--config", etc/"strixite/strix_server.conf"]
+    run [
+      opt_bin/"strixite-server",
+      "--config", etc/"strixite/strix_server.conf",
+      "--host", "127.0.0.1",
+      "--port", "18004"
+    ]
     keep_alive true
     working_dir var
     log_path var/"log/strixite.log"

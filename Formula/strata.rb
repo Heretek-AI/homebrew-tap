@@ -21,6 +21,7 @@ class Strata < Formula
   depends_on "cmake" => :build
   depends_on "git" => :build
   depends_on "ninja" => :build
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "python@3.12"
@@ -63,7 +64,7 @@ class Strata < Formula
         "/opt/rocm",
       ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
                   odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
-      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1100;gfx1150;gfx1151"
+      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
 
       backend_args = if build.with?("cuda")
         %w[-DSTRATA_ENABLE_CUDA=ON -DSTRATA_PREFILL_MMQ=ON -DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;100;120]
@@ -91,7 +92,7 @@ class Strata < Formula
           -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
           -DHIP_ROOT_DIR=#{rocm_path}
           -DHIP_PATH=#{rocm_path}
-          -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
+          -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
         ]
         hip_args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
@@ -214,12 +215,12 @@ class Strata < Formula
         - `strata-dsv41`  : Native C++ engine for DeepSeek-V4.1-Flash (763B MoE)
 
       Quick start:
-        strata-cli --model qwen38 --port 8095
+        strata-cli --model qwen38 --port 18006
     EOS
   end
 
   service do
-    run [opt_bin/"strata-cli", "--port", "8095"]
+    run [opt_bin/"strata-cli", "--port", "18006"]
     keep_alive true
     working_dir var
     log_path var/"log/strata.log"

@@ -18,6 +18,32 @@
     }
   },
   "formulas": {
+    "rocm-runtime": {
+      "binaries": [],
+      "runtime": {
+        "required_libs": [
+          "libamdhip64.so",
+          "librocblas.so",
+          "libhipblaslt.so",
+          "libhsa-runtime64.so",
+          "librocm_kpack.so"
+        ]
+      },
+      "kpack": {
+        "blas": ".kpack/blas_lib_*.kpack",
+        "solver": ".kpack/solver_lib_*.kpack"
+      }
+    },
+    "cuda-runtime": {
+      "binaries": [],
+      "runtime": {
+        "required_libs": [
+          "libcudart.so.13",
+          "libcublas.so.13",
+          "libcublasLt.so.13"
+        ]
+      }
+    },
     "gufo": {
       "binaries": [
         "bin/gufo",
@@ -474,23 +500,30 @@
     },
     "rocmfpx": {
       "binaries": [
+        "bin/rocmfpx",
+        "bin/rocmfpx-server",
         "bin/rocmfpx-cli",
-        "bin/rocmfpx-server"
+        "bin/rocmfpx-quantize",
+        "bin/rocmfpx-bench",
+        "bin/rocmfpx-perplexity"
       ],
       "rocm": {
         "required_libs": [
-          "libamdhip64.so"
+          "libamdhip64.so",
+          "librocblas.so",
+          "libhipblaslt.so",
+          "librocm_kpack.so"
         ],
         "version_cmd": [
-          "bin/rocmfpx-server",
+          "bin/rocmfpx",
           "--version"
         ],
         "help_cmd": [
-          "bin/rocmfpx-server",
+          "bin/rocmfpx",
           "--help"
         ],
         "device_cmd": [
-          "bin/rocmfpx-cli",
+          "bin/rocmfpx",
           "--list-devices"
         ],
         "device_ok_regex": "(?i)(ROCm|gfx[0-9a-zA-Z]+|HIP|device)",

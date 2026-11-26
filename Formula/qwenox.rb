@@ -11,6 +11,7 @@ class Qwenox < Formula
     skip "Tracks upstream commit"
   end
 
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on :linux
@@ -39,6 +40,7 @@ class Qwenox < Formula
 
     ENV["HIPCC"] = hipcc
     ENV["GPU_ARCH"] = "gfx1151"
+    ENV.prepend "LDFLAGS", "-Wl,-rpath,#{formula_opt_lib("rocm-runtime")}"
 
     # Compile engine, bench, and API server tools
     system "bash", "build.sh", "all"
@@ -53,18 +55,23 @@ class Qwenox < Formula
     end
 
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
-      variant:   "rocm",
-      gpu_arch:  "gfx1151",
-      rocm_root: rocm,
-      hipcc:     hipcc,
-      cxx:       ENV.cxx,
-      commit:    "dedb058b1ca7d9c1cffbdb44b51defb2d496a692",
+      variant:          "rocm",
+      gpu_arch:         "gfx1151",
+      rocm_root:        rocm,
+      hipcc:            hipcc,
+      cxx:              ENV.cxx,
+      runtime_lib:      formula_opt_lib("rocm-runtime").to_s,
+      rpath_limitation: "build.sh does not forward LDFLAGS; binaries keep the ROCm SDK RUNPATH",
+      commit:           "dedb058b1ca7d9c1cffbdb44b51defb2d496a692",
     )
   end
 
   def caveats
     <<~EOS
       Qwenox targets the AMD Ryzen AI Max+ 395 ("Strix Halo", gfx1151) APU.
+      It links the shared runtime from heretek-ai/tap/rocm-runtime, but the
+      upstream build.sh does not forward LDFLAGS, so source builds keep the
+      ROCm SDK RUNPATH from HOMEBREW_ROCM_PATH.
       Start the inference daemon:
         qwenox-engine --help
       Start the OpenAI-compatible HTTP API server:

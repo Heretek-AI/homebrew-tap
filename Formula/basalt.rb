@@ -10,6 +10,7 @@ class Basalt < Formula
     strategy :github_latest
   end
 
+  depends_on "heretek-ai/tap/cuda-runtime"
   depends_on :linux
 
   on_linux do
@@ -49,7 +50,7 @@ class Basalt < Formula
         -DCMAKE_CUDA_ARCHITECTURES=121
         -DCMAKE_CUDA_COMPILER=#{cuda}/bin/nvcc
         -DCUDAToolkit_ROOT=#{cuda}
-        -DCMAKE_INSTALL_RPATH=#{cuda}/lib64;#{cuda}/targets/aarch64-linux/lib
+        -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib
         -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
       ]
       system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *cmake_args
@@ -67,6 +68,7 @@ class Basalt < Formula
       (bin/tool).write <<~SH
         #!/usr/bin/env bash
         export PYTHONPATH="#{libexec}${PYTHONPATH:+:$PYTHONPATH}"
+        export LD_LIBRARY_PATH="#{formula_opt_lib("cuda-runtime")}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         exec "#{libexec}/bin/#{tool}" "$@"
       SH
       chmod 0755, bin/tool
@@ -90,7 +92,7 @@ class Basalt < Formula
         },
         "server": {
           "host": "127.0.0.1",
-          "port": 8080
+          "port": 18012
         }
       }
     JSON
@@ -98,8 +100,9 @@ class Basalt < Formula
     config.write example.read unless config.exist?
 
     manifest = {
-      variant: variant,
-      arch:    Hardware::CPU.arch.to_s,
+      variant:     variant,
+      arch:        Hardware::CPU.arch.to_s,
+      runtime_lib: formula_opt_lib("cuda-runtime").to_s,
     }
     if cuda
       manifest[:cuda_root] = cuda
@@ -110,12 +113,14 @@ class Basalt < Formula
 
   def caveats
     <<~EOS
-      Basalt needs the NVIDIA CUDA 13 runtime libraries (libcudart.so.13,
-      libcublas.so.13 and libcublasLt.so.13) on the library path; this formula
-      does not install CUDA.
+      Basalt uses the shared CUDA 13 runtime from heretek-ai/tap/cuda-runtime
+      (libcudart.so.13, libcublas.so.13 and libcublasLt.so.13). The wrapper
+      scripts prepend its lib directory to LD_LIBRARY_PATH; a full CUDA toolkit
+      is only needed for the arm64 source build.
 
       Edit #{etc}/basalt/basalt_config.json to point "models" at your .basalt
-      pack, then install the Python server's dependencies:
+      pack. The shipped config and service listen on 127.0.0.1:18012.
+      Install the Python server's dependencies:
         python3 -m venv #{opt_libexec}/.venv
         #{opt_libexec}/.venv/bin/pip install -r #{opt_libexec}/requirements.txt
 
@@ -125,7 +130,13 @@ class Basalt < Formula
   end
 
   service do
-    run [opt_bin/"basalt", "serve", "--config", etc/"basalt/basalt_config.json", "--host", "127.0.0.1"]
+    run [
+      opt_bin/"basalt",
+      "serve",
+      "--config", etc/"basalt/basalt_config.json",
+      "--host", "127.0.0.1",
+      "--port", "18012"
+    ]
     keep_alive true
     working_dir var
     log_path var/"log/basalt.log"
@@ -141,6 +152,7 @@ class Basalt < Formula
 
     # 2. CLI Introspection (only when the external CUDA 13 runtime is present)
     cuda_runtime = [
+      "#{formula_opt_lib("cuda-runtime")}/libcudart.so.13",
       "/usr/local/cuda-13.0/targets/x86_64-linux/lib/libcudart.so.13",
       "/usr/local/cuda-13.0/targets/aarch64-linux/lib/libcudart.so.13",
       "/usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.13",

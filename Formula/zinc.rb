@@ -48,7 +48,8 @@ class Zinc < Formula
       Vulkan loader and ICD instead.
 
       The HTTP server binds all interfaces; the upstream binary has no --host
-      flag. Use a host firewall if the API must stay loopback-only.
+      flag. The tap service passes --port 18009 (the upstream default is 8080).
+      Use a host firewall if the API must stay loopback-only.
 
       Select a model before starting the service:
         zinc model pull qwen35-9b-q4k-m
@@ -58,7 +59,7 @@ class Zinc < Formula
   end
 
   service do
-    run [opt_bin/"zinc", "serve", "--port", "8080"]
+    run [opt_bin/"zinc", "serve", "--port", "18009"]
     keep_alive false
     working_dir var
     log_path var/"log/zinc.log"

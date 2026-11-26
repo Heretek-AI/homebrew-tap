@@ -1,0 +1,93 @@
+name: brew auto-publish
+
+# Publishing policy:
+# - Human pull requests remain manual: a maintainer dispatches `brew pr-pull`,
+#   unless the PR deliberately carries the `autobump` label (the label is the
+#   opt-in to auto-publish).
+# - Bot pull requests that carry the `autobump` label are published
+#   automatically once `brew test-bot` succeeds.
+# - Fork pull requests are never auto-published: the job requires the head
+#   repository to be this repository, and a same-repo head SHA is needed for
+#   `brew pr-pull`.
+on:
+  workflow_run:
+    workflows: ["brew test-bot"]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: auto-publish-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  publish:
+    name: Dispatch pr-pull for labelled bot PRs
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Resolve pull request
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          if [[ -z "${PR_NUMBER}" ]]
+          then
+            echo "::notice::Workflow run ${GITHUB_RUN_ID} has no associated pull request (fork or push run); nothing to publish."
+            echo "publish=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          echo "publish=true" >> "${GITHUB_OUTPUT}"
+          echo "number=${PR_NUMBER}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify autobump pull request
+        id: verify
+        if: steps.pr.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --jq '.[].name')
+          if ! grep -qx 'autobump' <<< "${labels}"
+          then
+            echo "::notice::Pull request #${PR_NUMBER} does not carry the 'autobump' label; leaving it for manual pr-pull."
+            echo "publish=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          author_type=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.type')
+          head_repository=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.repo.full_name')
+          if [[ "${author_type}" != "Bot" && "${head_repository}" != "${GITHUB_REPOSITORY}" ]]
+          then
+            echo "::notice::Pull request #${PR_NUMBER} is not from a bot or this repository; refusing to auto-publish."
+            echo "publish=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "publish=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Dispatch pr-pull
+        if: steps.verify.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          echo "Dispatching brew pr-pull for pull request #${PR_NUMBER} at ${HEAD_SHA}"
+          gh workflow run publish.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref main \
+            -f pull_request="${PR_NUMBER}" \
+            -f head_sha="${HEAD_SHA}"

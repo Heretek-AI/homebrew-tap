@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "bind_host": "127.0.0.1",
+  "reserved_range": [18000, 18099],
+  "services": {
+    "basalt": {
+      "port": 18012,
+      "executable": "basalt serve",
+      "configurable": true,
+      "notes": "Configured by server.port in etc/basalt/basalt_config.json; the service also passes --host 127.0.0.1 --port 18012. Upstream default is 8080."
+    },
+    "gufo": {
+      "port": 18001,
+      "executable": "gufo serve",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18001 in the service block. Upstream default is 8080."
+    },
+    "gufetto": {
+      "port": 18002,
+      "executable": "gufetto serve",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18002 in the service block. Upstream default is 8080."
+    },
+    "gufo-franzmoca": {
+      "port": 18003,
+      "executable": "gufo-franzmoca serve",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18003 in the service block. Upstream default is 8080."
+    },
+    "strixite": {
+      "port": 18004,
+      "executable": "strixite-server",
+      "configurable": true,
+      "notes": "Configured by host/port in etc/strixite/strix_server.conf and overridden explicitly with --host 127.0.0.1 --port 18004 in the service block. Upstream default is 5300."
+    },
+    "project-maya": {
+      "port": 18005,
+      "executable": "maya-cli",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18005 in the service block. maya-server upstream default is 8080."
+    },
+    "strata": {
+      "port": 18006,
+      "executable": "strata-cli",
+      "configurable": true,
+      "notes": "Port changed to 18006 in the existing strata-cli service invocation. The launcher and server default to 127.0.0.1; that command shape exposes no --host flag, so this service relies on the default loopback bind."
+    },
+    "rocmfpx": {
+      "port": 18007,
+      "executable": "rocmfpx",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18007 in the service block. Serves the bundled llama-server endpoint."
+    },
+    "stable-diffusion-cpp": {
+      "port": 18008,
+      "executable": "sd-server",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18008 in the service block. Upstream default is 8080."
+    },
+    "zinc": {
+      "port": 18009,
+      "executable": "zinc serve",
+      "configurable": true,
+      "notes": "Set with --port 18009. Upstream has no --host flag and always binds 0.0.0.0, so the registry bind_host cannot be enforced for this service; use a host firewall or an isolating network namespace."
+    },
+    "kyojin": {
+      "port": 18010,
+      "executable": "kyojin-serve qwen",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18010 in the service block; the service starts the qwen engine. Upstream default is 8000."
+    },
+    "hipfire": {
+      "port": 18011,
+      "executable": "hipfire serve",
+      "configurable": true,
+      "notes": "Set with the documented positional bind 127.0.0.1:18011; hipfire serve has no --port flag. Upstream default is 11435."
+    },
+    "shimmy": {
+      "port": 11434,
+      "executable": "shimmy serve",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 11434 in the service block. Retained because 11434 is the upstream/Ollama-compatible default."
+    },
+    "hyperqwen": {
+      "port": 18020,
+      "executable": "hyperqwen-serve",
+      "configurable": true,
+      "notes": "Set explicitly to 18020 through HYPERQWEN_PORT in the service block; the wrapper passes the value to vLLM with --host 127.0.0.1 --port. Upstream default is 18020."
+    }
+  }
+}

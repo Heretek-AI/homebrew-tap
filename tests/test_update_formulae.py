@@ -343,6 +343,20 @@ class TestUpdateFormulae(unittest.TestCase):
         self.assertIsNotNone(release)
         self.assertEqual(release["tag_name"], "b1136")
 
+    def test_config_has_no_builder_fallback_repo(self):
+        config = update_formulae.load_config_from_ledger()
+        for name, entry in config.items():
+            self.assertNotIn(
+                "fallback_repo", entry, f"{name} still defines fallback_repo"
+            )
+
+        with patch("update_formulae.os.path.exists", return_value=False):
+            fallback_config = update_formulae.load_config_from_ledger()
+        for name, entry in fallback_config.items():
+            self.assertNotIn(
+                "fallback_repo", entry, f"{name} still defines fallback_repo"
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,7 @@ class Gufetto < Formula
   depends_on "pkgconf" => :build
   depends_on "curl"
   depends_on "giflib"
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "icu4c"
   depends_on "jpeg-turbo"
   depends_on "libpng"
@@ -84,7 +85,7 @@ class Gufetto < Formula
       -DGUFO_ENABLE_NPU=#{npu_flag}
       -DGUFO_ENABLE_BF16_K_CONTROL=#{bf16_k_control_flag}
       -DGUFO_ENABLE_TOOLS=#{tools_flag}
-      -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
+      -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
@@ -135,7 +136,7 @@ class Gufetto < Formula
   end
 
   service do
-    run [opt_bin/"gufetto", "serve", "--host", "127.0.0.1", "--port", "8080"]
+    run [opt_bin/"gufetto", "serve", "--host", "127.0.0.1", "--port", "18002"]
     keep_alive true
     working_dir var
     log_path var/"log/gufetto.log"
