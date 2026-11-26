@@ -28,6 +28,7 @@ echo " 1. Syncing tracked tap files"
 echo "=========================================="
 TAP_PATHS=(
     ".github"
+    "Casks"
     "Formula"
     "LICENSE"
     "README.md"
@@ -54,10 +55,11 @@ done
 
 echo ""
 echo "=========================================="
-echo " 2. Running Homebrew formula style checks"
+echo " 2. Running Homebrew formula and cask style checks"
 echo "=========================================="
 shopt -s nullglob
 formulae=("${TAP_DIR}"/Formula/*.rb)
+casks=("${TAP_DIR}"/Casks/*.rb)
 shopt -u nullglob
 
 if [ "${#formulae[@]}" -eq 0 ]; then
@@ -65,14 +67,22 @@ if [ "${#formulae[@]}" -eq 0 ]; then
     exit 1
 fi
 
-echo "Discovered ${#formulae[@]} formulae."
+echo "Discovered ${#formulae[@]} formulae and ${#casks[@]} casks."
 "$BREW_BIN" style "$TAP_DIR/Formula/"
+if [ "${#casks[@]}" -gt 0 ]; then
+    "$BREW_BIN" style "$TAP_DIR/Casks/"
+fi
 
 echo ""
 echo "=========================================="
 echo " 3. Running Homebrew strict audit"
 echo "=========================================="
+# `--tap` audits both formulae and casks in the synced tap. Run the cask
+# audit explicitly as well: Homebrew skips cask audits on non-macOS hosts.
 "$BREW_BIN" audit --strict --tap=heretek-ai/tap
+if [ "${#casks[@]}" -gt 0 ]; then
+    "$BREW_BIN" audit --cask --strict --tap=heretek-ai/tap
+fi
 
 echo ""
 echo "=========================================="

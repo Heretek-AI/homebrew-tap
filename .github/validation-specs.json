@@ -707,6 +707,154 @@
         ],
         "throughput_regex": "(?i)(usage)"
       }
+    },
+    "basalt": {
+      "binaries": [
+        "bin/basalt",
+        "bin/basalt-bench",
+        "bin/basalt-probe",
+        "bin/basalt-vision"
+      ],
+      "cuda": {
+        "required_libs": [
+          "libcudart.so"
+        ],
+        "version_cmd": [
+          "bin/basalt",
+          "--help"
+        ],
+        "help_cmd": [
+          "bin/basalt",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/basalt",
+          "--gpu-plan"
+        ],
+        "device_ok_regex": "(?i)(gpu|device|card|sm_120|cuda)",
+        "no_device_ok_regex": "(?i)(no (gpu|device|cuda)|cuda error|driver|cannot load|not found)",
+        "golden_cmd": [
+          "bin/basalt-bench",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(tok/s|t/s|tokens|bench)"
+      }
+    },
+    "libosmos": {
+      "binaries": [
+        "bin/osmos-api",
+        "bin/osmos-serve"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/osmos-api",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/osmos-api",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/osmos-api",
+          "--version"
+        ],
+        "device_ok_regex": "(?i)(osmos|0\\.18)",
+        "no_device_ok_regex": "(?i)(usage|osmos)",
+        "golden_cmd": [
+          "bin/osmos-api",
+          "--version"
+        ],
+        "throughput_regex": "(?i)(osmos|0\\.18)"
+      }
+    },
+    "saient-quartz": {
+      "binaries": [
+        "bin/quartz"
+      ],
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/quartz",
+          "--inspect-wan"
+        ],
+        "help_cmd": [
+          "bin/quartz",
+          "--inspect-wan"
+        ],
+        "device_cmd": [
+          "bin/quartz",
+          "--inspect-wan"
+        ],
+        "device_ok_regex": "(?i)(usage: quartz)",
+        "no_device_ok_regex": "(?i)(usage: quartz)",
+        "golden_cmd": [
+          "bin/quartz",
+          "--inspect-wan"
+        ],
+        "throughput_regex": "(?i)(usage: quartz)"
+      },
+      "vulkan": {
+        "required_libs": [
+          "libvulkan.so"
+        ],
+        "version_cmd": [
+          "bin/quartz",
+          "--vulkan-benchmark"
+        ],
+        "help_cmd": [
+          "bin/quartz",
+          "--vulkan-host-import-probe"
+        ],
+        "device_cmd": [
+          "bin/quartz",
+          "--vulkan-benchmark"
+        ],
+        "device_ok_regex": "(?i)(vulkan|fp16|gemm|device)",
+        "no_device_ok_regex": "(?i)(vulkan.*(failed|unavailable)|no vulkan|usage: quartz)",
+        "golden_cmd": [
+          "bin/quartz",
+          "--vulkan-benchmark"
+        ],
+        "throughput_regex": "(?i)([0-9.]+)\\s*(ms|gflops|tflops|gb/s)"
+      }
+    },
+    "gemma-cpp": {
+      "binaries": [
+        "bin/gemma-cpp"
+      ],
+      "cpu": {
+        "required_libs": [],
+        "version_cmd": [
+          "bin/gemma-cpp",
+          "--weights",
+          "/dev/null",
+          "--help"
+        ],
+        "help_cmd": [
+          "bin/gemma-cpp",
+          "--weights",
+          "/dev/null",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/gemma-cpp",
+          "--weights",
+          "/dev/null",
+          "--help"
+        ],
+        "device_ok_regex": "(?i)(gemma|weights|usage)",
+        "no_device_ok_regex": "(?i)(gemma|weights|usage)",
+        "golden_cmd": [
+          "bin/gemma-cpp",
+          "--weights",
+          "/dev/null",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(gemma|weights|usage)"
+      }
     }
   }
 }
