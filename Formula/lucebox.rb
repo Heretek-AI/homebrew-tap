@@ -3,7 +3,7 @@ class Lucebox < Formula
   homepage "https://github.com/Luce-Org/lucebox"
   url "https://github.com/Luce-Org/lucebox/archive/34b20876f97001ba4d9f936dbc68b6d406192688.tar.gz"
   version "0.1.0-git34b2087"
-  sha256 "bdadfc3ef293ea2eb0480b0f71887e4125f4fe6d30960d7c768df8eb0dc5a435"
+  sha256 "92995410562a3517507d0f8ad7bd7cb8ea08346e60eb7a582de412e4de02f280"
   license "Apache-2.0"
   head "https://github.com/Luce-Org/lucebox.git", branch: "main"
 
@@ -17,12 +17,6 @@ class Lucebox < Formula
   depends_on "ninja" => :build
   depends_on "curl"
   depends_on :linux
-
-  def rocm_root
-    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
-      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
-      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
-  end
 
   def install
     backend = build.with?("rocm") ? "hip" : "cuda"
@@ -38,7 +32,13 @@ class Lucebox < Formula
     ]
 
     if build.with?("rocm")
-      rocm = rocm_root
+      rocm = [
+        ENV["HOMEBREW_ROCM_PATH"],
+        ENV["ROCM_PATH"],
+        "/opt/rocm-nightly",
+        "/opt/rocm",
+      ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+             odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
       ENV["ROCM_PATH"] = rocm
       ENV["HIP_PATH"] = rocm
       ENV.prepend_path "PATH", "#{rocm}/bin"

@@ -7,8 +7,7 @@ class Rocmfpx < Formula
   license "MIT"
 
   livecheck do
-    url :stable
-    regex(%r{href=.*?/tag/v?b?(\d+)["' >]}i)
+    skip "Multi-asset in-repo releases are updated by the autobump workflow."
   end
 
   option "with-multi-arch", "Single binary for gfx1100 (RX 7900-class) + gfx1151 (Strix Halo)"
@@ -16,14 +15,13 @@ class Rocmfpx < Formula
   option "with-gfx120X", "Build for AMD RDNA4 Discrete GPUs (RX 9070 XT / 9070)"
   option "with-gfx110X", "Build for AMD RDNA3 GPUs (RX 7900 / 7800, Radeon 780M)"
   option "with-gfx103X", "Build for AMD RDNA2 GPUs / Steam Deck"
-  option "with-gfx94X",  "Build for AMD Instinct MI300X / MI300A (gfx942)"
   option "with-gfx90a",  "Build for AMD Instinct MI210 / MI250X"
   option "with-gfx908",  "Build for AMD Instinct MI100"
 
   depends_on :linux
 
   on_linux do
-    if Hardware::CPU.intel?
+    on_intel do
       if build.with? "multi-arch"
         url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-multiarch-x64.zip"
         sha256 "4dcca64792e20d4d3d79132da09bb43a3d8ab971c319fbac9661598af85783c8"
@@ -39,9 +37,6 @@ class Rocmfpx < Formula
       elsif build.with? "gfx103X"
         url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx103X-x64.zip"
         sha256 "aabc20f23c29cf3629431ec49e99f7134cd62850a4257ce9b10626b26b6e72f7"
-      elsif build.with? "gfx94X"
-        url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx94X-x64.zip"
-        sha256 "05c7dceb8339573ba4ae6d4295e8ae4305c7dceb8339573ba4ae6d4295e8ae43"
       elsif build.with? "gfx90a"
         url "https://github.com/Heretek-AI/homebrew-tap/releases/download/b1136/rocmfpx-b1136-ubuntu-rocm-gfx90a-x64.zip"
         sha256 "fc2fcf9b90e021dfef8979568c537fa53b99243da97d5276c97616dd8b5fa3f6"
@@ -53,32 +48,25 @@ class Rocmfpx < Formula
   end
 
   def install
-    nested = Pathname("bin").directory?
-    base = nested ? libexec/"bin" : libexec
-    if nested
+    if (buildpath/"bin").directory?
       (libexec/"bin").install Dir["bin/*"]
       (libexec/".kpack").install Dir[".kpack/*"]
+      base = libexec/"bin"
     else
       libexec.install Dir["*"]
+      base = libexec
     end
 
-    %w[llama-server llama-cli llama-quantize llama-bench llama-perplexity].each do |cmd|
-      next unless (base/cmd).exist?
+    %w[cli server quantize bench perplexity].each do |tool|
+      source = base/"llama-#{tool}"
+      next unless source.exist?
 
-      chmod 0755, base/cmd
-      bin.write_exec_script (base/cmd)
-      (bin/"rocmfpx-#{cmd.delete_prefix("llama-")}").write <<~SH
-        #!/bin/bash
-        exec "#{base/cmd}" "$@"
-      SH
+      chmod 0755, source
+      bin.install_symlink source => "rocmfpx-#{tool}"
     end
 
-    return unless (base/"llama-server").exist?
-
-    (bin/"rocmfpx").write <<~SH
-      #!/bin/bash
-      exec "#{base/"llama-server"}" "$@"
-    SH
+    server = base/"llama-server"
+    bin.install_symlink server => "rocmfpx" if server.exist?
   end
 
   def caveats
@@ -89,17 +77,17 @@ class Rocmfpx < Formula
   end
 
   service do
-    run [opt_bin/"llama-server", "--host", "127.0.0.1", "--port", "8080"]
+    run [opt_bin/"rocmfpx", "--host", "127.0.0.1", "--port", "8080"]
     keep_alive true
     log_path var/"log/rocmfpx.log"
     error_log_path var/"log/rocmfpx.error.log"
   end
 
   test do
-    if (libexec/"llama-server").exist? || (libexec/"bin"/"llama-server").exist?
-      assert_match(/version:|usage:|llama/i, pipe_output("#{bin}/llama-server --version 2>&1"))
+    if (libexec/"llama-server").exist? || (libexec/"bin/llama-server").exist?
+      assert_match(/version:|usage:|llama/i, pipe_output("#{bin}/rocmfpx --version 2>&1"))
     else
-      assert_match(/usage:|llama/i, pipe_output("#{bin}/llama-cli --help 2>&1"))
+      assert_match(/usage:|llama/i, pipe_output("#{bin}/rocmfpx-cli --help 2>&1"))
     end
   end
 end

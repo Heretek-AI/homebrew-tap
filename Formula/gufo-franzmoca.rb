@@ -29,9 +29,6 @@ class GufoFranzmoca < Formula
   depends_on "openssl@3"
   depends_on "webp"
 
-  conflicts_with "gufo", because: "both install `gufo` and `gufo-server` binaries"
-  conflicts_with "gufetto", because: "both install `gufo` and `gufo-server` binaries"
-
   def rocm_root
     [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
       .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
@@ -81,6 +78,7 @@ class GufoFranzmoca < Formula
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
 
     enable_tools = build.with?("tools")
+    tools_flag = enable_tools ? "ON" : "OFF"
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
@@ -93,7 +91,7 @@ class GufoFranzmoca < Formula
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
       -DGUFO_ENABLE_SANITIZERS=OFF
-      -DGUFO_ENABLE_TOOLS=#{enable_tools ? "ON" : "OFF"}
+      -DGUFO_ENABLE_TOOLS=#{tools_flag}
       -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
@@ -111,7 +109,13 @@ class GufoFranzmoca < Formula
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 
-    bin.install_symlink bin/"gufo" => "gufo-franzmoca"
+    # CMake installs `gufo`, `gufo-server`, and optional developer tools
+    # directly into `bin`; expose them only under the tap namespace.
+    rm bin/"gufo-server" if (bin/"gufo-server").exist?
+    mv bin/"gufo", bin/"gufo-franzmoca"
+    bin.install_symlink bin/"gufo-franzmoca" => "gufo-franzmoca-server"
+    mv bin/"gufo-kernel-bench", bin/"gufo-franzmoca-kernel-bench" if (bin/"gufo-kernel-bench").exist?
+    rm bin/"tune_hipblaslt" if (bin/"tune_hipblaslt").exist?
 
     if enable_tools
       %w[
@@ -123,7 +127,9 @@ class GufoFranzmoca < Formula
         bench_q8_1
         tune_hipblaslt
       ].each do |tool|
-        bin.install "build/tools/#{tool}" => "gufo-#{tool.tr("_", "-")}" if File.exist?("build/tools/#{tool}")
+        next unless File.exist?("build/tools/#{tool}")
+
+        bin.install "build/tools/#{tool}" => "gufo-franzmoca-#{tool.tr("_", "-")}"
       end
     end
 
@@ -144,12 +150,12 @@ class GufoFranzmoca < Formula
         2. Gemma 4 (26B-A4B MoE & 31B Dense) with gemma4-assistant MTP speculative decoding:
            - --draft-policy calibrated|confidence|fixed --prefill-weights off|compact|decoded
 
-      Both `gufo` and `gufo-franzmoca` CLI entrypoints are installed in #{opt_bin}.
+      Both `gufo-franzmoca` and `gufo-franzmoca-server` CLI entrypoints are installed in #{opt_bin}.
     EOS
   end
 
   service do
-    run [opt_bin/"gufo", "serve", "--host", "127.0.0.1", "--port", "8080"]
+    run [opt_bin/"gufo-franzmoca", "serve", "--host", "127.0.0.1", "--port", "8080"]
     keep_alive true
     working_dir var
     log_path var/"log/gufo-franzmoca.log"

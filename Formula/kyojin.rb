@@ -7,6 +7,10 @@ class Kyojin < Formula
   license "MIT"
   head "https://github.com/Yamz-Labs/kyojin.git", branch: "main"
 
+  livecheck do
+    skip "Tracks upstream commit"
+  end
+
   option "with-rdna4", "Include RDNA4 (gfx1200;gfx1201) and RDNA3.5 (gfx1150) alongside gfx1151"
   option "with-cuda", "Build for NVIDIA CUDA (sm_80+) instead of AMD ROCm"
 
@@ -16,12 +20,6 @@ class Kyojin < Formula
   depends_on "libpng"
   depends_on :linux
   depends_on "python@3.12"
-
-  def rocm_root
-    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
-      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
-      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
-  end
 
   def install
     python3 = formula_opt_bin("python@3.12")/"python3.12"
@@ -34,7 +32,13 @@ class Kyojin < Formula
       ENV["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6;8.9;9.0;12.0"
       system pip, "install", "torch", "torchvision"
     else
-      rocm_path = rocm_root
+      rocm_path = [
+        ENV["HOMEBREW_ROCM_PATH"],
+        ENV["ROCM_PATH"],
+        "/opt/rocm-nightly",
+        "/opt/rocm",
+      ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+                  odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
       ENV["ROCM_PATH"] = rocm_path
       ENV["HIP_PATH"] = rocm_path
       ENV["PYTORCH_ROCM_ARCH"] = build.with?("rdna4") ? "gfx1151;gfx1150;gfx1200;gfx1201" : "gfx1151"

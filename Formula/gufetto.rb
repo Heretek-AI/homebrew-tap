@@ -30,9 +30,6 @@ class Gufetto < Formula
   depends_on "openssl@3"
   depends_on "webp"
 
-  conflicts_with "gufo", because: "both install `gufo` and `gufo-server` binaries"
-  conflicts_with "gufo-franzmoca", because: "both install `gufo` and `gufo-server` binaries"
-
   def rocm_root
     [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
       .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
@@ -69,6 +66,10 @@ class Gufetto < Formula
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
 
+    npu_flag = build.with?("npu") ? "ON" : "OFF"
+    bf16_k_control_flag = build.with?("bf16-k-control") ? "ON" : "OFF"
+    enable_tools = build.with?("tools")
+    tools_flag = enable_tools ? "ON" : "OFF"
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
@@ -80,9 +81,9 @@ class Gufetto < Formula
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
       -DGUFO_ENABLE_SANITIZERS=OFF
-      -DGUFO_ENABLE_NPU=#{build.with?("npu") ? "ON" : "OFF"}
-      -DGUFO_ENABLE_BF16_K_CONTROL=#{build.with?("bf16-k-control") ? "ON" : "OFF"}
-      -DGUFO_ENABLE_TOOLS=#{build.with?("tools") ? "ON" : "OFF"}
+      -DGUFO_ENABLE_NPU=#{npu_flag}
+      -DGUFO_ENABLE_BF16_K_CONTROL=#{bf16_k_control_flag}
+      -DGUFO_ENABLE_TOOLS=#{tools_flag}
       -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
@@ -100,9 +101,15 @@ class Gufetto < Formula
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 
-    bin.install_symlink bin/"gufo" => "gufetto"
+    # CMake installs `gufo`, `gufo-server`, and optional developer tools
+    # directly into `bin`; expose them only under the tap namespace.
+    rm bin/"gufo-server" if (bin/"gufo-server").exist?
+    mv bin/"gufo", bin/"gufetto"
+    bin.install_symlink bin/"gufetto" => "gufetto-server"
+    mv bin/"gufo-kernel-bench", bin/"gufetto-kernel-bench" if (bin/"gufo-kernel-bench").exist?
+    rm bin/"tune_hipblaslt" if (bin/"tune_hipblaslt").exist?
 
-    if build.with?("tools")
+    if enable_tools
       %w[bench_q8_1 tune_hipblaslt].each do |tool|
         bin.install "build/tools/#{tool}" => "gufetto-#{tool.tr("_", "-")}" if File.exist?("build/tools/#{tool}")
       end
@@ -123,7 +130,7 @@ class Gufetto < Formula
         gufetto serve --kv-cache-type q8_0/q4_0-rotated --pin-prefix-dir /path/to/prefixes
         gufetto diagnose --plan --model /path/to/model.gguf --context-len 32768
 
-      Both `gufetto` and `gufo` CLI entrypoints are installed in #{opt_bin}.
+      Both `gufetto` and `gufetto-server` CLI entrypoints are installed in #{opt_bin}.
     EOS
   end
 

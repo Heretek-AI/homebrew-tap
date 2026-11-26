@@ -29,9 +29,6 @@ class Gufo < Formula
   depends_on "openssl@3"
   depends_on "webp"
 
-  conflicts_with "gufo-franzmoca", because: "both install `gufo` and `gufo-server` binaries"
-  conflicts_with "gufetto", because: "both install `gufo` and `gufo-server` binaries"
-
   def rocm_root
     [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
       .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
@@ -83,6 +80,8 @@ class Gufo < Formula
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
 
+    enable_tools = build.with?("tools")
+    tools_flag = enable_tools ? "ON" : "OFF"
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
@@ -95,7 +94,7 @@ class Gufo < Formula
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
       -DGUFO_ENABLE_SANITIZERS=OFF
-      -DGUFO_ENABLE_TOOLS=#{build.with?("tools") ? "ON" : "OFF"}
+      -DGUFO_ENABLE_TOOLS=#{tools_flag}
       -DCMAKE_INSTALL_RPATH=#{rocm_path}/lib;#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
@@ -113,7 +112,11 @@ class Gufo < Formula
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
 
-    if build.with?("tools")
+    # CMake installs `tune_hipblaslt` directly into `bin`; expose it only as
+    # the namespaced `gufo-tune-hipblaslt` installed by the tools block below.
+    rm bin/"tune_hipblaslt" if (bin/"tune_hipblaslt").exist?
+
+    if enable_tools
       %w[bench_q8_1 tune_hipblaslt verify_gemma4 verify_vae].each do |tool|
         bin.install "build/tools/#{tool}" => "gufo-#{tool.tr("_", "-")}" if File.exist?("build/tools/#{tool}")
       end

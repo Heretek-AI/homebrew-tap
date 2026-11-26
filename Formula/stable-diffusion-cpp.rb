@@ -1,14 +1,11 @@
 class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
-  url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-975-95b3090/sd-master-95b3090-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip"
-  version "975"
-  sha256 "703f547a0bbe254979940ec6142a87b4af6acbc01d34e37358f4feabb430a225"
+  version "1141"
   license "MIT"
 
   livecheck do
-    url :stable
-    regex(%r{href=.*?/tag/v?master[._-](\d+)[._-][a-f0-9]+["' >]}i)
+    skip "Rolling releases are updated by the autobump workflow."
   end
 
   option "with-rocm", "Install AMD ROCm GPU accelerated build"
@@ -16,23 +13,23 @@ class StableDiffusionCpp < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-975-95b3090/sd-master-95b3090-bin-Darwin-macOS-26.6.2-arm64.zip"
-      sha256 "2edf5a21c4b73f448c3a02c87925283b77aa94f1859c0d8e649134da68b40813"
+      url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1141-e637c7b/sd-master-e637c7b-bin-Darwin-macOS-26.7.2-arm64.zip"
+      sha256 "50f4fe2d0b28e9c3a1155cdab859042c3355e543792b07da760c6aba56d18380"
     end
   end
 
   on_linux do
-    if Hardware::CPU.intel?
+    on_intel do
       if build.with? "rocm"
-        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-975-95b3090/sd-master-95b3090-bin-Linux-Ubuntu-24.04-x86_64-rocm-10.1.0.zip"
-        sha256 "b0deb148e8f0c05c75b5c8b54876ff97f819e80f57fcf1398ebb5dbb727c7a16"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1141-e637c7b/sd-master-e637c7b-bin-Linux-Ubuntu-24.04-x86_64-rocm-10.1.0.zip"
+        sha256 "14a279ef592e1f0d296835bea8005b3e57547de1665e6e53601d1d8e7b19f160"
       elsif build.with? "cpu"
-        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-975-95b3090/sd-master-95b3090-bin-Linux-Ubuntu-24.04-x86_64.zip"
-        sha256 "23757b2d46edd68ec59ad252e6e3d6c1854ab01d6be5d47a06e0bc751c2eee2a"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1141-e637c7b/sd-master-e637c7b-bin-Linux-Ubuntu-26.04-x86_64.zip"
+        sha256 "abe1561e7b706394a1a242c4d9480cc0391845dbc28dcd258843e98eb7948010"
       else
         # Default: Mesa RADV / Vulkan universal acceleration
-        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-975-95b3090/sd-master-95b3090-bin-Linux-Ubuntu-24.04-x86_64-vulkan.zip"
-        sha256 "703f547a0bbe254979940ec6142a87b4af6acbc01d34e37358f4feabb430a225"
+        url "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1141-e637c7b/sd-master-e637c7b-bin-Linux-Ubuntu-26.04-x86_64-vulkan.zip"
+        sha256 "70c577cfe447f3550a93e3973cc67f635e2f2676b4ada9c92b2e2b52a90f6bbc"
       end
     end
   end
@@ -48,26 +45,14 @@ class StableDiffusionCpp < Formula
 
     chmod 0755, Dir[libexec/"*"]
 
-    %w[sd-cli sd-server sd].each do |cmd|
+    %w[sd-cli sd-server].each do |cmd|
       next unless (libexec/cmd).exist?
 
       chmod 0755, libexec/cmd
-      bin.write_exec_script (libexec/cmd)
+      bin.install_symlink libexec/cmd
     end
 
-    if (libexec/"sd-cli").exist? && !(bin/"sd").exist?
-      (bin/"sd").write <<~SH
-        #!/bin/bash
-        exec "#{libexec/"sd-cli"}" "$@"
-      SH
-    end
-
-    if (libexec/"sd-cli").exist? && !(bin/"stable-diffusion").exist?
-      (bin/"stable-diffusion").write <<~SH
-        #!/bin/bash
-        exec "#{libexec/"sd-cli"}" "$@"
-      SH
-    end
+    bin.install_symlink libexec/"sd-cli" => "stable-diffusion" if (libexec/"sd-cli").exist?
   end
 
   service do

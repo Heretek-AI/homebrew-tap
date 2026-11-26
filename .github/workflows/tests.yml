@@ -1,4 +1,4 @@
-name: Brew CI & Formula Audit
+name: brew test-bot
 
 on:
   push:
@@ -7,69 +7,144 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
 jobs:
-  style-and-audit:
-    runs-on: ${{ matrix.os }}
+  test-bot:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14]
-
+        os: [ macos-26 ]
+        include:
+          - os: ubuntu-latest
+            container:
+              image: ghcr.io/homebrew/brew:main
+              options: --privileged
+    runs-on: ${{ matrix.os }}
+    container: ${{ fromJSON(toJSON(matrix.container)) }} # zizmor: ignore[unpinned-images]
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Formula Style
-        run: |
-          brew style Formula/
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ matrix.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ matrix.os }}-rubygems-
 
-      - name: Audit Formulae
+      - run: brew test-bot --only-cleanup-before
+
+      - run: brew test-bot --only-setup
+
+      - run: brew test-bot --only-tap-syntax
+
+      - name: Free disk space for ROCm source builds
+        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        run: curl -fsSL https://raw.githubusercontent.com/kou/arrow/e49d8ae15583ceff03237571569099a6ad62be32/ci/scripts/util_free_space.sh | bash
+
+      - name: Provision AMD ROCm SDK for Linux source builds
+        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
         run: |
-          TAP_NAME="${{ steps.set-up-homebrew.outputs.tap-name || github.repository }}"
-          if [ "${{ matrix.os }}" = "macos-14" ]; then
-            # On macOS, audit multi-platform formulas (Linux-only formulas declare depends_on :linux)
-            for formula in shimmy stable-diffusion-cpp strata project-maya; do
-              if [ -f "Formula/${formula}.rb" ]; then
-                brew audit --strict --online "${TAP_NAME}/${formula}" || true
-              fi
-            done
-          else
-            brew audit --strict --online --tap="${TAP_NAME}"
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          script="${tap_dir}/.github/scripts/resolve_rocm_sdk.sh"
+          if [[ ! -f "$script" ]]
+          then
+            echo "::warning::ROCm provisioning script not found at ${script}; continuing without a ROCm SDK."
+            exit 0
           fi
 
+          if ! command -v python3 >/dev/null 2>&1
+          then
+            if ! command -v sudo >/dev/null 2>&1 || ! command -v apt-get >/dev/null 2>&1
+            then
+              echo "::warning::python3 is unavailable and cannot be installed in the test-bot container; skipping ROCm provisioning."
+              exit 0
+            fi
+            if ! sudo apt-get update -qq || ! sudo apt-get install -y -qq python3
+            then
+              echo "::warning::Unable to install python3 in the test-bot container; skipping ROCm provisioning."
+              exit 0
+            fi
+          fi
+
+          for tool in bash curl sudo tar
+          do
+            if ! command -v "$tool" >/dev/null 2>&1
+            then
+              echo "::warning::Cannot run the ROCm provisioning script: '${tool}' is unavailable in the test-bot container. Continuing without a ROCm SDK."
+              exit 0
+            fi
+          done
+
+          cd "$tap_dir"
+          bash .github/scripts/resolve_rocm_sdk.sh --family gfx1151 --prefix /opt/rocm-nightly
+          # The SDK is unpacked into /opt; drop the cached tarball to reclaim runner disk.
+          rm -rf "${HOME}/.cache/rocm-nightly"
+          echo "HOMEBREW_ROCM_PATH=/opt/rocm-nightly" >> "${GITHUB_ENV}"
+
+      - name: Base64-encode GITHUB_TOKEN for HOMEBREW_DOCKER_REGISTRY_TOKEN
+        id: base64-encode
+        if: github.event_name == 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          base64_token=$(echo -n "${TOKEN}" | base64 | tr -d "\n")
+          echo "::add-mask::${base64_token}"
+          echo "token=${base64_token}" >> "${GITHUB_OUTPUT}"
+
+      - run: brew test-bot --only-formulae --root-url=https://ghcr.io/v2/heretek-ai/tap
+        if: github.event_name == 'pull_request'
+        env:
+          HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.base64-encode.outputs.token }}
+
+      - name: Upload bottles as artifact
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles_${{ matrix.os }}
+          path: '*.bottle.*'
+
   test-scripts:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
 
-      - name: Install Test Dependencies
-        run: |
-          pip install pytest pytest-cov
+      - name: Install test dependencies
+        run: pip install pytest pytest-cov
 
-      - name: Run Script & Toolchain Unit Tests
+      - name: Run script & toolchain unit tests
         env:
           PYTHONIOENCODING: utf-8
-        run: |
-          pytest tests/ -v
+        run: pytest tests/ -v
 
-      - name: Lint Shell Scripts
+      - name: Lint shell scripts
         run: |
-          sudo apt-get update && sudo apt-get install -y shellcheck
-          shellcheck .github/scripts/*.sh
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck .github/scripts/*.sh scripts/test_local_tap.sh

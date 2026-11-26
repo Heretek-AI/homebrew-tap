@@ -5,7 +5,12 @@
 .vscode/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 venv/
 .env
 dist/
 build/
+*.bottle.*
+*.bottle.tar.gz
+bottle/

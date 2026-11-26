@@ -81,13 +81,13 @@ class Strixite < Formula
            "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
     system "cmake", "--build", "build"
 
-    bin.install "build/strix_server"
-    bin.install_symlink bin/"strix_server" => "strixite"
-    bin.install "build/convert_qwen4exp"
-    bin.install "build/convert_ngram_table"
-    bin.install "build/transcode_ngram_table"
-    bin.install "build/inspect_strixw"
-    bin.install "build/check_stream_calls"
+    bin.install "build/strix_server" => "strixite-server"
+    bin.install_symlink bin/"strixite-server" => "strixite"
+    bin.install "build/convert_qwen4exp" => "strixite-convert-qwen4exp"
+    bin.install "build/convert_ngram_table" => "strixite-convert-ngram-table"
+    bin.install "build/transcode_ngram_table" => "strixite-transcode-ngram-table"
+    bin.install "build/inspect_strixw" => "strixite-inspect-strixw"
+    bin.install "build/check_stream_calls" => "strixite-check-stream-calls"
 
     if File.exist?("deploy/strix-server.conf")
       (etc/"strixite").install "deploy/strix-server.conf" => "strix_server.example.conf"
@@ -108,17 +108,17 @@ class Strixite < Formula
   def caveats
     <<~EOS
       1. Convert HuggingFace Qwen3.8-Flash-Next safetensors to Strixite .strixw v2 format:
-           convert_qwen4exp /path/to/Qwen3.8-Flash-Next /path/to/qwen4exp-strixw --int4-shared
+           strixite-convert-qwen4exp /path/to/Qwen3.8-Flash-Next /path/to/qwen4exp-strixw --int4-shared
 
       2. Start the Strixite server (default port 5300):
-           strix_server --model /path/to/qwen4exp-strixw --port 5300 --kv-mode fp8 --mtp-draft 3
+           strixite-server --model /path/to/qwen4exp-strixw --port 5300 --kv-mode fp8 --mtp-draft 3
          Or using a config file based on #{etc}/strixite/strix_server.example.conf:
-           strix_server --config #{etc}/strixite/strix_server.example.conf
+           strixite-server --config #{etc}/strixite/strix_server.example.conf
     EOS
   end
 
   service do
-    run [opt_bin/"strix_server", "--config", etc/"strixite/strix_server.conf"]
+    run [opt_bin/"strixite-server", "--config", etc/"strixite/strix_server.conf"]
     keep_alive true
     working_dir var
     log_path var/"log/strixite.log"
@@ -127,12 +127,12 @@ class Strixite < Formula
 
   test do
     # 1. Dynamic Linker & ABI Audit
-    out = shell_output("ldd #{bin}/strix_server")
+    out = shell_output("ldd #{bin}/strixite-server")
     refute_match(/not found/, out)
     assert_match(/libamdhip64\.so/, out)
 
     # 2. CLI Introspection
-    assert_match "Usage: ./strix_server --model", shell_output("#{bin}/strix_server --help")
-    assert_match(/convert|usage/i, shell_output("#{bin}/convert_qwen4exp --help 2>&1"))
+    assert_match(/Usage:.*--model/i, shell_output("#{bin}/strixite-server --help"))
+    assert_match(/convert|usage/i, shell_output("#{bin}/strixite-convert-qwen4exp --help 2>&1"))
   end
 end

@@ -30,12 +30,6 @@ class ProjectMaya < Formula
     sha256 "c076d7534afa0e5d0ec2a0d425b11e791c16f3de0d727221aea071cef156a280"
   end
 
-  def rocm_root
-    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
-      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
-      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
-  end
-
   def install
     llama_dir = buildpath/"third_party/llama.cpp"
     resource("llama.cpp").stage llama_dir
@@ -58,7 +52,13 @@ class ProjectMaya < Formula
              *std_cmake_args
       system "cmake", "--build", "build-metal/vision", "--target", "maya-vision"
     else
-      rocm_path = rocm_root
+      rocm_path = [
+        ENV["HOMEBREW_ROCM_PATH"],
+        ENV["ROCM_PATH"],
+        "/opt/rocm-nightly",
+        "/opt/rocm",
+      ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+                  odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
       hip_archs = if build.with?("wave64")
         "gfx906;gfx908;gfx942;gfx950"
       elsif build.with?("all-amdgpu")

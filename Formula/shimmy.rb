@@ -1,9 +1,9 @@
 class Shimmy < Formula
   desc "Pure-Rust WebGPU & CUDA LLM inference engine"
   homepage "https://github.com/Michael-A-Kuykendall/shimmy"
-  url "https://github.com/Michael-A-Kuykendall/shimmy/archive/refs/tags/v2.6.5.tar.gz"
-  sha256 "1db5bad1b642bc529ef3e9c4a585be6e7e27c22da85035a8bfda69213755f465"
-  license "MIT"
+  url "https://github.com/Michael-A-Kuykendall/shimmy/archive/refs/tags/v2.6.7.tar.gz"
+  sha256 "fcc272f4acb93e0c04c693082212f58ea278c007fb58730b7cc95e5813636de3"
+  license "Apache-2.0"
 
   livecheck do
     url :stable

@@ -1,0 +1,116 @@
+name: brew bump
+
+on:
+  schedule:
+    # Every day at 03:17 UTC (off-peak)
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Formula key to sync (or "all")
+        required: false
+        default: all
+      release_tag:
+        description: Release tag to sync (or "latest")
+        required: false
+        default: latest
+  repository_dispatch:
+    types: [builder-release]
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  brew-bump:
+    # Scheduled and manually dispatched bumps use `brew bump`. Builder release
+    # dispatches are handled by the `sync-formulae` job below.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+
+      - name: Bump formulae and casks
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
+          HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: brew bump --no-fork --open-pr --bump-synced --tap="$TAP_NAME"
+
+  sync-formulae:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Update formulae
+        env:
+          TARGET: ${{ github.event.inputs.target || github.event.client_payload.target || github.event.client_payload.builder || 'all' }}
+          TAG: ${{ github.event.inputs.release_tag || github.event.client_payload.release_tag || github.event.client_payload.tag || 'latest' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Syncing formulae for target '${TARGET}' at tag '${TAG}'"
+          if [[ "$TARGET" == "all" ]]
+          then
+            python3 scripts/update_formulae.py --repo all --skip-upstream-releases --tag "${TAG}"
+          else
+            python3 scripts/update_formulae.py --repo "${TARGET}" --tag "${TAG}"
+          fi
+
+      - name: Detect formula changes
+        id: changes
+        run: |
+          if [[ -n "$(git status --porcelain -- Formula/)" ]]
+          then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "No formula changes detected."
+          fi
+
+      - name: Open pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          TARGET: ${{ github.event.inputs.target || github.event.client_payload.target || github.event.client_payload.builder || 'all' }}
+          TAG: ${{ github.event.inputs.release_tag || github.event.client_payload.release_tag || github.event.client_payload.tag || 'latest' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="autobump/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git checkout -b "${branch}"
+          git add -- Formula/
+          git commit -m "chore(formulae): sync ${TARGET} at ${TAG}"
+          git push origin "${branch}"
+          gh pr create \
+            --base main \
+            --head "${branch}" \
+            --title "chore(formulae): sync ${TARGET} at ${TAG}" \
+            --body "Automated formula sync from \`scripts/update_formulae.py\` for target **${TARGET}** at tag **${TAG}**.
+
+          Opened automatically by the autobump workflow. \`brew test-bot\` must pass before merging."

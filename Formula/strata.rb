@@ -31,12 +31,6 @@ class Strata < Formula
     sha256 "c076d7534afa0e5d0ec2a0d425b11e791c16f3de0d727221aea071cef156a280"
   end
 
-  def rocm_root
-    [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
-      .compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
-      odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
-  end
-
   def install
     llama_dir = buildpath/"third_party/llama.cpp"
     resource("llama.cpp").stage llama_dir
@@ -62,7 +56,13 @@ class Strata < Formula
              "-DCMAKE_BUILD_TYPE=Release", "-DLLAMA_DIR=#{llama_dir}", *std_cmake_args
       system "cmake", "--build", "build-metal/vision", "--target", "strata-vision"
     else
-      rocm_path = rocm_root
+      rocm_path = [
+        ENV["HOMEBREW_ROCM_PATH"],
+        ENV["ROCM_PATH"],
+        "/opt/rocm-nightly",
+        "/opt/rocm",
+      ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
+                  odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
       hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1100;gfx1150;gfx1151"
 
       backend_args = if build.with?("cuda")
@@ -115,7 +115,11 @@ class Strata < Formula
              "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
       system "cmake", "--build", "build"
 
-      vision_target = (build.without?("cuda") && build.without?("sycl")) ? "strata-vision-hip" : "strata-vision"
+      vision_target = if build.without?("cuda") && build.without?("sycl")
+        "strata-vision-hip"
+      else
+        "strata-vision"
+      end
       vision_args = %W[
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release

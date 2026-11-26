@@ -5,7 +5,7 @@ class Snowllm < Formula
   homepage "https://github.com/snowllm/snowllm"
   url "https://github.com/snowllm/snowllm/archive/52b4bac0914d202fd2877f576c4db462b21815a7.tar.gz"
   version "0.3.22.dev3-git52b4bac"
-  sha256 "039a5ca2f39cbf81bbbfd986b206775ee7cb1372dfca7a174f8841ce2ca6d5ea"
+  sha256 "a1af00cb7cede70ca2f5a1ce192bd5d8cccb1b37fc0db31096a1cffdb4ba3f21"
   license "Apache-2.0"
   head "https://github.com/snowllm/snowllm.git", branch: "main"
 
