@@ -75,7 +75,7 @@ class GemmaCpp < Formula
     bin.install "build/gemma" => "gemma-cpp"
 
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
-      variant:    OS.mac? ? "metal-cpu" : "cpu",
+      variant:    "cpu",
       version:    version,
       cmake_args: args,
     )
