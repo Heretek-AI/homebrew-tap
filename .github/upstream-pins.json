@@ -232,7 +232,7 @@
       "repo": "mw00/project-maya",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "72a641abf157e53ee69f7fe6ce5147426eff1cd7840a15b9e9e1e89bd84ef082",
+      "formula_sha256": "e1bda1f7ded2fd0ecd81f49121709d7f223789b2b946335c1ee9ec768615d389",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -287,7 +287,7 @@
       "repo": "Niko1221/Strata",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "cd6a3bdf9ef5373e470f1ce6e48815ee2dff572db693da3267412ee4b0873ea9",
+      "formula_sha256": "fb9cfeea258c7e58f300448d717531a8e03726a950787df84ad08da5f4cec866",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -342,7 +342,7 @@
       "repo": "shawnshekari/strixite",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "4401533c5da3b5d34508b18904edca4820ddc374a4fe442311622d61488695ce",
+      "formula_sha256": "25629bca73539d4c0e4f5d4841c88c7a766a7d2b07d283f8b204412578938f18",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -421,7 +421,7 @@
       "repo": "Luce-Org/lucebox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "f6b7aef39e0b5c6e513b0fee2bffead2e90d4c745611f380b85f42451e6ff924",
+      "formula_sha256": "5fc5047d36d3eecde6f8b11e2b1a2c742f57dd6bf86648fde8fd7a94ca981c6d",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -573,7 +573,7 @@
       "repo": "franzmoca/ds41-gufo-extension",
       "branch": "main",
       "track": "release",
-      "formula_sha256": "199ea063d26ba97e2a86a2eac591d18e3556bff572f7f91f2db5dd884241a524",
+      "formula_sha256": "08c05468736a8e697757d89c69f1535deb1542e20cbd08d6a10d3b6e6365addb",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -613,7 +613,7 @@
       "repo": "Indras-Mirror/Xolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "93444f5867a3d710f7d230eae11bdecb083f63352a7c2e1664df271df2cd5a25",
+      "formula_sha256": "6c4cef62383112586d10c431fdc189cfc12c2e082452425b86ecb11217b49be9",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -690,7 +690,7 @@
       "repo": "rulith-dev/llama.cpp",
       "branch": "rulith",
       "track": "commit",
-      "formula_sha256": "e54b7751eaa6f29f63fc3c7ccb8cffcf3e8c9ba3a6fb8d26c506b768a60292f6",
+      "formula_sha256": "a81a6d90d094ec5284f80ee5bc67eadcd369abf055c792ef8660cf709088ff31",
       "variants": {
         "rocm": {
           "status": "enabled",

@@ -31,7 +31,7 @@ class Lucebox < Formula
       -DLUCE_GPU_BACKEND=#{backend}
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
-    rpath = "#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib"
+    rpath = "#{libexec}/lib;#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib"
 
     if build.with?("rocm")
       rocm = [
@@ -49,7 +49,7 @@ class Lucebox < Formula
       args << "-DHIP_ROOT_DIR=#{rocm}"
       args << "-DHIP_PATH=#{rocm}"
       args << "-DLUCE_HIP_ARCHITECTURES=gfx1150;gfx1151"
-      rpath = "#{rocm}/lib;#{HOMEBREW_PREFIX}/lib"
+      rpath = "#{libexec}/lib;#{rocm}/lib;#{HOMEBREW_PREFIX}/lib"
     else
       cuda_root = [
         ENV["HOMEBREW_CUDA_PATH"],
@@ -61,6 +61,11 @@ class Lucebox < Formula
         ENV["CUDA_HOME"] = cuda_root
         ENV["CUDACXX"] = "#{cuda_root}/bin/nvcc"
         ENV.prepend_path "PATH", "#{cuda_root}/bin"
+        # Superenv strips -L/usr/local/* flags; expose CUDA's lib dirs via
+        # HOMEBREW_LIBRARY_PATHS so -lcudadevrt and -lcudart_static resolve at link.
+        ENV.append_path "HOMEBREW_LIBRARY_PATHS", "#{cuda_root}/lib64"
+        cuda_target_lib = "#{cuda_root}/targets/x86_64-linux/lib"
+        ENV.append_path "HOMEBREW_LIBRARY_PATHS", cuda_target_lib if File.directory?(cuda_target_lib)
         args << "-DCUDAToolkit_ROOT=#{cuda_root}"
         args << "-DCMAKE_CUDA_COMPILER=#{cuda_root}/bin/nvcc"
         # nvcc cannot use Homebrew's superenv shim for its host-compiler
@@ -90,7 +95,10 @@ class Lucebox < Formula
                   "#        define CUB_TOP_K_AVAILABLE\n#        include <cuda/iterator>"
       end
     end
+    rpath_colon = rpath.tr(";", ":")
     args << "-DCMAKE_INSTALL_RPATH=#{rpath}"
+    args << "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath,#{rpath_colon}"
+    args << "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-rpath,#{rpath_colon}"
     if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
       ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
       %w[C CXX CUDA HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
@@ -98,6 +106,9 @@ class Lucebox < Formula
 
     system "cmake", "-S", "server", "-B", "build", *std_cmake_args, *args
     system "cmake", "--build", "build", "--target", "luce_server"
+
+    ggml_libs = Dir.glob("build/deps/llama.cpp/ggml/src/**/*.so*")
+    (libexec/"lib").install ggml_libs unless ggml_libs.empty?
 
     bin.install "build/luce_server" => "lucebox-server"
     bin.install_symlink bin/"lucebox-server" => "lucebox"
@@ -128,11 +139,14 @@ class Lucebox < Formula
   end
 
   test do
-    # 1. Dynamic Linker & ABI Audit
+    # 1. Dynamic Linker & ABI Audit (libcuda.so.1 comes from the host NVIDIA driver)
     out = shell_output("ldd #{bin}/lucebox-server")
-    refute_match(/not found/, out)
+    missing = out.lines.grep(/not found/).reject { |line| line.include?("libcuda.so.1") }
+    assert_empty missing, "Unexpected missing shared libraries:\n#{missing.join}"
 
-    # 2. CLI Introspection
-    assert_match(/luce|usage|server/i, shell_output("#{bin}/lucebox-server --help 2>&1"))
+    # 2. CLI Introspection (skip execution when the host NVIDIA driver is absent)
+    if out.exclude?("libcuda.so.1 => not found")
+      assert_match(/luce|usage|server/i, shell_output("#{bin}/lucebox-server --help 2>&1"))
+    end
   end
 end

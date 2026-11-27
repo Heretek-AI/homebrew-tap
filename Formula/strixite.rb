@@ -81,6 +81,10 @@ class Strixite < Formula
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DSTRIX_GCC_INSTALL_DIR=#{gcc_install_dir}" if gcc_install_dir
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
            "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
@@ -147,7 +151,7 @@ class Strixite < Formula
     assert_match(/libamdhip64\.so/, out)
 
     # 2. CLI Introspection
-    assert_match(/Usage:.*--model/i, shell_output("#{bin}/strixite-server --help"))
+    assert_match(/usage:.*strix_server/i, shell_output("#{bin}/strixite-server --help"))
     assert_match(/convert|usage/i, shell_output("#{bin}/strixite-convert-qwen4exp --help 2>&1"))
   end
 end

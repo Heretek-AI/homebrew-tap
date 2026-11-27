@@ -57,6 +57,11 @@ class Xolotl < Formula
     ENV["CUDA_HOME"] = cuda
     ENV["CUDACXX"] = "#{cuda}/bin/nvcc"
     ENV.prepend_path "PATH", "#{cuda}/bin"
+    # Superenv strips -L/usr/local/* flags; expose CUDA's lib dirs via
+    # HOMEBREW_LIBRARY_PATHS so -lcudadevrt and -lcudart_static resolve at link.
+    ENV.append_path "HOMEBREW_LIBRARY_PATHS", "#{cuda}/lib64"
+    cuda_target_lib = "#{cuda}/targets/x86_64-linux/lib"
+    ENV.append_path "HOMEBREW_LIBRARY_PATHS", cuda_target_lib if File.directory?(cuda_target_lib)
 
     # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>.
     argsort_cu = llama_dir/"ggml/src/ggml-cuda/argsort.cu"
@@ -187,9 +192,12 @@ class Xolotl < Formula
 
   test do
     out = shell_output("ldd #{libexec}/build-xolotl/ds41_generate")
-    refute_match(/not found/, out)
+    missing = out.lines.grep(/not found/).reject { |line| line.include?("libcuda.so.1") }
+    assert_empty missing, "Unexpected missing shared libraries:\n#{missing.join}"
     assert_match(/libcudart\.so/, out)
 
-    assert_match(/usage|model/i, shell_output("#{bin}/xolotl-ds41 --help 2>&1", 2))
+    if out.exclude?("libcuda.so.1 => not found")
+      assert_match(/usage|model/i, shell_output("#{bin}/xolotl-ds41 --help 2>&1", 2))
+    end
   end
 end

@@ -107,10 +107,20 @@ class ProjectMaya < Formula
         -DSTRATA_GGML_DIR=#{llama_dir}
         -DMAYA_BUILD_ID=#{version}
       ] + backend_args
+      if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+        ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+        %w[C CXX CUDA HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+      end
 
       system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
              "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
-      system "cmake", "--build", "build"
+      build_targets = %w[
+        maya maya-ds4 maya-mm3 peer_probe
+        strata-plan strata-device strata-gguf strata-dequant
+        strata-load strata-concurrent strata-overlap
+      ]
+      build_targets << "tune_hipblaslt" if build.without?("cuda")
+      system "cmake", "--build", "build", "--target", *build_targets
 
       vision_args = %W[
         -G Ninja

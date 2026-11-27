@@ -28,6 +28,7 @@ class GufoDs41 < Formula
   depends_on "libsoxr"
   depends_on :linux
   depends_on "openssl@4"
+  depends_on "opus"
   depends_on "webp"
   depends_on "zlib-ng-compat"
 
@@ -201,6 +202,9 @@ class GufoDs41 < Formula
            "-DCMAKE_PREFIX_PATH=#{prefix_paths}"
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
+
+    # Remove build-time extension SDK metadata that records Homebrew shim paths.
+    rm_r lib/"gufo/sdk" if (lib/"gufo/sdk").exist?
 
     # Expose binaries only under the gufo-ds41 namespace so it installs alongside gufo.
     rm bin/"gufo-server" if (bin/"gufo-server").exist?

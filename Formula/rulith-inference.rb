@@ -15,6 +15,7 @@ class RulithInference < Formula
   depends_on "ninja" => :build
   depends_on "heretek-ai/tap/rocm-runtime"
   depends_on :linux
+  depends_on "openssl@4"
 
   def rocm_root
     [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
@@ -53,7 +54,7 @@ class RulithInference < Formula
       "#{rocm_path}/bin/clang++",
     ].find { |c| File.executable?(c) }
 
-    rpath = "#{libexec}/lib;#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib"
+    rpath = "#{libexec}/lib;#{formula_opt_lib("rocm-runtime")};#{formula_opt_lib("openssl@4")};#{HOMEBREW_PREFIX}/lib"
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release

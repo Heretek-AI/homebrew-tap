@@ -111,6 +111,10 @@ class Strata < Formula
         -DSTRATA_GGML_DIR=#{llama_dir}
         -DSTRATA_BUILD_ID=#{version}
       ] + backend_args
+      if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+        ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+        %w[C CXX HIP CUDA].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+      end
 
       system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
              "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
@@ -198,7 +202,6 @@ class Strata < Formula
       PATH:           "#{opt_bin}:#{ENV.fetch("PATH")}",
     }
 
-    (bin/"strata").write_env_script libexec/"venv/bin/python", "#{libexec}/strata.py", env_vars
     (bin/"strata-server").write_env_script libexec/"venv/bin/python", "#{libexec}/serve/server.py", env_vars
     (bin/"strata-cli").write_env_script libexec/"venv/bin/python", "#{libexec}/strata.py", env_vars
     (bin/"strata-chat").write_env_script libexec/"venv/bin/python", "#{libexec}/chat.py", env_vars
