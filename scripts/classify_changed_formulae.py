@@ -94,14 +94,22 @@ def is_linux_only(source: str) -> bool:
 
 
 def is_macos_only(source: str) -> bool:
-    """Best-effort check for a formula that cannot build on Linux."""
+    """Best-effort check for a formula that cannot build on Linux.
+
+    Only an unconditional macOS requirement makes a formula macOS-only.
+    A bare ``on_macos`` block is not enough: portable formulae use those
+    blocks for macOS-only dependencies while keeping a shared Linux URL.
+    """
     if (
         "OS.linux?" in source
         or "on_linux do" in source
         or re.search(r"^\s*depends_on :linux\b", source, re.MULTILINE)
     ):
         return False
-    return "on_macos do" in source or "depends_on macos:" in source
+    return (
+        re.search(r"^\s*depends_on\s+(?::macos\b|macos\s*:)", source, re.MULTILINE)
+        is not None
+    )
 
 
 def is_rocm(source: str) -> bool:

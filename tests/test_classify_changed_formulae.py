@@ -48,11 +48,17 @@ class TestClassifyChangedFormulae(unittest.TestCase):
             self.assertEqual(classifier.classify([name], "hosted-cuda"), [])
 
     def test_source_rocm_and_cuda_formulae(self) -> None:
-        self.assertEqual(classifier.classify(["rocmfpx"], "stx-halo"), ["rocm-runtime", "rocmfpx"])
+        self.assertEqual(
+            classifier.classify(["rocmfpx"], "stx-halo"), ["rocm-runtime", "rocmfpx"]
+        )
         self.assertEqual(classifier.classify(["rocmfpx"], "hosted-linux"), [])
-        self.assertEqual(classifier.classify(["basalt"], "hosted-cuda"), ["cuda-runtime", "basalt"])
+        self.assertEqual(
+            classifier.classify(["basalt"], "hosted-cuda"), ["cuda-runtime", "basalt"]
+        )
         self.assertEqual(classifier.classify(["basalt"], "stx-halo"), [])
-        self.assertEqual(classifier.classify(["lucebox"], "hosted-cuda"), ["cuda-runtime", "lucebox"])
+        self.assertEqual(
+            classifier.classify(["lucebox"], "hosted-cuda"), ["cuda-runtime", "lucebox"]
+        )
         self.assertEqual(classifier.classify(["lucebox"], "stx-halo"), [])
 
     def test_macos_only_formula_is_linux_excluded(self) -> None:
@@ -60,6 +66,40 @@ class TestClassifyChangedFormulae(unittest.TestCase):
         self.assertEqual(classifier.classify(["uzu"], "hosted-linux"), [])
         self.assertEqual(classifier.classify(["uzu"], "hosted-cuda"), [])
         self.assertEqual(classifier.classify(["uzu"], "stx-halo"), [])
+
+    def test_macos_requirement_not_on_macos_block_alone(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            os.chdir(directory)
+            (Path("Formula")).mkdir()
+            (Path("Formula") / "portable.rb").write_text(
+                "class Portable < Formula\n"
+                '  url "https://example.com/portable-1.0.tar.gz"\n'
+                "  on_macos do\n"
+                '    depends_on "libomp"\n'
+                "  end\n"
+                "end\n"
+            )
+            (Path("Formula") / "mac-symbol.rb").write_text(
+                "class MacSymbol < Formula\n"
+                '  url "https://example.com/macos-1.0.tar.gz"\n'
+                "  depends_on :macos\n"
+                "end\n"
+            )
+            (Path("Formula") / "mac-version.rb").write_text(
+                "class MacVersion < Formula\n"
+                '  url "https://example.com/macos-2.0.tar.gz"\n'
+                "  depends_on macos: :tahoe\n"
+                "end\n"
+            )
+
+            self.assertEqual(
+                classifier.classify(["portable"], "hosted-linux"), ["portable"]
+            )
+            self.assertEqual(classifier.classify(["mac-symbol"], "hosted-linux"), [])
+            self.assertEqual(classifier.classify(["mac-version"], "hosted-linux"), [])
+            self.assertEqual(
+                classifier.classify(["mac-symbol"], "hosted-macos"), ["mac-symbol"]
+            )
 
     def test_hosted_formulae(self) -> None:
         self.assertEqual(classifier.classify(["shimmy"], "hosted-macos"), ["shimmy"])
