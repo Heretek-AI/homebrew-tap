@@ -1,4 +1,6 @@
 class Strixolotl < Formula
+  include Language::Python::Virtualenv
+
   desc "AMD Strix Halo HIP port of Xolotl for DeepSeek-V4.1-Flash (GSQ-217)"
   homepage "https://github.com/snowsh1ne/strixolotl"
   url "https://github.com/snowsh1ne/strixolotl/archive/20d3c7a77006d8ae4e171929c6658dce40c06a0d.tar.gz"
@@ -20,6 +22,21 @@ class Strixolotl < Formula
   resource "llama.cpp" do
     url "https://github.com/ggml-org/llama.cpp/archive/3cf03257f219afbe7334045ff7c6a06ac68c627d.tar.gz"
     sha256 "c076d7534afa0e5d0ec2a0d425b11e791c16f3de0d727221aea071cef156a280"
+  end
+
+  resource "markupsafe" do
+    url "https://files.pythonhosted.org/packages/38/9b/e422a865e1d5d57d0e509b4e0bf1c1a70a7f6382c29a5aa428df994c8bc8/markupsafe-3.0.4.tar.gz"
+    sha256 "2e9ad7dd851bf45fab9f75cbff4cb493fee9979e8d8c7c9c3ee119022518edd6"
+  end
+
+  resource "jinja2" do
+    url "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz"
+    sha256 "0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"
+  end
+
+  resource "regex" do
+    url "https://files.pythonhosted.org/packages/fa/b8/61d96601b737305a04161da340499cbb3299029d4ea0f9c717bc35977c2b/regex-2026.11.25.tar.gz"
+    sha256 "d3ea8d9698f13f3fd08c65f9bed0bb07bcfff80b61dfa14d86b8cc398f886588"
   end
 
   def rocm_root
@@ -89,8 +106,13 @@ class Strixolotl < Formula
 
     (libexec/"bin").install "build-strix/ds41_generate"
     libexec.install "xolotl/serve" if (buildpath/"xolotl/serve").exist?
-    (libexec/"tools").install "xolotl/tools/v41" if (buildpath/"xolotl/tools/v41").exist?
+    libexec.install "xolotl/tools" if (buildpath/"xolotl/tools").exist?
     libexec.install "scripts" if (buildpath/"scripts").exist?
+
+    venv = virtualenv_create(libexec/"venv", "python3.12")
+    venv.pip_install resource("markupsafe")
+    venv.pip_install resource("jinja2")
+    venv.pip_install resource("regex")
 
     (bin/"strixolotl").write <<~SH
       #!/usr/bin/env bash
@@ -100,13 +122,12 @@ class Strixolotl < Formula
     SH
     chmod 0755, bin/"strixolotl"
 
-    python3 = formula_opt_bin("python@3.12")/"python3.12"
     (bin/"strixolotl-serve").write <<~SH
       #!/usr/bin/env bash
       export HSA_DISABLE_COREDUMP_ON_EXCEPTION=1
       export PYTHONPATH="#{libexec}${PYTHONPATH:+:$PYTHONPATH}"
       export LD_LIBRARY_PATH="#{formula_opt_lib("rocm-runtime")}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-      exec "#{python3}" "#{libexec}/tools/v41/serve/serve_ds41.py" --engine "#{libexec}/bin/ds41_generate" "$@"
+      exec "#{libexec}/venv/bin/python" "#{libexec}/tools/v41/serve/serve_ds41.py" --engine strata "$@"
     SH
     chmod 0755, bin/"strixolotl-serve"
 
@@ -126,7 +147,7 @@ class Strixolotl < Formula
       Recommended kernel parameters:
         amdgpu.gttsize=131072 ttm.pages_limit=33554432
 
-      Serve a configured DeepSeek-V4.1 model on loopback:
+      Serve a configured DeepSeek-V4.1 model on loopback (set "exe": "#{opt_libexec}/bin/ds41_generate" in your JSON config):
         strixolotl-serve --config /path/to/strata-ds41.json --host 127.0.0.1 --port 18013
     EOS
   end

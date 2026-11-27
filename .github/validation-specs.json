@@ -1069,15 +1069,21 @@
         ],
         "device_cmd": [
           "bin/strixolotl",
-          "--help"
+          "--backend",
+          "hip",
+          "-m",
+          "/dev/null"
         ],
-        "device_ok_regex": "(?i)(usage|model|ds41|strata)",
-        "no_device_ok_regex": "(?i)(usage|model|hip|no (gpu|device))",
+        "device_ok_regex": "(?i)(gfx1151|radeon|rocm|hip|device)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|hip|failed|cannot open|invalid)",
         "golden_cmd": [
           "bin/strixolotl",
-          "--help"
+          "--backend",
+          "hip",
+          "-m",
+          "/dev/null"
         ],
-        "throughput_regex": "(?i)(usage|model|[0-9.]+\\s*(tok/s|t/s))"
+        "throughput_regex": "(?i)([0-9.]+\\s*(tok/s|t/s)|gfx1151|hip)"
       }
     },
     "rulith-inference": {

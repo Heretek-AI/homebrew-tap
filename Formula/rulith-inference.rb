@@ -70,7 +70,7 @@ class RulithInference < Formula
       -DLLAMA_CURL=OFF
       -DLLAMA_USE_PREBUILT_UI=OFF
       -DLLAMA_BUILD_TESTS=OFF
-      -DLLAMA_BUILD_EXAMPLES=ON
+      -DLLAMA_BUILD_EXAMPLES=OFF
       -DLLAMA_BUILD_TOOLS=ON
       -DCMAKE_HIP_COMPILER_ROCM_ROOT=#{rocm_path}
       -DHIP_ROOT_DIR=#{rocm_path}
@@ -83,7 +83,11 @@ class RulithInference < Formula
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args(install_prefix: libexec), *args,
            "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
     system "cmake", "--build", "build", "--target", "llama-server", "llama-quantize", "llama-cli"
-    system "cmake", "--install", "build"
+
+    # Install only the built binaries and shared libraries so unbuilt targets are never expected.
+    (libexec/"bin").mkpath
+    (libexec/"lib").mkpath
+    Dir["build/bin/lib*.so*"].each { |lib_file| (libexec/"lib").install lib_file }
 
     # Expose only namespaced rulith-* binaries so we never collide with upstream llama.cpp.
     {
@@ -91,10 +95,11 @@ class RulithInference < Formula
       "llama-quantize" => "rulith-quantize",
       "llama-cli"      => "rulith-cli",
     }.each do |src_name, dst_name|
-      target = libexec/"bin"/src_name
-      next unless target.exist?
+      built = buildpath/"build/bin"/src_name
+      next unless built.exist?
 
-      bin.install_symlink target => dst_name
+      (libexec/"bin").install built
+      bin.install_symlink libexec/"bin"/src_name => dst_name
     end
 
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(

@@ -203,7 +203,7 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | `basalt` | `basalt`, `basalt-bench`, `basalt-probe`, `basalt-vision` | None |
 | `colibri` | `coli`; engine and tool binaries remain under `libexec/colibri` | None |
 | `crucible-strix-halo` | `crucible-strix-halo`; `crucible-strix-halo-server` when upstream ships `server/server.py` | None |
-| `cuda-runtime` | None (keg-only; installs shared libraries and headers) | None |
+| `cuda-runtime` | None (keg-only; installs shared libraries only) | None |
 | `gufo` | `gufo`, `gufo-server`; `gufo-kernel-bench` when built; with `--with-tools`: `gufo-bench-q8-1`, `gufo-tune-hipblaslt`, `gufo-verify-gemma4`, `gufo-verify-vae`, `gufo-simple-chat` | `--with-tools`, `--with-znver4` |
 | `gufo-ds41` | `gufo-ds41`, `gufo-ds41-server`; `gufo-ds41-kernel-bench` when built; with `--with-tools`: `gufo-ds41-bench-q8-1`, `gufo-ds41-tune-hipblaslt`, `gufo-ds41-simple-chat` | `--with-tools`, `--with-znver4` |
 | `hipfire` | `hipfire`; the daemon stays at `libexec/bin/daemon` | `--with-gfx1100`, `--with-gfx1201`, `--with-gfx906` |
@@ -283,9 +283,9 @@ crucible-strix-halo --list-devices
 ### cuda-runtime
 
 **Upstream:** [NVIDIA CUDA toolkit](https://developer.nvidia.com/cuda-toolkit)
-**Purpose:** Keg-only shared NVIDIA CUDA 13 runtime used by the tap's CUDA engines. It installs `libcudart.so.13` from the `cuda_cudart` archive and `libcublas.so.13`/`libcublasLt.so.13` from the separate `libcublas` archive, plus the matching headers.
+**Purpose:** Keg-only shared NVIDIA CUDA 13 runtime used by the tap's CUDA engines. It installs `libcudart.so.13` from the `cuda_cudart` archive and `libcublas.so.13`/`libcublasLt.so.13` from the separate `libcublas` archive (shared libraries only; headers are intentionally excluded).
 **Platforms/backends:** Linux x86_64 and Linux arm64 (SBSA/DGX Spark); CUDA runtime only.
-**Commands:** None. The formula installs shared libraries and headers under its keg prefix.
+**Commands:** None. The formula installs shared libraries under its keg prefix.
 **Options:** None.
 
 `cuda-runtime` is keg-only because it provides shared libraries for other formulae. Engines resolve it with `formula_opt_prefix("cuda-runtime")` and link against its `lib` directory. For a manual build or a shell session:
@@ -653,7 +653,7 @@ The server defaults to `127.0.0.1:8000` and accepts `--host` and `--port`. The C
 
 **Upstream:** [Indras-Mirror/Xolotl](https://github.com/Indras-Mirror/Xolotl)
 **Purpose:** Tiered CUDA MoE and dense inference engine built on Strata for DeepSeek-V4.1-Flash (552B), GLM-5.3-Flash (320B), Qwen3.8-Flash-Next (125B), Qwen3.8-27B, Inkling-2-Mini, Muse Glimmer 30B, LFM3-Omni, and ERNIE-5.5-Flash.
-**Platforms/backends:** Linux only; NVIDIA CUDA (`sm_86` through `sm_120`).
+**Platforms/backends:** Linux only; NVIDIA CUDA (`sm_80` through `sm_120`).
 **Options:** None.
 
 ```bash

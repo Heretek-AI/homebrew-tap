@@ -16,6 +16,7 @@ class GufoDs41 < Formula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on "rust" => :build
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"
@@ -178,7 +179,7 @@ class GufoDs41 < Formula
       -DGUFO_BUILD_EVAL=OFF
       -DGUFO_WERROR=OFF
       -DGUFO_ENABLE_SANITIZERS=OFF
-      -DGUFO_ENABLE_TOOLS=#{tools_flag}
+      -DGUFO_BUILD_TOOLS=#{tools_flag}
       -DCMAKE_INSTALL_RPATH=#{formula_opt_lib("rocm-runtime")};#{HOMEBREW_PREFIX}/lib
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
@@ -202,13 +203,13 @@ class GufoDs41 < Formula
     mv bin/"gufo", bin/"gufo-ds41"
     bin.install_symlink bin/"gufo-ds41" => "gufo-ds41-server"
     mv bin/"gufo-kernel-bench", bin/"gufo-ds41-kernel-bench" if (bin/"gufo-kernel-bench").exist?
-    rm bin/"tune_hipblaslt" if (bin/"tune_hipblaslt").exist?
 
     if enable_tools
-      %w[bench_q8_1 tune_hipblaslt].each do |tool|
-        bin.install "build/tools/#{tool}" => "gufo-ds41-#{tool.tr("_", "-")}" if File.exist?("build/tools/#{tool}")
-      end
+      mv bin/"tune_hipblaslt", bin/"gufo-ds41-tune-hipblaslt" if (bin/"tune_hipblaslt").exist?
+      bin.install "build/tools/bench_q8_1" => "gufo-ds41-bench-q8-1" if File.exist?("build/tools/bench_q8_1")
       bin.install "build/examples/simple_chat" => "gufo-ds41-simple-chat" if File.exist?("build/examples/simple_chat")
+    elsif (bin/"tune_hipblaslt").exist?
+      rm bin/"tune_hipblaslt"
     end
 
     pkgshare.install ext_dir/"tools/ds41/engram_split.py" if (ext_dir/"tools/ds41/engram_split.py").exist?

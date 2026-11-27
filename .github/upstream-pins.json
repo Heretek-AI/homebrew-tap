@@ -573,7 +573,7 @@
       "repo": "franzmoca/ds41-gufo-extension",
       "branch": "main",
       "track": "release",
-      "formula_sha256": "7d558797800c6ef676ed92273562b54edbe62477652d318764dbb37a959e5d98",
+      "formula_sha256": "aa76c4b79ab1ed233d77a0458ff2f284498eafbf813e7589a1b4edf55f73ab4e",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -613,7 +613,7 @@
       "repo": "Indras-Mirror/Xolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "a39dcad98fc824f8847db052a3d2ec0dd579673d72b5490d00e3617b3677403b",
+      "formula_sha256": "c8268094a31a38c8681b5f2b2f213031110636ac6e2e15558c317a4b44ee24bc",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -651,7 +651,7 @@
       "repo": "snowsh1ne/strixolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "0fe1a16cd8a2edb78d268b16991fed2d0a1214ce55d788b2e337ff0d4f731ccc",
+      "formula_sha256": "2f3b424c2d35cfe106ce4a9323bc5f8535313cf1c0872d88a5631e3bc084ff66",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -690,7 +690,7 @@
       "repo": "rulith-dev/llama.cpp",
       "branch": "rulith",
       "track": "commit",
-      "formula_sha256": "e136ef1e3a8e2c082f427c20042a3325b6154b9db0038498871d91dcbcb77414",
+      "formula_sha256": "c7c49b659ec8b7e22a2b6afa9eda997f8c9b94177511963200d5f52a5e108207",
       "variants": {
         "rocm": {
           "status": "enabled",

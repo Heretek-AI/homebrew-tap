@@ -1,4 +1,6 @@
 class Xolotl < Formula
+  include Language::Python::Virtualenv
+
   desc "Tiered CUDA MoE engine for DeepSeek-V4.1, GLM-5.3, Qwen3.8 & Inkling"
   homepage "https://github.com/Indras-Mirror/Xolotl"
   url "https://github.com/Indras-Mirror/Xolotl/archive/52cf6b89eb9a4b6e2730e935bc384100c6151b45.tar.gz"
@@ -22,6 +24,21 @@ class Xolotl < Formula
   resource "llama.cpp" do
     url "https://github.com/ggml-org/llama.cpp/archive/6050b467c07a95c7b87debd4ddac2f8ba8d9b807.tar.gz"
     sha256 "64a750f710b8cf922d7dd931a1297a9cc236039f7e0f10759e9bfa555966e7ca"
+  end
+
+  resource "markupsafe" do
+    url "https://files.pythonhosted.org/packages/38/9b/e422a865e1d5d57d0e509b4e0bf1c1a70a7f6382c29a5aa428df994c8bc8/markupsafe-3.0.4.tar.gz"
+    sha256 "2e9ad7dd851bf45fab9f75cbff4cb493fee9979e8d8c7c9c3ee119022518edd6"
+  end
+
+  resource "jinja2" do
+    url "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz"
+    sha256 "0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"
+  end
+
+  resource "regex" do
+    url "https://files.pythonhosted.org/packages/fa/b8/61d96601b737305a04161da340499cbb3299029d4ea0f9c717bc35977c2b/regex-2026.11.25.tar.gz"
+    sha256 "d3ea8d9698f13f3fd08c65f9bed0bb07bcfff80b61dfa14d86b8cc398f886588"
   end
 
   def cuda_root
@@ -71,7 +88,7 @@ class Xolotl < Formula
       -DSTRATA_DSV41_FQ_OP=ON
       -DSTRATA_DSV41_HC_MIX=ON
       -DSTRATA_GGML_DIR=#{llama_dir}
-      -DCMAKE_CUDA_ARCHITECTURES=86;89;90;100;120
+      -DCMAKE_CUDA_ARCHITECTURES=80;86;89;90;100;120
       -DCMAKE_CUDA_COMPILER=#{cuda}/bin/nvcc
       -DCUDAToolkit_ROOT=#{cuda}
       -DCMAKE_INSTALL_RPATH=#{rpath}
@@ -94,10 +111,15 @@ class Xolotl < Formula
       system "cmake", "--build", "build-vision", "--target", "strata-vision"
     end
 
-    %w[serve tools configs scripts chat.py strata.py].each do |entry|
+    %w[serve strata_control tools configs scripts chat.py strata.py].each do |entry|
       libexec.install entry if File.exist?(entry)
     end
     (libexec/"third_party/llama.cpp").install llama_dir/"gguf-py" if (llama_dir/"gguf-py").exist?
+
+    venv = virtualenv_create(libexec/"venv", "python3.12")
+    venv.pip_install resource("markupsafe")
+    venv.pip_install resource("jinja2")
+    venv.pip_install resource("regex")
 
     (libexec/"build-xolotl").mkpath
     binary_map = {
@@ -127,13 +149,12 @@ class Xolotl < Formula
       bin.install_symlink libexec/"build-vision/strata-vision" => "xolotl-vision"
     end
 
-    python3 = formula_opt_bin("python@3.12")/"python3.12"
     (bin/"xolotl-serve").write <<~SH
       #!/usr/bin/env bash
       export PYTHONPATH="#{libexec}${PYTHONPATH:+:$PYTHONPATH}"
       export LD_LIBRARY_PATH="#{formula_opt_lib("cuda-runtime")}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       cd "#{libexec}"
-      exec "#{python3}" -m serve.server --engine strata "$@"
+      exec "#{libexec}/venv/bin/python" -m serve.server --engine strata "$@"
     SH
     chmod 0755, bin/"xolotl-serve"
 
@@ -146,7 +167,7 @@ class Xolotl < Formula
 
   def caveats
     <<~EOS
-      Xolotl targets NVIDIA CUDA GPUs (sm_86 through sm_120) on Linux.
+      Xolotl targets NVIDIA CUDA GPUs (sm_80 through sm_120) on Linux.
       Exposed commands (namespaced to avoid colliding with strata):
         xolotl, xolotl-ds41, xolotl-dense, xolotl-glm, xolotl-inkling, xolotl-ernie, xolotl-serve
 
