@@ -605,6 +605,14 @@ jobs:
           brew test-bot --only-cleanup-before
           brew test-bot --only-setup
 
+      - name: Clean stale bottle artifacts
+        run: |
+          # This is a persistent self-hosted runner. Bottles and validation
+          # proofs from the previous job remain in the tap checkout and make
+          # test-bot abort with "Unexpected bottle tarball".
+          cd "${TAP_DIR}"
+          rm -f ./*.bottle*.tar.gz ./*.bottle*.json ./validation-*.json ./steps_output.txt
+
       - name: Base64-encode GITHUB_TOKEN
         id: registry
         env:
