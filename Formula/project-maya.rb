@@ -194,7 +194,7 @@ class ProjectMaya < Formula
     env_vars = {
       MAYA_NO_VENV: "1",
       MAYA_GGUF_PY: "#{libexec}/third_party/llama.cpp/gguf-py",
-      PATH:         "#{opt_bin}:#{ENV.fetch("PATH")}",
+      PATH:         "#{opt_bin}:${PATH}",
     }
 
     (bin/"maya-server").write_env_script libexec/"venv/bin/python", "#{libexec}/serve/server.py", env_vars

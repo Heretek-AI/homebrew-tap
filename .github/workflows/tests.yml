@@ -656,14 +656,13 @@ jobs:
           key: ubuntu-latest-cuda-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ubuntu-latest-cuda-rubygems-
 
-      - name: Cache sccache disk directory
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore sccache disk directory
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /tmp/sccache
           key: sccache-cuda-${{ matrix.formula }}-${{ github.sha }}
           restore-keys: |
             sccache-cuda-${{ matrix.formula }}-
-          save-always: true
 
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -676,6 +675,33 @@ jobs:
           then
             echo "HOMEBREW_SCCACHE_PATH=${sccache_bin}" >> "${GITHUB_ENV}"
           fi
+
+      - name: Provide host CUDA driver stub for linkage checks
+        run: |
+          # libcuda.so.1 belongs to the NVIDIA driver, not to any keg, so it is
+          # absent on hosted runners and `brew linkage --test` reports it missing.
+          # Expose the CUDA toolkit's own driver stub through the loader so the
+          # check resolves it. Nothing here is installed into a bottle.
+          stub="/usr/local/cuda-13.5/targets/x86_64-linux/lib/stubs/libcuda.so"
+          if [[ ! -f "${stub}" ]]
+          then
+            stub="$(find /usr/local/cuda* -path '*/targets/x86_64-linux/lib/stubs/libcuda.so' -print -quit 2>/dev/null || true)"
+          fi
+          if [[ -z "${stub}" || ! -f "${stub}" ]]
+          then
+            echo "::error::CUDA driver stub libcuda.so not found"
+            exit 1
+          fi
+          sudo_cmd=()
+          if [[ "$(id -u)" -ne 0 ]] && command -v sudo >/dev/null 2>&1
+          then
+            sudo_cmd=(sudo)
+          fi
+          "${sudo_cmd[@]}" mkdir -p /usr/local/lib
+          "${sudo_cmd[@]}" ln -sf "${stub}" /usr/local/lib/libcuda.so.1
+          echo /usr/local/lib | "${sudo_cmd[@]}" tee /etc/ld.so.conf.d/zz-cuda-driver-stub.conf >/dev/null
+          "${sudo_cmd[@]}" ldconfig
+          ldd /usr/local/lib/libcuda.so.1 | head -n 3 || true
 
       - name: Locate tap checkout
         run: |
@@ -761,6 +787,13 @@ jobs:
           path: |
             ${{ env.TAP_DIR }}/*.bottle*.tar.gz
             ${{ env.TAP_DIR }}/*.bottle*.json
+
+      - name: Save sccache disk directory
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/sccache
+          key: sccache-cuda-${{ matrix.formula }}-${{ github.sha }}
 
   bottles-rocm-runtime:
     name: ROCm runtime bottle (hosted)
@@ -905,14 +938,13 @@ jobs:
           key: ubuntu-latest-rocm-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ubuntu-latest-rocm-rubygems-
 
-      - name: Cache sccache disk directory
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore sccache disk directory
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /tmp/sccache
           key: sccache-rocm-${{ matrix.formula }}-${{ github.sha }}
           restore-keys: |
             sccache-rocm-${{ matrix.formula }}-
-          save-always: true
 
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -1010,3 +1042,10 @@ jobs:
           path: |
             ${{ env.TAP_DIR }}/*.bottle*.tar.gz
             ${{ env.TAP_DIR }}/*.bottle*.json
+
+      - name: Save sccache disk directory
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/sccache
+          key: sccache-rocm-${{ matrix.formula }}-${{ github.sha }}

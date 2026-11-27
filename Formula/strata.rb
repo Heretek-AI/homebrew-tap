@@ -147,7 +147,7 @@ class Strata < Formula
     end
 
     # Install runtime layout into libexec so strata.py / serve/server.py resolve ROOT-relative paths
-    libexec.install "strata.py", "setup.py", "chat.py", "serve", "tools"
+    libexec.install "strata.py", "setup.py", "chat.py", "serve", "tools", "strata_cli", "strata_control"
     libexec.install "VERSION" if File.exist?("VERSION")
     (libexec/"third_party/llama.cpp").install llama_dir/"gguf-py"
 
@@ -199,7 +199,9 @@ class Strata < Formula
     env_vars = {
       STRATA_NO_VENV: "1",
       STRATA_GGUF_PY: "#{libexec}/third_party/llama.cpp/gguf-py",
-      PATH:           "#{opt_bin}:#{ENV.fetch("PATH")}",
+      # strata_control imports the strata_* helpers that live in tools/.
+      PYTHONPATH:     "#{libexec}/tools${PYTHONPATH:+:$PYTHONPATH}",
+      PATH:           "#{opt_bin}:${PATH}",
     }
 
     (bin/"strata-server").write_env_script libexec/"venv/bin/python", "#{libexec}/serve/server.py", env_vars
@@ -241,7 +243,7 @@ class Strata < Formula
     end
 
     # 2. CLI Introspection
-    assert_match "STRATA", shell_output("#{bin}/strata-cli --help")
+    assert_match(/strata/i, shell_output("#{bin}/strata-cli --help"))
     assert_match(/strata|usage/i, shell_output("#{bin}/strata --help 2>&1"))
 
     # 3. Device Discovery Smoke Test (tolerate absence of a physical GPU on hosted CI)

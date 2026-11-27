@@ -232,7 +232,7 @@
       "repo": "mw00/project-maya",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "e1bda1f7ded2fd0ecd81f49121709d7f223789b2b946335c1ee9ec768615d389",
+      "formula_sha256": "30f7fb37a0d24ef0983d56387673ada11f545fbe9e04137e7071053ccded93cd",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -287,7 +287,7 @@
       "repo": "Niko1221/Strata",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "fb9cfeea258c7e58f300448d717531a8e03726a950787df84ad08da5f4cec866",
+      "formula_sha256": "bf70a125745835f4d7e7c55bdd394bff5da5296665f934ede72738886c1fdfe7",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -342,7 +342,7 @@
       "repo": "shawnshekari/strixite",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "25629bca73539d4c0e4f5d4841c88c7a766a7d2b07d283f8b204412578938f18",
+      "formula_sha256": "33cb7111957ba8eaaa0d4bdf0a5dd1c699d6a3680c29856412eea550930dd803",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -421,7 +421,7 @@
       "repo": "Luce-Org/lucebox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "5fc5047d36d3eecde6f8b11e2b1a2c742f57dd6bf86648fde8fd7a94ca981c6d",
+      "formula_sha256": "f575a6422610a8cafc1ec7e008e1b328d0fe40e92c58fc359e28db3b56836fa8",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -613,7 +613,7 @@
       "repo": "Indras-Mirror/Xolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "6c4cef62383112586d10c431fdc189cfc12c2e082452425b86ecb11217b49be9",
+      "formula_sha256": "7e9172619cb09b95390663a5f9bdb9a3580bc900c681c866e4795311d7ec3d37",
       "variants": {
         "cuda": {
           "status": "enabled",

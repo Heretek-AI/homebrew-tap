@@ -144,8 +144,9 @@ class Lucebox < Formula
     missing = out.lines.grep(/not found/).reject { |line| line.include?("libcuda.so.1") }
     assert_empty missing, "Unexpected missing shared libraries:\n#{missing.join}"
 
-    # 2. CLI Introspection (skip execution when the host NVIDIA driver is absent)
-    if out.exclude?("libcuda.so.1 => not found")
+    # 2. CLI Introspection (only when a real NVIDIA driver is loaded: hosted CI
+    # has none, and the libcuda.so.1 stub used for linkage checks cannot execute)
+    if File.exist?("/proc/driver/nvidia/version")
       assert_match(/luce|usage|server/i, shell_output("#{bin}/lucebox-server --help 2>&1"))
     end
   end

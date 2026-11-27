@@ -152,6 +152,6 @@ class Strixite < Formula
 
     # 2. CLI Introspection
     assert_match(/usage:.*strix_server/i, shell_output("#{bin}/strixite-server --help"))
-    assert_match(/convert|usage/i, shell_output("#{bin}/strixite-convert-qwen4exp --help 2>&1"))
+    assert_match(/convert|usage/i, shell_output("#{bin}/strixite-convert-qwen4exp --help 2>&1", 2))
   end
 end

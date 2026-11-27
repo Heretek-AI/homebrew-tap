@@ -121,7 +121,7 @@ class Xolotl < Formula
       system "cmake", "--build", "build-vision", "--target", "strata-vision"
     end
 
-    %w[serve strata_control tools configs scripts chat.py strata.py].each do |entry|
+    %w[serve strata_cli strata_control tools configs scripts chat.py strata.py].each do |entry|
       libexec.install entry if File.exist?(entry)
     end
     (libexec/"third_party/llama.cpp").install llama_dir/"gguf-py" if (llama_dir/"gguf-py").exist?
@@ -194,9 +194,11 @@ class Xolotl < Formula
     out = shell_output("ldd #{libexec}/build-xolotl/ds41_generate")
     missing = out.lines.grep(/not found/).reject { |line| line.include?("libcuda.so.1") }
     assert_empty missing, "Unexpected missing shared libraries:\n#{missing.join}"
-    assert_match(/libcudart\.so/, out)
 
-    if out.exclude?("libcuda.so.1 => not found")
+    # libcudart is linked statically, so it does not appear in ldd output.
+    # Only run the binary when a real NVIDIA driver is loaded: hosted CI has
+    # none, and the libcuda.so.1 stub used for linkage checks cannot execute.
+    if File.exist?("/proc/driver/nvidia/version")
       assert_match(/usage|model/i, shell_output("#{bin}/xolotl-ds41 --help 2>&1", 2))
     end
   end
