@@ -152,6 +152,12 @@ def classify(names: list[str], runner: str) -> list[str]:
             raise SystemExit(f"unknown runner class: {runner}")
         if keep:
             selected.append(name)
+
+    runtime = {"hosted-cuda": "cuda-runtime", "stx-halo": "rocm-runtime"}.get(runner)
+    if runtime and any(
+        f"heretek-ai/tap/{runtime}" in read_formula(name) for name in selected
+    ):
+        selected = [runtime] + [name for name in selected if name != runtime]
     return selected
 
 
