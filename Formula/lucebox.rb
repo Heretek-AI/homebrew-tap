@@ -50,10 +50,18 @@ class Lucebox < Formula
       args << "-DLUCE_HIP_ARCHITECTURES=gfx1150;gfx1151"
       rpath = "#{rocm}/lib;#{HOMEBREW_PREFIX}/lib"
     else
-      cuda_root = [ENV["HOMEBREW_CUDA_PATH"], ENV["CUDA_PATH"], "/usr/local/cuda"].compact.find { |d| Dir.exist?(d) }
+      cuda_root = [
+        ENV["HOMEBREW_CUDA_PATH"],
+        ENV["CUDA_HOME"],
+        ENV["CUDA_PATH"],
+        "/usr/local/cuda",
+      ].compact.find { |d| File.executable?("#{d}/bin/nvcc") }
       if cuda_root
+        ENV["CUDA_HOME"] = cuda_root
+        ENV["CUDACXX"] = "#{cuda_root}/bin/nvcc"
         ENV.prepend_path "PATH", "#{cuda_root}/bin"
         args << "-DCUDAToolkit_ROOT=#{cuda_root}"
+        args << "-DCMAKE_CUDA_COMPILER=#{cuda_root}/bin/nvcc"
       end
       args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
     end

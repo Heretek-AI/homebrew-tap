@@ -10,6 +10,7 @@ class Basalt < Formula
     strategy :github_latest
   end
 
+  depends_on "patchelf" => :build
   depends_on "heretek-ai/tap/cuda-runtime"
   depends_on :linux
 
@@ -74,6 +75,12 @@ class Basalt < Formula
       chmod 0755, bin/tool
     end
 
+    runtime_rpath = "#{formula_opt_lib("cuda-runtime")}:#{HOMEBREW_PREFIX}/lib"
+    %w[basalt basalt-bench basalt-probe basalt-vision].each do |tool|
+      binary = libexec/"bin/#{tool}"
+      system "patchelf", "--set-rpath", runtime_rpath, binary if binary.exist?
+    end
+
     (etc/"basalt").mkpath
     example = etc/"basalt/basalt_config.example.json"
     example.write <<~JSON
@@ -100,9 +107,10 @@ class Basalt < Formula
     config.write example.read unless config.exist?
 
     manifest = {
-      variant:     variant,
-      arch:        Hardware::CPU.arch.to_s,
-      runtime_lib: formula_opt_lib("cuda-runtime").to_s,
+      variant:       variant,
+      arch:          Hardware::CPU.arch.to_s,
+      runtime_lib:   formula_opt_lib("cuda-runtime").to_s,
+      runtime_rpath: runtime_rpath,
     }
     if cuda
       manifest[:cuda_root] = cuda
