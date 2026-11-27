@@ -16,6 +16,7 @@ class Rocmfpx < Formula
   depends_on "pkgconf" => :build
   depends_on arch: :x86_64
   depends_on "heretek-ai/tap/rocm-runtime"
+  depends_on "openssl@4"
   depends_on :linux
 
   def rocm_root

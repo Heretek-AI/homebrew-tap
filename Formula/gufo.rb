@@ -21,13 +21,14 @@ class Gufo < Formula
   depends_on "ffmpeg"
   depends_on "giflib"
   depends_on "heretek-ai/tap/rocm-runtime"
-  depends_on "icu4c"
+  depends_on "icu4c@79"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "libsndfile"
   depends_on "libsoxr"
   depends_on :linux
-  depends_on "openssl@3"
+  depends_on "openssl@4"
+  depends_on "zlib-ng-compat"
   depends_on "webp"
 
   def rocm_root
@@ -85,7 +86,7 @@ class Gufo < Formula
     end
 
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
-    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@4")/"pkgconfig"
 
     enable_tools = build.with?("tools")
     tools_flag = enable_tools ? "ON" : "OFF"
@@ -114,7 +115,7 @@ class Gufo < Formula
       rocm_path,
       HOMEBREW_PREFIX,
       formula_opt_prefix("icu4c"),
-      formula_opt_prefix("openssl@3"),
+      formula_opt_prefix("openssl@4"),
     ].join(";")
 
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
@@ -167,11 +168,10 @@ class Gufo < Formula
     assert_match(/libamdhip64\.so/, out)
 
     # 2. CLI Introspection
-    assert_match "gufo version", shell_output("#{bin}/gufo version")
-    assert_match "Usage: gufo", shell_output("#{bin}/gufo --help")
+    assert_match "gufo version", shell_output("#{bin}/gufo --version")
+    assert_match(/Usage: .*gufo/, shell_output("#{bin}/gufo --help"))
 
     # 3. Device Discovery Smoke Test
-    probe = shell_output("#{bin}/gufo info 2>&1", nil)
-    assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
+    assert_match "Gufo Diagnostics", shell_output("#{bin}/gufo diagnose")
   end
 end
