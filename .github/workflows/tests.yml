@@ -272,6 +272,16 @@ jobs:
             echo "::error::brew test-bot reported skipped or failed steps"
             exit 1
           fi
+          if ! compgen -G 'skipped_or_failed_formulae-*.txt' > /dev/null
+          then
+            echo "::error::brew test-bot did not write skipped_or_failed_formulae output"
+            exit 1
+          fi
+          if [[ -n "$(cat skipped_or_failed_formulae-*.txt)" ]]
+          then
+            echo "::error::brew test-bot skipped formulae: $(cat skipped_or_failed_formulae-*.txt)"
+            exit 1
+          fi
 
       - name: Upload macOS bottles
         if: always() && steps.formulae.outputs.formulae != ''
@@ -385,6 +395,16 @@ jobs:
           if ! grep -qx 'All steps passed!' steps_output.txt
           then
             echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
+          if ! compgen -G 'skipped_or_failed_formulae-*.txt' > /dev/null
+          then
+            echo "::error::brew test-bot did not write skipped_or_failed_formulae output"
+            exit 1
+          fi
+          if [[ -n "$(cat skipped_or_failed_formulae-*.txt)" ]]
+          then
+            echo "::error::brew test-bot skipped formulae: $(cat skipped_or_failed_formulae-*.txt)"
             exit 1
           fi
 
@@ -534,6 +554,16 @@ jobs:
             echo "::error::brew test-bot reported skipped or failed steps"
             exit 1
           fi
+          if ! compgen -G 'skipped_or_failed_formulae-*.txt' > /dev/null
+          then
+            echo "::error::brew test-bot did not write skipped_or_failed_formulae output"
+            exit 1
+          fi
+          if [[ -n "$(cat skipped_or_failed_formulae-*.txt)" ]]
+          then
+            echo "::error::brew test-bot skipped formulae: $(cat skipped_or_failed_formulae-*.txt)"
+            exit 1
+          fi
 
       - name: Upload CUDA bottles
         if: always() && steps.formulae.outputs.formulae != ''
@@ -666,6 +696,16 @@ jobs:
           if ! grep -qx 'All steps passed!' steps_output.txt
           then
             echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
+          if ! compgen -G 'skipped_or_failed_formulae-*.txt' > /dev/null
+          then
+            echo "::error::brew test-bot did not write skipped_or_failed_formulae output"
+            exit 1
+          fi
+          if [[ -n "$(cat skipped_or_failed_formulae-*.txt)" ]]
+          then
+            echo "::error::brew test-bot skipped formulae: $(cat skipped_or_failed_formulae-*.txt)"
             exit 1
           fi
 
