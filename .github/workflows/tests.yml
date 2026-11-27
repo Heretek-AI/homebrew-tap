@@ -255,6 +255,24 @@ jobs:
             --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
+      - name: Fail on skipped or failed macOS formulae
+        if: steps.formulae.outputs.formulae != ''
+        run: |
+          # test-bot exits 0 when it ignores a non-default formula failure;
+          # its own summary is the authoritative result.
+          cd "${TAP_DIR}"
+          if [[ ! -f steps_output.txt ]]
+          then
+            echo "::error::brew test-bot did not write steps_output.txt"
+            exit 1
+          fi
+          cat steps_output.txt
+          if ! grep -qx 'All steps passed!' steps_output.txt
+          then
+            echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
+
       - name: Upload macOS bottles
         if: always() && steps.formulae.outputs.formulae != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -351,6 +369,24 @@ jobs:
             --only-formulae \
             --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Fail on skipped or failed Linux formulae
+        if: steps.formulae.outputs.formulae != ''
+        run: |
+          # test-bot exits 0 when it ignores a non-default formula failure;
+          # its own summary is the authoritative result.
+          cd "${TAP_DIR}"
+          if [[ ! -f steps_output.txt ]]
+          then
+            echo "::error::brew test-bot did not write steps_output.txt"
+            exit 1
+          fi
+          cat steps_output.txt
+          if ! grep -qx 'All steps passed!' steps_output.txt
+          then
+            echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
 
       - name: Upload Linux bottles
         if: always() && steps.formulae.outputs.formulae != ''
@@ -481,6 +517,24 @@ jobs:
             --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
+      - name: Fail on skipped or failed CUDA formulae
+        if: steps.formulae.outputs.formulae != ''
+        run: |
+          # test-bot exits 0 when it ignores a non-default formula failure;
+          # its own summary is the authoritative result.
+          cd "${TAP_DIR}"
+          if [[ ! -f steps_output.txt ]]
+          then
+            echo "::error::brew test-bot did not write steps_output.txt"
+            exit 1
+          fi
+          cat steps_output.txt
+          if ! grep -qx 'All steps passed!' steps_output.txt
+          then
+            echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
+
       - name: Upload CUDA bottles
         if: always() && steps.formulae.outputs.formulae != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -588,6 +642,24 @@ jobs:
             --only-formulae \
             --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Fail on skipped or failed ROCm formulae
+        if: steps.formulae.outputs.formulae != ''
+        run: |
+          # test-bot exits 0 when it ignores a non-default formula failure;
+          # its own summary is the authoritative result.
+          cd "${TAP_DIR}"
+          if [[ ! -f steps_output.txt ]]
+          then
+            echo "::error::brew test-bot did not write steps_output.txt"
+            exit 1
+          fi
+          cat steps_output.txt
+          if ! grep -qx 'All steps passed!' steps_output.txt
+          then
+            echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
 
       - name: Validate ROCm bottles on real hardware
         if: steps.formulae.outputs.formulae != ''

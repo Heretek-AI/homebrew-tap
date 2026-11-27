@@ -38,6 +38,12 @@ class Gufo < Formula
 
   def install
     rocm_path = rocm_root
+    # Newer ROCm ships hipCUB in include/hipccl and requires libhipcxx from that
+    # same root. Prefer it over the bare include directory so the hipCUB headers
+    # can find <hip/std/version> during the HIP compilation.
+    hipcub_dir = ["#{rocm_path}/include/hipccl", "#{rocm_path}/include"].find do |path|
+      File.exist?("#{path}/hip/std/version") || File.exist?("#{path}/cuda/std/version")
+    end
     ENV["ROCM_PATH"] = rocm_path
     ENV["HIP_PATH"] = rocm_path
     ENV.prepend_path "PATH", "#{rocm_path}/bin"
@@ -100,6 +106,9 @@ class Gufo < Formula
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
+    # gufo uses find_path(HIPCUB_INCLUDE_DIR ...) rather than the hipCUB CMake
+    # package, so it would otherwise find /opt/rocm/include and miss libhipcxx.
+    args << "-DHIPCUB_INCLUDE_DIR=#{hipcub_dir}" if hipcub_dir
 
     prefix_paths = [
       rocm_path,

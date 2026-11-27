@@ -41,6 +41,8 @@ class Rocmfpx < Formula
     ENV.prepend_path "PATH", "#{rocm_path}/bin"
     ENV.prepend_path "PATH", "#{rocm_path}/lib/llvm/bin"
     ENV.prepend_path "PATH", "#{rocm_path}/llvm/bin"
+    # Build the literal "$ORIGIN" without Ruby interpolating a global variable.
+    origin = 36.chr + "ORIGIN"
 
     args = %W[
       -G Ninja
@@ -61,7 +63,7 @@ class Rocmfpx < Formula
       -DLLAMA_CURL=OFF
       -DGGML_NATIVE=OFF
       -DGGML_CCACHE=OFF
-      -DCMAKE_INSTALL_RPATH=#{runtime_lib};#{HOMEBREW_PREFIX}/lib
+      -DCMAKE_INSTALL_RPATH=#{runtime_lib};#{HOMEBREW_PREFIX}/lib;#{origin}
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
 
@@ -69,7 +71,9 @@ class Rocmfpx < Formula
            "-DCMAKE_PREFIX_PATH=#{rocm_path};#{HOMEBREW_PREFIX}"
     system "cmake", "--build", "build", "--parallel", ENV.make_jobs.to_s
 
-    (libexec/"bin").install Dir["build/bin/llama-*"]
+    # The llama.cpp tools link shared ggml/llama libraries from build/bin. Keep
+    # them next to the executables so the portable $ORIGIN RPATH resolves them.
+    (libexec/"bin").install Dir["build/bin/llama-*"], Dir["build/bin/lib*.so*"]
 
     base = libexec/"bin"
     {
