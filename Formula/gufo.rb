@@ -28,8 +28,8 @@ class Gufo < Formula
   depends_on "libsoxr"
   depends_on :linux
   depends_on "openssl@4"
-  depends_on "zlib-ng-compat"
   depends_on "webp"
+  depends_on "zlib-ng-compat"
 
   def rocm_root
     [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
@@ -85,7 +85,7 @@ class Gufo < Formula
                 'set(GUFO_MARCH_FLAG "-march=znver4 -mavx512f -mavx512bf16 -mavx512bw -mavx512dq -mavx512vl")'
     end
 
-    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c@79")/"pkgconfig"
     ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@4")/"pkgconfig"
 
     enable_tools = build.with?("tools")
@@ -114,7 +114,7 @@ class Gufo < Formula
     prefix_paths = [
       rocm_path,
       HOMEBREW_PREFIX,
-      formula_opt_prefix("icu4c"),
+      formula_opt_prefix("icu4c@79"),
       formula_opt_prefix("openssl@4"),
     ].join(";")
 
