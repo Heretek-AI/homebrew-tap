@@ -70,6 +70,16 @@ class Lucebox < Formula
         args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
       end
       args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
+
+      # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>, but the
+      # optional strided-iterator path in argsort.cu uses cuda::make_strided_iterator.
+      argsort_cu = "server/deps/llama.cpp/ggml/src/ggml-cuda/argsort.cu"
+      if File.exist?(argsort_cu) &&
+         File.read(argsort_cu).include?("#        define STRIDED_ITERATOR_AVAILABLE")
+        inreplace argsort_cu,
+                  "#        define STRIDED_ITERATOR_AVAILABLE",
+                  "#        include <cuda/iterator>\n#        define STRIDED_ITERATOR_AVAILABLE"
+      end
     end
     args << "-DCMAKE_INSTALL_RPATH=#{rpath}"
 
