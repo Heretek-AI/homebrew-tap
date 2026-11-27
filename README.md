@@ -288,12 +288,12 @@ crucible-strix-halo --list-devices
 **Commands:** None. The formula installs shared libraries under its keg prefix.
 **Options:** None.
 
-`cuda-runtime` is keg-only because it provides shared libraries for other formulae. Engines resolve it with `formula_opt_prefix("cuda-runtime")` and link against its `lib` directory. For a manual build or a shell session:
+`cuda-runtime` is keg-only because it provides shared libraries for other formulae. Engines resolve it with `formula_opt_prefix("cuda-runtime")` and link against its `lib` directory. For a manual build or a shell session (pointing `CUDA_HOME` and `CUDAToolkit_ROOT` at a full CUDA 13 toolkit with `nvcc` and toolkit metadata, while adding `cuda-runtime`'s shared libraries to `LD_LIBRARY_PATH`):
 
 ```bash
-export CUDA_HOME="$(brew --prefix cuda-runtime)"
+export CUDA_HOME="/usr/local/cuda"
 export CUDAToolkit_ROOT="$CUDA_HOME"
-export LD_LIBRARY_PATH="$CUDA_HOME/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$(brew --prefix cuda-runtime)/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 ```
 
 The formula does not include `nvcc`, the CUDA compiler, or the rest of the toolkit. Building CUDA code from source still needs a full CUDA 13 toolkit with `nvcc`; set `HOMEBREW_CUDA_PATH`, `CUDA_HOME`, or `CUDA_PATH` to that toolkit. `basalt`'s prebuilt x86_64 archive expects `libcudart.so.13` and `libcublas.so.13` on the loader path, which this formula supplies without installing a full toolkit.
@@ -773,7 +773,7 @@ export HOMEBREW_ROCM_PATH=/opt/rocm
 brew install --build-from-source heretek-ai/tap/gufo
 ```
 
-If no path contains the HIP headers, installation stops with a message asking you to set `HOMEBREW_ROCM_PATH`. Source builds in CI use a full pinned SDK in the `stx-halo` runner or the `brew-rocm` toolchain image; `/opt/rocm-nightly` remains a local fallback, not a requirement. A normal `/opt/rocm` installation works when selected explicitly.
+If no path contains the HIP headers, installation stops with a message asking you to set `HOMEBREW_ROCM_PATH`. Source builds in CI use a full pinned SDK in the `brew-rocm` toolchain image; `/opt/rocm-nightly` remains a local fallback, not a requirement. A normal `/opt/rocm` installation works when selected explicitly.
 
 Bottles link against the shared keg-only `rocm-runtime` (`Formula["rocm-runtime"].opt_lib`) and record that relocatable path in RPATH, so they do not embed the SDK path. Source builds still need the SDK for headers and `hipcc`. Moving or replacing the `rocm-runtime` keg after installation can leave a binary unable to find `libamdhip64.so` or related libraries; reinstall the engine after such a change.
 
@@ -804,11 +804,10 @@ Only `colibri`, `infr`, `magnitude`, `project-maya`, `strata`, `shimmy`, `stable
 
 The tap uses a single bottle pipeline: [`tests.yml`](.github/workflows/tests.yml) runs `brew test-bot`, [`publish.yml`](.github/workflows/publish.yml) runs `brew pr-pull`, and built bottles are stored in GHCR at `https://ghcr.io/v2/heretek-ai/tap`. There is no separate nightly-matrix or ROCmFPX-builder workflow.
 
-- **Test and build (`tests.yml`).** `brew test-bot` runs on macOS and Linux, including a hosted CUDA job and a self-hosted `stx-halo` ROCm job. The self-hosted job builds ROCm bottles and runs the hardware validation harness; it is gated to same-repository pull requests, pushes to `main`, and manual dispatches so fork code never runs on maintainer hardware. The workflow also runs the Python suites, ShellCheck, `brew style` for formulae, casks, and `cmd/`, and `python3 scripts/generate_readme.py --check`.
+- **Test and build (`tests.yml`).** `brew test-bot` runs on macOS and Linux, including hosted CUDA (`ghcr.io/heretek-ai/brew-cuda`) and hosted ROCm (`ghcr.io/heretek-ai/brew-rocm`) bottle jobs on `ubuntu-latest` when those toolchain images are published. The workflow also runs the Python suites, ShellCheck, `brew style` for formulae, casks, and `cmd/`, and `python3 scripts/generate_readme.py --check`.
 - **Publish (`publish.yml`).** A maintainer dispatches `brew pr-pull` with the pull request number and an optional reviewed head SHA. It downloads the GHCR bottles, merges the bottle blocks into `main`, pushes the commit, and records build provenance attestations. Passing `--head-sha` makes publishing fail if the branch moved after review.
 - **Autobump (`autobump.yml`).** Release-tag and livecheck bumps run every six hours; commit-tracking and rolling bumps run weekly and on `builder-release` dispatches. Both paths open pull requests labelled `autobump` and run `brew test-bot` before merge. Configure the optional GitHub App with `vars.APP_ID` and `secrets.APP_PRIVATE_KEY`; without the App the workflow falls back to `GITHUB_TOKEN`, and pull requests created with that token do not trigger `brew test-bot`.
 - **Auto-publish (`auto-publish.yml`).** A `workflow_run` listener waits for `brew test-bot` to finish. When a successful, same-repository pull request carries the `autobump` label, it dispatches `publish.yml`; human pull requests remain manual. Fork pull requests are never auto-published.
-- **Self-hosted `stx-halo` gate.** The ROCm/hardware job only accepts trusted refs: same-repository pull requests, `main` pushes, and manual runs. It also requires the repository variable `STX_HALO_ENABLED=true`, and the job targets the protected `stx-halo` environment, so a maintainer must approve the deployment before any step runs on the physical machine. Until the runner is registered and the variable is set, the job is skipped rather than queued. This keeps untrusted fork code and secrets off the maintainer machine.
 
 ## Usage examples
 
@@ -1104,8 +1103,7 @@ pytest tests/ -v
 
 ### CI and pull requests
 
-- [`tests.yml`](.github/workflows/tests.yml) runs `brew test-bot` on macOS and Linux, including hosted CUDA and the self-hosted `stx-halo` ROCm gate. It builds bottles with the GHCR root URL `https://ghcr.io/v2/heretek-ai/tap`, runs the Python suites and ShellCheck, checks `brew style` for `Formula/`, `Casks/`, and `cmd/`, and verifies the generated README.
-- Self-hosted hardware is restricted to same-repository pull requests, `main` pushes, and manual dispatches; fork pull requests never execute on it.
+- [`tests.yml`](.github/workflows/tests.yml) runs `brew test-bot` on macOS and Linux, including hosted CUDA and ROCm bottle jobs on `ubuntu-latest` in `ghcr.io/heretek-ai/brew-cuda` and `ghcr.io/heretek-ai/brew-rocm` when those toolchain images are published. It builds bottles with the GHCR root URL `https://ghcr.io/v2/heretek-ai/tap`, runs the Python suites and ShellCheck, checks `brew style` for `Formula/`, `Casks/`, and `cmd/`, and verifies the generated README.
 - After review, publish with the `publish` workflow (`brew pr-pull`) or locally:
 
 ```bash
@@ -1128,7 +1126,7 @@ Passing `--head-sha` makes the publish fail if the pull request head moves after
 2. Add the ledger entry and variant policy to [`.github/upstream-pins.json`](.github/upstream-pins.json).
 3. Update the documented ports in [`scripts/port_registry.json`](scripts/port_registry.json) and run `python3 scripts/generate_readme.py --write`.
 4. Run `brew style`, the strict online audit, the local tap script, and `pytest`.
-5. Open a pull request and let `brew test-bot` and the self-hosted `stx-halo` gate validate it.
+5. Open a pull request and let `brew test-bot` validate it.
 
 ## License and attribution
 

@@ -121,7 +121,28 @@ def is_cuda(source: str) -> bool:
     return any(marker in source for marker in CUDA_MARKERS)
 
 
-def classify(names: list[str], runner: str) -> list[str]:
+def has_x86_64_linux_bottle(name: str) -> bool:
+    """Return True when Formula/<name>.rb declares an x86_64_linux bottle."""
+    path = FORMULA_DIR / f"{name}.rb"
+    if not path.is_file():
+        return False
+    source = path.read_text(encoding="utf-8")
+    return (
+        re.search(
+            r"^\s*bottle\s+do\b.*?\bx86_64_linux\s*:.*?^\s*end\b",
+            source,
+            re.MULTILINE | re.DOTALL,
+        )
+        is not None
+    )
+
+
+def classify(
+    names: list[str],
+    runner: str,
+    *,
+    skip_bottled_runtime: bool = False,
+) -> list[str]:
     selected = []
     for name in names:
         if not (FORMULA_DIR / f"{name}.rb").is_file():
@@ -170,7 +191,12 @@ def classify(names: list[str], runner: str) -> list[str]:
     if runtime and any(
         f"heretek-ai/tap/{runtime}" in read_formula(name) for name in selected
     ):
-        selected = [runtime] + [name for name in selected if name != runtime]
+        if not (
+            skip_bottled_runtime
+            and runtime not in names
+            and has_x86_64_linux_bottle(runtime)
+        ):
+            selected = [runtime] + [name for name in selected if name != runtime]
     return selected
 
 
@@ -201,6 +227,11 @@ def main() -> int:
         help="Omit rocm-runtime/cuda-runtime from the emitted list",
     )
     parser.add_argument(
+        "--skip-bottled-runtime",
+        action="store_true",
+        help="Do not auto-prepend an unchanged runtime that already has an x86_64_linux bottle",
+    )
+    parser.add_argument(
         "--format",
         choices=["csv", "json"],
         default="csv",
@@ -219,7 +250,9 @@ def main() -> int:
             parser.error("--base is required unless --all or --formulae is used")
         names = git_changed_formulae(args.base, args.head)
 
-    selected = classify(names, args.runner)
+    selected = classify(
+        names, args.runner, skip_bottled_runtime=args.skip_bottled_runtime
+    )
     if args.exclude_runtime:
         selected = [n for n in selected if n not in ("rocm-runtime", "cuda-runtime")]
     emit(selected, fmt=args.format)

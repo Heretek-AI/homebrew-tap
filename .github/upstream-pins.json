@@ -28,7 +28,7 @@
       "repo": "gufo-org/gufo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "079c58f50d8e6e6ff0f9a23f9ed9951f555e21808d573dcfc2f902580a5aeee0",
+      "formula_sha256": "217fea3d042960cb69272fec4d19d67ebf4f0af9e3fd3f57f372bf7513123b21",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -232,7 +232,7 @@
       "repo": "mw00/project-maya",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "ffea5bb19b8870295f61eba5a27a0dfbf134ee932aa513e15f89837d405d7916",
+      "formula_sha256": "72a641abf157e53ee69f7fe6ce5147426eff1cd7840a15b9e9e1e89bd84ef082",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -287,7 +287,7 @@
       "repo": "Niko1221/Strata",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "eed8db616198ea73177e391821a204166903f318a6abe296e4370d7c2d825592",
+      "formula_sha256": "cd6a3bdf9ef5373e470f1ce6e48815ee2dff572db693da3267412ee4b0873ea9",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -651,7 +651,7 @@
       "repo": "snowsh1ne/strixolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "cc90ea4a68a50fd57120cafbb5d4f101b7dc97712b18094f2e4de8b7a61871c2",
+      "formula_sha256": "763128d264fbbe32e6d5931aaccb3f74ae3fb65245cc81f776759c6824093952",
       "variants": {
         "rocm": {
           "status": "enabled",

@@ -243,8 +243,10 @@ class Strata < Formula
 
     # 3. Device Discovery Smoke Test (tolerate absence of a physical GPU on hosted CI)
     if File.exist?(bin/"strata-device")
-      probe = shell_output("#{bin}/strata-device 2>&1", nil)
-      assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
+      probe = pipe_output("#{bin}/strata-device 2>&1")
+      status = $CHILD_STATUS
+      assert !status.nil? && !status.exitstatus.nil? && status.exitstatus < 128,
+             "Device probe crashed (status=#{status&.inspect}): #{probe}"
     end
   end
 end

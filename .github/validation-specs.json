@@ -1068,22 +1068,16 @@
           "--help"
         ],
         "device_cmd": [
-          "bin/strixolotl",
-          "--backend",
-          "hip",
-          "-m",
-          "/dev/null"
+          "libexec/bin/strata-device",
+          "--list-devices"
         ],
         "device_ok_regex": "(?i)(gfx1151|radeon|rocm|hip|device)",
         "no_device_ok_regex": "(?i)(no (gpu|device)|hip|failed|cannot open|invalid)",
         "golden_cmd": [
-          "bin/strixolotl",
-          "--backend",
-          "hip",
-          "-m",
-          "/dev/null"
+          "libexec/bin/strata-device",
+          "--selftest"
         ],
-        "throughput_regex": "(?i)([0-9.]+\\s*(tok/s|t/s)|gfx1151|hip)"
+        "throughput_regex": "(?i)(selftest OK|[0-9.]+\\s*(tok/s|t/s)|gfx1151|hip)"
       }
     },
     "rulith-inference": {

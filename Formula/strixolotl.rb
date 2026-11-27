@@ -106,9 +106,9 @@ class Strixolotl < Formula
 
     system "cmake", "-S", "xolotl", "-B", "build-strix", *std_cmake_args, *args,
            "-DCMAKE_PREFIX_PATH=#{rocm_path};#{rocm_path}/lib/llvm;#{HOMEBREW_PREFIX}"
-    system "cmake", "--build", "build-strix", "--target", "ds41_generate"
+    system "cmake", "--build", "build-strix", "--target", "ds41_generate", "strata-device"
 
-    (libexec/"bin").install "build-strix/ds41_generate"
+    (libexec/"bin").install "build-strix/ds41_generate", "build-strix/strata-device"
     libexec.install "xolotl/serve" if (buildpath/"xolotl/serve").exist?
     libexec.install "xolotl/tools" if (buildpath/"xolotl/tools").exist?
     libexec.install "scripts" if (buildpath/"scripts").exist?
@@ -161,6 +161,11 @@ class Strixolotl < Formula
     refute_match(/not found/, out)
     assert_match(/libamdhip64\.so/, out)
 
+    dev_out = shell_output("ldd #{libexec}/bin/strata-device")
+    refute_match(/not found/, dev_out)
+    assert_match(/libamdhip64\.so/, dev_out)
+
     assert_match(/usage|model/i, shell_output("#{bin}/strixolotl --help 2>&1", 2))
+    assert_match(/device|no GPU/i, shell_output("#{libexec}/bin/strata-device --list-devices"))
   end
 end

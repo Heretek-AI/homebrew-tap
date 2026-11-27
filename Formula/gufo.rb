@@ -177,6 +177,8 @@ class Gufo < Formula
     assert_match(/Usage: .*gufo/, shell_output("#{bin}/gufo --help"))
 
     # 3. Device Discovery Smoke Test
-    assert_match "Gufo Diagnostics", shell_output("#{bin}/gufo diagnose")
+    probe = shell_output("#{bin}/gufo probe")
+    assert_match "Hello, Strix Halo!", probe
+    assert_match "OK", probe
   end
 end
