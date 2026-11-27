@@ -517,6 +517,10 @@ jobs:
       RUSTC_WRAPPER: sccache
       ROCM_PATH: /opt/rocm
       HOMEBREW_ROCM_PATH: /opt/rocm
+      # Tell Homebrew's setup action this is a persistent self-hosted runner;
+      # otherwise it moves the tap into GITHUB_WORKSPACE and leaves a symlink
+      # that breaks when the runner workspace is cleaned between jobs.
+      GITHUB_ACTIONS_HOMEBREW_SELF_HOSTED: "1"
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
