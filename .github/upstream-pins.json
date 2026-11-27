@@ -28,7 +28,7 @@
       "repo": "gufo-org/gufo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "6f319cc0360f7cbfce9d769fe79e245622892975b3d0aef68ad3e99f291a1684",
+      "formula_sha256": "c433caab1fee445a65143d7fd285c4b934b56dd37e707fe7bc2284f9fd94efe8",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -232,7 +232,7 @@
       "repo": "mw00/project-maya",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "addb1c0d89ff1d98e1a5d22b88af5db9f50b215de29b8cc6853bf7c7abcc3b6d",
+      "formula_sha256": "ffea5bb19b8870295f61eba5a27a0dfbf134ee932aa513e15f89837d405d7916",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -287,7 +287,7 @@
       "repo": "Niko1221/Strata",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "7da984c58e5e6c1cdc7d768fd86b20b48d52b40820198590c02ce86d3bb559df",
+      "formula_sha256": "eed8db616198ea73177e391821a204166903f318a6abe296e4370d7c2d825592",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -342,7 +342,7 @@
       "repo": "shawnshekari/strixite",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "9811c8e88e62dd30f08e2795b8be255fd1561b431d65f5b10450bd68e1cc5a6d",
+      "formula_sha256": "4401533c5da3b5d34508b18904edca4820ddc374a4fe442311622d61488695ce",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -573,7 +573,7 @@
       "repo": "franzmoca/ds41-gufo-extension",
       "branch": "main",
       "track": "release",
-      "formula_sha256": "13ae66d2690158552b37681ce023c11a40685fc885d77def5fb52a39b89bd51c",
+      "formula_sha256": "7d558797800c6ef676ed92273562b54edbe62477652d318764dbb37a959e5d98",
       "variants": {
         "rocm": {
           "status": "enabled",

@@ -132,7 +132,7 @@ def classify(names: list[str], runner: str) -> list[str]:
         prebuilt_rocm = name in PREBUILT_ROCM_FORMULAE
         cuda_default = name in CUDA_DEFAULT_FORMULAE
         macos_only = is_macos_only(source)
-        if runner == "stx-halo":
+        if runner in ("hosted-rocm", "stx-halo"):
             keep = (rocm or prebuilt_rocm) and not cuda_default and not macos_only
         elif runner == "hosted-cuda":
             keep = not macos_only and (
@@ -161,7 +161,11 @@ def classify(names: list[str], runner: str) -> list[str]:
         if keep:
             selected.append(name)
 
-    runtime = {"hosted-cuda": "cuda-runtime", "stx-halo": "rocm-runtime"}.get(runner)
+    runtime = {
+        "hosted-cuda": "cuda-runtime",
+        "hosted-rocm": "rocm-runtime",
+        "stx-halo": "rocm-runtime",
+    }.get(runner)
     if runtime and any(
         f"heretek-ai/tap/{runtime}" in read_formula(name) for name in selected
     ):
@@ -183,7 +187,7 @@ def main() -> int:
     parser.add_argument(
         "--runner",
         required=True,
-        choices=["hosted-linux", "hosted-macos", "hosted-cuda", "stx-halo"],
+        choices=["hosted-linux", "hosted-macos", "hosted-cuda", "hosted-rocm", "stx-halo"],
     )
     parser.add_argument("--base", help="Base revision for the diff")
     parser.add_argument("--head", default="HEAD", help="Head revision (default: HEAD)")

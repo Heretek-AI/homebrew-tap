@@ -61,7 +61,11 @@ class Strixite < Formula
       ENV.append "LDFLAGS", "-L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu"
     end
 
-    host_arch = build.with?("portable-cpu") ? "x86-64-v3" : "znver5"
+    host_arch = if build.bottle? || build.with?("portable-cpu")
+      "x86-64-v3"
+    else
+      "znver5"
+    end
 
     args = %W[
       -G Ninja

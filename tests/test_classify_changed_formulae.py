@@ -49,6 +49,10 @@ class TestClassifyChangedFormulae(unittest.TestCase):
 
     def test_source_rocm_and_cuda_formulae(self) -> None:
         self.assertEqual(
+            classifier.classify(["gufo-ds41"], "hosted-rocm"),
+            ["rocm-runtime", "gufo-ds41"],
+        )
+        self.assertEqual(
             classifier.classify(["gufo-ds41"], "stx-halo"),
             ["rocm-runtime", "gufo-ds41"],
         )

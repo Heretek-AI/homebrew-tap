@@ -79,7 +79,8 @@ class Gufo < Formula
     end
 
     # 3. Allow building on Zen 4 CI runners while preserving required AVX-512 intrinsics
-    if build.with?("znver4")
+    if (build.bottle? || build.with?("znver4")) &&
+       File.read("CMakeLists.txt").include?('set(GUFO_MARCH_FLAG "-march=znver5")')
       inreplace "CMakeLists.txt",
                 'set(GUFO_MARCH_FLAG "-march=znver5")',
                 'set(GUFO_MARCH_FLAG "-march=znver4 -mavx512f -mavx512bf16 -mavx512bw -mavx512dq -mavx512vl")'

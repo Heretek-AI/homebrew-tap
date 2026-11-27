@@ -416,7 +416,7 @@ jobs:
           path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
   toolchain-image:
-    name: Check CUDA toolchain image
+    name: Check CUDA and ROCm toolchain images
     needs: changes
     if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
@@ -425,22 +425,32 @@ jobs:
       packages: read
     outputs:
       cuda: ${{ steps.check.outputs.cuda }}
+      rocm: ${{ steps.check.outputs.rocm }}
     steps:
-      - name: Check for published brew-cuda image
+      - name: Check for published brew-cuda and brew-rocm images
         id: check
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cuda_ok=false
+          rocm_ok=false
           if printf '%s' "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null 2>&1
           then
             if docker manifest inspect ghcr.io/heretek-ai/brew-cuda:13.5.0 >/dev/null 2>&1
             then
-              echo "cuda=true" >> "${GITHUB_OUTPUT}"
-              exit 0
+              cuda_ok=true
+            else
+              echo "::notice::ghcr.io/heretek-ai/brew-cuda:13.5.0 is not published yet; CUDA bottles will be skipped."
+            fi
+            if docker manifest inspect ghcr.io/heretek-ai/brew-rocm:10.3.0a20261126 >/dev/null 2>&1
+            then
+              rocm_ok=true
+            else
+              echo "::notice::ghcr.io/heretek-ai/brew-rocm:10.3.0a20261126 is not published yet; ROCm bottles will be skipped."
             fi
           fi
-          echo "cuda=false" >> "${GITHUB_OUTPUT}"
-          echo "::notice::ghcr.io/heretek-ai/brew-cuda:13.5.0 is not published yet; CUDA bottles will be skipped."
+          echo "cuda=${cuda_ok}" >> "${GITHUB_OUTPUT}"
+          echo "rocm=${rocm_ok}" >> "${GITHUB_OUTPUT}"
 
   bottles-cuda:
     name: CUDA bottles (hosted toolchain image)
@@ -573,22 +583,16 @@ jobs:
           path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
   bottles-rocm:
-    name: ROCm bottles and GPU validation (stx-halo)
-    needs: changes
-    # SECURITY: self-hosted hardware must never execute fork pull-request code.
-    # Only same-repository PRs, pushes to main and manual dispatches are trusted.
+    name: ROCm bottles (hosted toolchain image)
+    needs: [changes, toolchain-image]
     if: >-
       always() &&
-      vars.STX_HALO_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' ||
-       github.event_name == 'push' ||
-       (github.event_name == 'pull_request' &&
-        github.event.pull_request.head.repo.full_name == github.repository)) &&
-      (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
-    runs-on: [self-hosted, stx-halo, Linux]
-    # Environment protection requires a maintainer approval before any job
-    # step runs on the physical Strix Halo machine.
-    environment: stx-halo
+      (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true') &&
+      needs.toolchain-image.outputs.rocm == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/heretek-ai/brew-rocm:10.3.0a20261126
+      options: --privileged
     permissions:
       actions: read
       checks: read
@@ -599,15 +603,11 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       CMAKE_C_COMPILER_LAUNCHER: sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      CMAKE_CUDA_COMPILER_LAUNCHER: sccache
       CMAKE_HIP_COMPILER_LAUNCHER: sccache
       RUSTC_WRAPPER: sccache
       ROCM_PATH: /opt/rocm
+      # Homebrew sanitises non-HOMEBREW_* variables before formula installs.
       HOMEBREW_ROCM_PATH: /opt/rocm
-      # Tell Homebrew's setup action this is a persistent self-hosted runner;
-      # otherwise it moves the tap into GITHUB_WORKSPACE and leaves a symlink
-      # that breaks when the runner workspace is cleaned between jobs.
-      GITHUB_ACTIONS_HOMEBREW_SELF_HOSTED: "1"
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
@@ -619,8 +619,8 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-          key: stx-halo-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
-          restore-keys: stx-halo-rubygems-
+          key: ubuntu-latest-rocm-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ubuntu-latest-rocm-rubygems-
 
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -635,14 +635,6 @@ jobs:
           brew test-bot --only-cleanup-before
           brew test-bot --only-setup
 
-      - name: Clean stale bottle artifacts
-        run: |
-          # This is a persistent self-hosted runner. Bottles and validation
-          # proofs from the previous job remain in the tap checkout and make
-          # test-bot abort with "Unexpected bottle tarball".
-          cd "${TAP_DIR}"
-          rm -f ./*.bottle*.tar.gz ./*.bottle*.json ./validation-*.json ./steps_output.txt
-
       - name: Base64-encode GITHUB_TOKEN
         id: registry
         env:
@@ -651,7 +643,6 @@ jobs:
           token="$(printf '%s' "${TOKEN}" | base64 | tr -d '\n')"
           echo "::add-mask::${token}"
           echo "token=${token}" >> "${GITHUB_OUTPUT}"
-          brew test-bot --only-tap-syntax
 
       - name: Select changed ROCm formulae
         id: formulae
@@ -662,12 +653,12 @@ jobs:
           cd "${TAP_DIR}"
           if [[ -n "${FORCED_FORMULAE}" ]]
           then
-            python3 scripts/classify_changed_formulae.py --runner stx-halo --formulae "${FORCED_FORMULAE}"
+            python3 scripts/classify_changed_formulae.py --runner hosted-rocm --formulae "${FORCED_FORMULAE}"
           elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
           then
-            python3 scripts/classify_changed_formulae.py --runner stx-halo --base "${BASE_SHA}" --head HEAD
+            python3 scripts/classify_changed_formulae.py --runner hosted-rocm --base "${BASE_SHA}" --head HEAD
           else
-            python3 scripts/classify_changed_formulae.py --runner stx-halo --all
+            python3 scripts/classify_changed_formulae.py --runner hosted-rocm --all
           fi
 
       - name: Build ROCm bottles
@@ -709,42 +700,9 @@ jobs:
             exit 1
           fi
 
-      - name: Validate ROCm bottles on real hardware
-        if: steps.formulae.outputs.formulae != ''
-        run: |
-          cd "${TAP_DIR}"
-          shopt -s nullglob
-          bottles=(*.bottle*.tar.gz)
-          if (( ${#bottles[@]} == 0 ))
-          then
-            echo "::warning::No bottle archives were produced; skipping hardware validation."
-            exit 0
-          fi
-
-          for bottle in "${bottles[@]}"
-          do
-            formula="${bottle%%--*}"
-            if ! python3 -c 'import json,sys; data=json.load(open(".github/validation-specs.json")); sys.exit(0 if sys.argv[1] in data.get("formulas", {}) else 1)' "${formula}"
-            then
-              echo "No validation spec for ${formula}; skipping."
-              continue
-            fi
-
-            brew install --formula "${bottle}"
-            keg="$(brew --prefix "${formula}")"
-            python3 .github/scripts/validate_bottle.py \
-              --keg "${keg}" \
-              --formula "${formula}" \
-              --variant rocm \
-              --hardware present \
-              --out "validation-${formula}.json"
-          done
-
-      - name: Upload ROCm bottles and validation proofs
+      - name: Upload ROCm bottles
         if: always() && steps.formulae.outputs.formulae != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: bottles_rocm_stx_halo
-          path: |
-            ${{ env.TAP_DIR }}/*.bottle*.tar.gz
-            ${{ env.TAP_DIR }}/validation-*.json
+          name: bottles_rocm
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
