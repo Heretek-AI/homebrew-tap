@@ -80,6 +80,79 @@ class GufoDs41 < Formula
                 "\"#{pkgshare}/hipblaslt_tuning.txt\""
     end
 
+    # Make the optional dlopen'd NPU XRT module conditional when Xilinx XRT is
+    # not installed on the build host (gufo-ds41 executes on HIP gfx1151).
+    xrt_present = [ENV["XILINX_XRT"], "/opt/xilinx/xrt"].compact.any? do |p|
+      File.exist?("#{p}/include/xrt/xrt_bo.h")
+    end
+    unless xrt_present
+      inreplace "CMakeLists.txt" do |s|
+        s.sub!(
+          "find_path(GUFO_XRT_INCLUDE_DIR NAMES xrt/xrt_bo.h\n  " \
+          "HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES include REQUIRED)",
+          "find_path(GUFO_XRT_INCLUDE_DIR NAMES xrt/xrt_bo.h\n  " \
+          "HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES include)",
+        )
+        s.sub!(
+          "  find_library(GUFO_XRT_COREUTIL_LIBRARY NAMES xrt_coreutil\n    " \
+          "HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES lib lib64 REQUIRED)\n  " \
+          "set(CMAKE_FIND_LIBRARY_SUFFIXES \"${_GUFO_SAVED_FIND_LIBRARY_SUFFIXES}\")\n  " \
+          "unset(_GUFO_SAVED_FIND_LIBRARY_SUFFIXES)\n  " \
+          "add_library(XRT::xrt_coreutil SHARED IMPORTED)\n" \
+          "endif()\n" \
+          "set_target_properties(XRT::xrt_coreutil PROPERTIES\n  " \
+          "IMPORTED_LOCATION \"${GUFO_XRT_COREUTIL_LIBRARY}\"\n  " \
+          "INTERFACE_INCLUDE_DIRECTORIES \"${GUFO_XRT_INCLUDE_DIR}\")\n" \
+          "if(NOT WIN32)\n  " \
+          "set_property(TARGET XRT::xrt_coreutil PROPERTY INTERFACE_LINK_LIBRARIES uuid)\n" \
+          "endif()",
+          "  find_library(GUFO_XRT_COREUTIL_LIBRARY NAMES xrt_coreutil\n    " \
+          "HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES lib lib64)\n  " \
+          "set(CMAKE_FIND_LIBRARY_SUFFIXES \"${_GUFO_SAVED_FIND_LIBRARY_SUFFIXES}\")\n  " \
+          "unset(_GUFO_SAVED_FIND_LIBRARY_SUFFIXES)\n  " \
+          "if(GUFO_XRT_INCLUDE_DIR AND GUFO_XRT_COREUTIL_LIBRARY)\n    " \
+          "add_library(XRT::xrt_coreutil SHARED IMPORTED)\n  " \
+          "endif()\n" \
+          "endif()\n" \
+          "if(TARGET XRT::xrt_coreutil)\n  " \
+          "set_target_properties(XRT::xrt_coreutil PROPERTIES\n    " \
+          "IMPORTED_LOCATION \"${GUFO_XRT_COREUTIL_LIBRARY}\"\n    " \
+          "INTERFACE_INCLUDE_DIRECTORIES \"${GUFO_XRT_INCLUDE_DIR}\")\n  " \
+          "if(NOT WIN32)\n    " \
+          "set_property(TARGET XRT::xrt_coreutil PROPERTY INTERFACE_LINK_LIBRARIES uuid)\n  " \
+          "endif()\n" \
+          "endif()",
+        )
+      end
+      inreplace "src/core/npu/CMakeLists.txt",
+                "  add_library(gufo_npu_xrt MODULE xrt_backend.cpp)\n  " \
+                "target_include_directories(gufo_npu_xrt PRIVATE ${PROJECT_SOURCE_DIR})\n  " \
+                "target_compile_features(gufo_npu_xrt PRIVATE cxx_std_20)\n  " \
+                "target_link_libraries(gufo_npu_xrt PRIVATE XRT::xrt_coreutil)\n  " \
+                "target_link_options(gufo_npu_xrt PRIVATE \"LINKER:--no-undefined\")\n  " \
+                "set_target_properties(gufo_npu_xrt PROPERTIES\n    " \
+                "CXX_VISIBILITY_PRESET hidden\n    " \
+                "VISIBILITY_INLINES_HIDDEN ON)\n  " \
+                "install(TARGETS gufo_npu_xrt LIBRARY DESTINATION lib/gufo)\n  " \
+                "add_dependencies(gufo_npu gufo_npu_xrt)\n  " \
+                "target_compile_definitions(gufo_npu PRIVATE\n    " \
+                "\"GUFO_NPU_XRT_BUILD_MODULE=\\\"$<TARGET_FILE:gufo_npu_xrt>\\\"\")",
+                "  if(TARGET XRT::xrt_coreutil)\n    " \
+                "add_library(gufo_npu_xrt MODULE xrt_backend.cpp)\n    " \
+                "target_include_directories(gufo_npu_xrt PRIVATE ${PROJECT_SOURCE_DIR})\n    " \
+                "target_compile_features(gufo_npu_xrt PRIVATE cxx_std_20)\n    " \
+                "target_link_libraries(gufo_npu_xrt PRIVATE XRT::xrt_coreutil)\n    " \
+                "target_link_options(gufo_npu_xrt PRIVATE \"LINKER:--no-undefined\")\n    " \
+                "set_target_properties(gufo_npu_xrt PROPERTIES\n      " \
+                "CXX_VISIBILITY_PRESET hidden\n      " \
+                "VISIBILITY_INLINES_HIDDEN ON)\n    " \
+                "install(TARGETS gufo_npu_xrt LIBRARY DESTINATION lib/gufo)\n    " \
+                "add_dependencies(gufo_npu gufo_npu_xrt)\n    " \
+                "target_compile_definitions(gufo_npu PRIVATE\n      " \
+                "\"GUFO_NPU_XRT_BUILD_MODULE=\\\"$<TARGET_FILE:gufo_npu_xrt>\\\"\")\n  " \
+                "endif()"
+    end
+
     if build.with?("znver4")
       inreplace "CMakeLists.txt",
                 'set(GUFO_MARCH_FLAG "-march=znver5")',

@@ -23,6 +23,22 @@ class RulithInference < Formula
   end
 
   def install
+    # Upstream defines mmh_ic/mmh_bc after their first use in mmh_gemm_et, which
+    # MSVC accepts via delayed template parsing but Linux ROCm clang rejects.
+    mmh_cu = "ggml/src/ggml-cuda/mul-mat-had.cu"
+    if File.exist?(mmh_cu) && File.read(mmh_cu).include?("template <int N> struct mmh_ic")
+      inreplace mmh_cu do |s|
+        s.gsub!("template <int N> struct mmh_ic { static constexpr int  value = N; };\n" \
+                "template <bool V> struct mmh_bc { static constexpr bool value = V; };\n", "")
+        s.sub!("template <ggml_type type, int BM, int WM>\n" \
+               "static __global__ void __launch_bounds__(256, 2) mmh_gemm_et(",
+               "template <int N> struct mmh_ic { static constexpr int  value = N; };\n" \
+               "template <bool V> struct mmh_bc { static constexpr bool value = V; };\n\n" \
+               "template <ggml_type type, int BM, int WM>\n" \
+               "static __global__ void __launch_bounds__(256, 2) mmh_gemm_et(")
+      end
+    end
+
     rocm_path = rocm_root
     ENV["ROCM_PATH"] = rocm_path
     ENV["HIP_PATH"] = rocm_path

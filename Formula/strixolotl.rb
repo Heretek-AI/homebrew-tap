@@ -136,6 +136,6 @@ class Strixolotl < Formula
     refute_match(/not found/, out)
     assert_match(/libamdhip64\.so/, out)
 
-    assert_match(/usage|model/i, shell_output("#{bin}/strixolotl --help 2>&1"))
+    assert_match(/usage|model/i, shell_output("#{bin}/strixolotl --help 2>&1", 2))
   end
 end

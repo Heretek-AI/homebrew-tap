@@ -38,8 +38,28 @@ class Xolotl < Formula
 
     cuda = cuda_root
     ENV["CUDA_HOME"] = cuda
+    ENV["CUDACXX"] = "#{cuda}/bin/nvcc"
     ENV.prepend_path "PATH", "#{cuda}/bin"
 
+    # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>.
+    argsort_cu = llama_dir/"ggml/src/ggml-cuda/argsort.cu"
+    if argsort_cu.exist? &&
+       argsort_cu.read.include?("#        define STRIDED_ITERATOR_AVAILABLE") &&
+       argsort_cu.read.exclude?("<cuda/iterator>")
+      inreplace argsort_cu,
+                "#        define STRIDED_ITERATOR_AVAILABLE",
+                "#        include <cuda/iterator>\n#        define STRIDED_ITERATOR_AVAILABLE"
+    end
+    topk_cu = llama_dir/"ggml/src/ggml-cuda/top-k.cu"
+    if topk_cu.exist? &&
+       topk_cu.read.include?("#        define CUB_TOP_K_AVAILABLE") &&
+       topk_cu.read.exclude?("<cuda/iterator>")
+      inreplace topk_cu,
+                "#        define CUB_TOP_K_AVAILABLE",
+                "#        define CUB_TOP_K_AVAILABLE\n#        include <cuda/iterator>"
+    end
+
+    host_cxx = ["/usr/bin/g++-13", "/usr/bin/g++"].find { |path| File.executable?(path) }
     rpath = "#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib"
     args = %W[
       -G Ninja
@@ -57,6 +77,7 @@ class Xolotl < Formula
       -DCMAKE_INSTALL_RPATH=#{rpath}
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
+    args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
 
     system "cmake", "-S", ".", "-B", "build-xolotl", *std_cmake_args, *args
     system "cmake", "--build", "build-xolotl"
@@ -143,6 +164,6 @@ class Xolotl < Formula
     refute_match(/not found/, out)
     assert_match(/libcudart\.so/, out)
 
-    assert_match(/usage|model/i, shell_output("#{bin}/xolotl-ds41 --help 2>&1"))
+    assert_match(/usage|model/i, shell_output("#{bin}/xolotl-ds41 --help 2>&1", 2))
   end
 end

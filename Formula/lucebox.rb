@@ -71,14 +71,22 @@ class Lucebox < Formula
       end
       args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
 
-      # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>, but the
-      # optional strided-iterator path in argsort.cu uses cuda::make_strided_iterator.
+      # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>, which
+      # argsort.cu (cuda::make_strided_iterator) and top-k.cu (cuda::discard_iterator) need.
       argsort_cu = "server/deps/llama.cpp/ggml/src/ggml-cuda/argsort.cu"
       if File.exist?(argsort_cu) &&
          File.read(argsort_cu).include?("#        define STRIDED_ITERATOR_AVAILABLE")
         inreplace argsort_cu,
                   "#        define STRIDED_ITERATOR_AVAILABLE",
                   "#        include <cuda/iterator>\n#        define STRIDED_ITERATOR_AVAILABLE"
+      end
+      topk_cu = "server/deps/llama.cpp/ggml/src/ggml-cuda/top-k.cu"
+      if File.exist?(topk_cu) &&
+         File.read(topk_cu).include?("#        define CUB_TOP_K_AVAILABLE") &&
+         File.read(topk_cu).exclude?("<cuda/iterator>")
+        inreplace topk_cu,
+                  "#        define CUB_TOP_K_AVAILABLE",
+                  "#        define CUB_TOP_K_AVAILABLE\n#        include <cuda/iterator>"
       end
     end
     args << "-DCMAKE_INSTALL_RPATH=#{rpath}"
