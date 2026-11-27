@@ -49,13 +49,26 @@ class TestClassifyChangedFormulae(unittest.TestCase):
 
     def test_source_rocm_and_cuda_formulae(self) -> None:
         self.assertEqual(
-            classifier.classify(["rocmfpx"], "stx-halo"), ["rocm-runtime", "rocmfpx"]
+            classifier.classify(["gufo-ds41"], "stx-halo"),
+            ["rocm-runtime", "gufo-ds41"],
         )
-        self.assertEqual(classifier.classify(["rocmfpx"], "hosted-linux"), [])
+        self.assertEqual(classifier.classify(["gufo-ds41"], "hosted-linux"), [])
+        self.assertEqual(
+            classifier.classify(["rulith-inference"], "stx-halo"),
+            ["rocm-runtime", "rulith-inference"],
+        )
+        self.assertEqual(
+            classifier.classify(["strixolotl"], "stx-halo"),
+            ["rocm-runtime", "strixolotl"],
+        )
         self.assertEqual(
             classifier.classify(["basalt"], "hosted-cuda"), ["cuda-runtime", "basalt"]
         )
         self.assertEqual(classifier.classify(["basalt"], "stx-halo"), [])
+        self.assertEqual(
+            classifier.classify(["xolotl"], "hosted-cuda"), ["cuda-runtime", "xolotl"]
+        )
+        self.assertEqual(classifier.classify(["xolotl"], "stx-halo"), [])
         self.assertEqual(
             classifier.classify(["lucebox"], "hosted-cuda"), ["cuda-runtime", "lucebox"]
         )

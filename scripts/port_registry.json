@@ -15,17 +15,11 @@
       "configurable": true,
       "notes": "Set with --host 127.0.0.1 --port 18001 in the service block. Upstream default is 8080."
     },
-    "gufetto": {
-      "port": 18002,
-      "executable": "gufetto serve",
-      "configurable": true,
-      "notes": "Set with --host 127.0.0.1 --port 18002 in the service block. Upstream default is 8080."
-    },
-    "gufo-franzmoca": {
+    "gufo-ds41": {
       "port": 18003,
-      "executable": "gufo-franzmoca serve",
+      "executable": "gufo-ds41 serve",
       "configurable": true,
-      "notes": "Set with --host 127.0.0.1 --port 18003 in the service block. Upstream default is 8080."
+      "notes": "Set with --host 127.0.0.1 --port 18003 in the service block. Replaces gufo-franzmoca. Upstream default is 8080."
     },
     "strixite": {
       "port": 18004,
@@ -44,12 +38,6 @@
       "executable": "strata-cli",
       "configurable": true,
       "notes": "Port changed to 18006 in the existing strata-cli service invocation. The launcher and server default to 127.0.0.1; that command shape exposes no --host flag, so this service relies on the default loopback bind."
-    },
-    "rocmfpx": {
-      "port": 18007,
-      "executable": "rocmfpx",
-      "configurable": true,
-      "notes": "Set with --host 127.0.0.1 --port 18007 in the service block. Serves the built llama-server endpoint."
     },
     "stable-diffusion-cpp": {
       "port": 18008,
@@ -74,6 +62,12 @@
       "executable": "hipfire serve",
       "configurable": true,
       "notes": "Set with the documented positional bind 127.0.0.1:18011; hipfire serve has no --port flag. Upstream default is 11435."
+    },
+    "rulith-inference": {
+      "port": 18014,
+      "executable": "rulith-server",
+      "configurable": true,
+      "notes": "Set with --host 127.0.0.1 --port 18014 in the service block. Serves the Linux ROCm gfx1151 llama-server endpoint."
     },
     "shimmy": {
       "port": 11434,

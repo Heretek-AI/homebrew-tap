@@ -56,12 +56,6 @@ def load_config_from_ledger():
             pass
 
     return {
-        "rocmfpx": {
-            "type": "upstream_commit",
-            "repo": "charlie12345/ROCmFPX",
-            "branch": "main",
-            "formulae": ["rocmfpx.rb"],
-        },
         "shimmy": {
             "type": "upstream_release",
             "repo": "Michael-A-Kuykendall/shimmy",
@@ -72,23 +66,22 @@ def load_config_from_ledger():
             "repo": "leejet/stable-diffusion.cpp",
             "formulae": ["stable-diffusion-cpp.rb"],
         },
-        "gufetto": {
-            "type": "upstream_commit",
-            "repo": "community-token-labs/gufetto",
-            "branch": "main",
-            "formulae": ["gufetto.rb"],
-        },
         "gufo": {
             "type": "upstream_commit",
             "repo": "gufo-org/gufo",
             "branch": "main",
             "formulae": ["gufo.rb"],
         },
-        "gufo-franzmoca": {
+        "gufo-ds41": {
+            "type": "upstream_release",
+            "repo": "franzmoca/ds41-gufo-extension",
+            "formulae": ["gufo-ds41.rb"],
+        },
+        "rulith-inference": {
             "type": "upstream_commit",
-            "repo": "franzmoca/gufo",
-            "branch": "main",
-            "formulae": ["gufo-franzmoca.rb"],
+            "repo": "rulith-dev/llama.cpp",
+            "branch": "rulith",
+            "formulae": ["rulith-inference.rb"],
         },
         "strixite": {
             "type": "upstream_commit",
@@ -96,11 +89,23 @@ def load_config_from_ledger():
             "branch": "main",
             "formulae": ["strixite.rb"],
         },
+        "strixolotl": {
+            "type": "upstream_commit",
+            "repo": "snowsh1ne/strixolotl",
+            "branch": "main",
+            "formulae": ["strixolotl.rb"],
+        },
         "strata": {
             "type": "upstream_commit",
             "repo": "Niko1221/Strata",
             "branch": "main",
             "formulae": ["strata.rb"],
+        },
+        "xolotl": {
+            "type": "upstream_commit",
+            "repo": "Indras-Mirror/Xolotl",
+            "branch": "main",
+            "formulae": ["xolotl.rb"],
         },
         "project-maya": {
             "type": "upstream_commit",

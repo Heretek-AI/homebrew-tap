@@ -75,68 +75,6 @@
         "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|ms/tok)"
       }
     },
-    "gufetto": {
-      "binaries": [
-        "bin/gufetto",
-        "bin/gufetto-server"
-      ],
-      "rocm": {
-        "required_libs": [
-          "libamdhip64.so"
-        ],
-        "version_cmd": [
-          "bin/gufetto",
-          "version"
-        ],
-        "help_cmd": [
-          "bin/gufetto",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/gufetto",
-          "info"
-        ],
-        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|compute unit)",
-        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip)",
-        "golden_cmd": [
-          "bin/gufetto",
-          "test",
-          "--mock"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|ms/tok)"
-      }
-    },
-    "gufo-franzmoca": {
-      "binaries": [
-        "bin/gufo-franzmoca",
-        "bin/gufo-franzmoca-server"
-      ],
-      "rocm": {
-        "required_libs": [
-          "libamdhip64.so"
-        ],
-        "version_cmd": [
-          "bin/gufo-franzmoca",
-          "version"
-        ],
-        "help_cmd": [
-          "bin/gufo-franzmoca",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/gufo-franzmoca",
-          "info"
-        ],
-        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|compute unit)",
-        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip)",
-        "golden_cmd": [
-          "bin/gufo-franzmoca",
-          "test",
-          "--mock"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec|ms/tok)"
-      }
-    },
     "hyperqwen": {
       "binaries": [
         "bin/hyperqwen",
@@ -498,38 +436,6 @@
         "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
       }
     },
-    "rocmfpx": {
-      "binaries": [
-        "bin/rocmfpx",
-        "bin/rocmfpx-server",
-        "bin/rocmfpx-cli",
-        "bin/rocmfpx-quantize",
-        "bin/rocmfpx-bench",
-        "bin/rocmfpx-perplexity"
-      ],
-      "rocm": {
-        "required_libs": [
-          "libamdhip64.so",
-          "librocblas.so",
-          "libhipblaslt.so",
-          "librocm_kpack.so"
-        ],
-        "version_cmd": [
-          "bin/rocmfpx",
-          "--version"
-        ],
-        "help_cmd": [
-          "bin/rocmfpx",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/rocmfpx",
-          "--list-devices"
-        ],
-        "device_ok_regex": "(?i)(gfx[0-9a-f]{3,4}|device\\s+[0-9]+\\s*:)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|0 devices found)"
-      }
-    },
     "lucebox": {
       "binaries": [
         "bin/lucebox-server"
@@ -794,92 +700,6 @@
           "--version"
         ],
         "throughput_regex": "(?i)(osmos|0\\.18)"
-      }
-    },
-    "saient-quartz": {
-      "binaries": [
-        "bin/quartz"
-      ],
-      "cpu": {
-        "required_libs": [],
-        "version_cmd": [
-          "bin/quartz",
-          "--inspect-wan"
-        ],
-        "help_cmd": [
-          "bin/quartz",
-          "--inspect-wan"
-        ],
-        "device_cmd": [
-          "bin/quartz",
-          "--inspect-wan"
-        ],
-        "device_ok_regex": "(?i)(usage: quartz)",
-        "no_device_ok_regex": "(?i)(usage: quartz)",
-        "golden_cmd": [
-          "bin/quartz",
-          "--inspect-wan"
-        ],
-        "throughput_regex": "(?i)(usage: quartz)"
-      },
-      "vulkan": {
-        "required_libs": [
-          "libvulkan.so"
-        ],
-        "version_cmd": [
-          "bin/quartz",
-          "--vulkan-benchmark"
-        ],
-        "help_cmd": [
-          "bin/quartz",
-          "--vulkan-host-import-probe"
-        ],
-        "device_cmd": [
-          "bin/quartz",
-          "--vulkan-benchmark"
-        ],
-        "device_ok_regex": "(?i)(vulkan|fp16|gemm|device)",
-        "no_device_ok_regex": "(?i)(vulkan.*(failed|unavailable)|no vulkan|usage: quartz)",
-        "golden_cmd": [
-          "bin/quartz",
-          "--vulkan-benchmark"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(ms|gflops|tflops|gb/s)"
-      }
-    },
-    "gemma-cpp": {
-      "binaries": [
-        "bin/gemma-cpp"
-      ],
-      "cpu": {
-        "required_libs": [],
-        "version_cmd": [
-          "bin/gemma-cpp",
-          "--weights",
-          "/dev/null",
-          "--help"
-        ],
-        "help_cmd": [
-          "bin/gemma-cpp",
-          "--weights",
-          "/dev/null",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/gemma-cpp",
-          "--weights",
-          "/dev/null",
-          "--help"
-        ],
-        "device_ok_regex": "(?i)(gemma|weights|usage)",
-        "no_device_ok_regex": "(?i)(gemma|weights|usage)",
-        "golden_cmd": [
-          "bin/gemma-cpp",
-          "--weights",
-          "/dev/null",
-          "--help"
-        ],
-        "throughput_regex": "(?i)(gemma|weights|usage)"
       }
     },
     "colibri": {
@@ -1168,6 +988,127 @@
           "bin/nib",
           "--help"
         ]
+      }
+    },
+    "gufo-ds41": {
+      "binaries": [
+        "bin/gufo-ds41",
+        "bin/gufo-ds41-server"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/gufo-ds41",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/gufo-ds41",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/gufo-ds41",
+          "diagnose"
+        ],
+        "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|gufo diagnostics)",
+        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip|gufo diagnostics)",
+        "golden_cmd": [
+          "bin/gufo-ds41",
+          "--version"
+        ],
+        "throughput_regex": "(?i)(gufo version|[0-9.]+\\s*(tok/s|t/s))"
+      }
+    },
+    "xolotl": {
+      "binaries": [
+        "bin/xolotl-ds41",
+        "bin/xolotl-serve"
+      ],
+      "cuda": {
+        "required_libs": [
+          "libcudart.so"
+        ],
+        "version_cmd": [
+          "bin/xolotl-ds41",
+          "--help"
+        ],
+        "help_cmd": [
+          "bin/xolotl-ds41",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/xolotl-ds41",
+          "--help"
+        ],
+        "device_ok_regex": "(?i)(usage|model|xolotl|strata)",
+        "no_device_ok_regex": "(?i)(usage|model|cuda|no (gpu|device))",
+        "golden_cmd": [
+          "bin/xolotl-ds41",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(usage|model|[0-9.]+\\s*(tok/s|t/s))"
+      }
+    },
+    "strixolotl": {
+      "binaries": [
+        "bin/strixolotl",
+        "bin/strixolotl-serve"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/strixolotl",
+          "--help"
+        ],
+        "help_cmd": [
+          "bin/strixolotl",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/strixolotl",
+          "--help"
+        ],
+        "device_ok_regex": "(?i)(usage|model|ds41|strata)",
+        "no_device_ok_regex": "(?i)(usage|model|hip|no (gpu|device))",
+        "golden_cmd": [
+          "bin/strixolotl",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(usage|model|[0-9.]+\\s*(tok/s|t/s))"
+      }
+    },
+    "rulith-inference": {
+      "binaries": [
+        "bin/rulith-server",
+        "bin/rulith-quantize",
+        "bin/rulith-cli"
+      ],
+      "rocm": {
+        "required_libs": [
+          "libamdhip64.so"
+        ],
+        "version_cmd": [
+          "bin/rulith-server",
+          "--version"
+        ],
+        "help_cmd": [
+          "bin/rulith-server",
+          "--help"
+        ],
+        "device_cmd": [
+          "bin/rulith-server",
+          "--list-devices"
+        ],
+        "device_ok_regex": "(?i)(gfx1151|radeon|rocm|hip|device|available devices)",
+        "no_device_ok_regex": "(?i)(no (gpu|device)|available devices|usage)",
+        "golden_cmd": [
+          "bin/rulith-server",
+          "--help"
+        ],
+        "throughput_regex": "(?i)(usage|host|port|[0-9.]+\\s*(tok/s|t/s))"
       }
     }
   }
