@@ -48,12 +48,18 @@ class TestClassifyChangedFormulae(unittest.TestCase):
             self.assertEqual(classifier.classify([name], "hosted-cuda"), [])
 
     def test_source_rocm_and_cuda_formulae(self) -> None:
-        self.assertEqual(classifier.classify(["rocmfpx"], "stx-halo"), ["rocmfpx"])
+        self.assertEqual(classifier.classify(["rocmfpx"], "stx-halo"), ["rocm-runtime", "rocmfpx"])
         self.assertEqual(classifier.classify(["rocmfpx"], "hosted-linux"), [])
-        self.assertEqual(classifier.classify(["basalt"], "hosted-cuda"), ["basalt"])
+        self.assertEqual(classifier.classify(["basalt"], "hosted-cuda"), ["cuda-runtime", "basalt"])
         self.assertEqual(classifier.classify(["basalt"], "stx-halo"), [])
-        self.assertEqual(classifier.classify(["lucebox"], "hosted-cuda"), ["lucebox"])
+        self.assertEqual(classifier.classify(["lucebox"], "hosted-cuda"), ["cuda-runtime", "lucebox"])
         self.assertEqual(classifier.classify(["lucebox"], "stx-halo"), [])
+
+    def test_macos_only_formula_is_linux_excluded(self) -> None:
+        self.assertEqual(classifier.classify(["uzu"], "hosted-macos"), ["uzu"])
+        self.assertEqual(classifier.classify(["uzu"], "hosted-linux"), [])
+        self.assertEqual(classifier.classify(["uzu"], "hosted-cuda"), [])
+        self.assertEqual(classifier.classify(["uzu"], "stx-halo"), [])
 
     def test_hosted_formulae(self) -> None:
         self.assertEqual(classifier.classify(["shimmy"], "hosted-macos"), ["shimmy"])

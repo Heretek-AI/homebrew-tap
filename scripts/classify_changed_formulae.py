@@ -93,6 +93,17 @@ def is_linux_only(source: str) -> bool:
     return re.search(r"^\s*depends_on :linux\b", source, re.MULTILINE) is not None
 
 
+def is_macos_only(source: str) -> bool:
+    """Best-effort check for a formula that cannot build on Linux."""
+    if (
+        "OS.linux?" in source
+        or "on_linux do" in source
+        or re.search(r"^\s*depends_on :linux\b", source, re.MULTILINE)
+    ):
+        return False
+    return "on_macos do" in source or "depends_on macos:" in source
+
+
 def is_rocm(source: str) -> bool:
     return any(marker in source for marker in ROCM_MARKERS)
 
@@ -112,14 +123,18 @@ def classify(names: list[str], runner: str) -> list[str]:
         cuda = is_cuda(source)
         prebuilt_rocm = name in PREBUILT_ROCM_FORMULAE
         cuda_default = name in CUDA_DEFAULT_FORMULAE
+        macos_only = is_macos_only(source)
         if runner == "stx-halo":
-            keep = (rocm or prebuilt_rocm) and not cuda_default
+            keep = (rocm or prebuilt_rocm) and not cuda_default and not macos_only
         elif runner == "hosted-cuda":
-            keep = cuda_default or (
-                cuda
-                and not rocm
-                and not prebuilt_rocm
-                and name not in HOSTED_LINUX_FORMULAE
+            keep = not macos_only and (
+                cuda_default
+                or (
+                    cuda
+                    and not rocm
+                    and not prebuilt_rocm
+                    and name not in HOSTED_LINUX_FORMULAE
+                )
             )
         elif runner == "hosted-macos":
             keep = (
@@ -129,13 +144,20 @@ def classify(names: list[str], runner: str) -> list[str]:
                 and not prebuilt_rocm
             )
         elif runner == "hosted-linux":
-            keep = name in HOSTED_LINUX_FORMULAE or (
-                not rocm and not cuda and not prebuilt_rocm
+            keep = not macos_only and (
+                name in HOSTED_LINUX_FORMULAE
+                or (not rocm and not cuda and not prebuilt_rocm)
             )
         else:
             raise SystemExit(f"unknown runner class: {runner}")
         if keep:
             selected.append(name)
+
+    runtime = {"hosted-cuda": "cuda-runtime", "stx-halo": "rocm-runtime"}.get(runner)
+    if runtime and any(
+        f"heretek-ai/tap/{runtime}" in read_formula(name) for name in selected
+    ):
+        selected = [runtime] + [name for name in selected if name != runtime]
     return selected
 
 
