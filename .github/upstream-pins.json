@@ -28,7 +28,7 @@
       "repo": "gufo-org/gufo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "c433caab1fee445a65143d7fd285c4b934b56dd37e707fe7bc2284f9fd94efe8",
+      "formula_sha256": "079c58f50d8e6e6ff0f9a23f9ed9951f555e21808d573dcfc2f902580a5aeee0",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -421,7 +421,7 @@
       "repo": "Luce-Org/lucebox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "c5e8c5f9cb1fe9bd56cbe35809e84709f7eb413a56658072056222b822810fea",
+      "formula_sha256": "f6b7aef39e0b5c6e513b0fee2bffead2e90d4c745611f380b85f42451e6ff924",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -573,7 +573,7 @@
       "repo": "franzmoca/ds41-gufo-extension",
       "branch": "main",
       "track": "release",
-      "formula_sha256": "aa76c4b79ab1ed233d77a0458ff2f284498eafbf813e7589a1b4edf55f73ab4e",
+      "formula_sha256": "199ea063d26ba97e2a86a2eac591d18e3556bff572f7f91f2db5dd884241a524",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -613,7 +613,7 @@
       "repo": "Indras-Mirror/Xolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "c8268094a31a38c8681b5f2b2f213031110636ac6e2e15558c317a4b44ee24bc",
+      "formula_sha256": "93444f5867a3d710f7d230eae11bdecb083f63352a7c2e1664df271df2cd5a25",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -651,7 +651,7 @@
       "repo": "snowsh1ne/strixolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "2f3b424c2d35cfe106ce4a9323bc5f8535313cf1c0872d88a5631e3bc084ff66",
+      "formula_sha256": "cc90ea4a68a50fd57120cafbb5d4f101b7dc97712b18094f2e4de8b7a61871c2",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -690,7 +690,7 @@
       "repo": "rulith-dev/llama.cpp",
       "branch": "rulith",
       "track": "commit",
-      "formula_sha256": "c7c49b659ec8b7e22a2b6afa9eda997f8c9b94177511963200d5f52a5e108207",
+      "formula_sha256": "e54b7751eaa6f29f63fc3c7ccb8cffcf3e8c9ba3a6fb8d26c506b768a60292f6",
       "variants": {
         "rocm": {
           "status": "enabled",

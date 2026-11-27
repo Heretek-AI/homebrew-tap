@@ -185,6 +185,10 @@ class GufoDs41 < Formula
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
     args << "-DHIPCUB_INCLUDE_DIR=#{hipcub_dir}" if hipcub_dir
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     prefix_paths = [
       rocm_path,

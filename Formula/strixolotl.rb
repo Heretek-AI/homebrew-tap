@@ -99,6 +99,10 @@ class Strixolotl < Formula
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     system "cmake", "-S", "xolotl", "-B", "build-strix", *std_cmake_args, *args,
            "-DCMAKE_PREFIX_PATH=#{rocm_path};#{rocm_path}/lib/llvm;#{HOMEBREW_PREFIX}"

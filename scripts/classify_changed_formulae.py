@@ -20,6 +20,7 @@ It prints a comma-separated list suitable for
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -173,13 +174,14 @@ def classify(names: list[str], runner: str) -> list[str]:
     return selected
 
 
-def emit(names: list[str]) -> None:
-    value = ",".join(names)
+def emit(names: list[str], fmt: str = "csv") -> None:
+    value = json.dumps(names) if fmt == "json" else ",".join(names)
     print(value)
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a", encoding="utf-8") as handle:
             handle.write(f"formulae={value}\n")
+            handle.write(f"non_empty={'true' if names else 'false'}\n")
 
 
 def main() -> int:
@@ -193,6 +195,17 @@ def main() -> int:
     parser.add_argument("--head", default="HEAD", help="Head revision (default: HEAD)")
     parser.add_argument("--formulae", help="Explicit comma-separated formula list")
     parser.add_argument("--all", action="store_true", help="Classify every formula")
+    parser.add_argument(
+        "--exclude-runtime",
+        action="store_true",
+        help="Omit rocm-runtime/cuda-runtime from the emitted list",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["csv", "json"],
+        default="csv",
+        help="Output format (default: csv)",
+    )
     args = parser.parse_args()
 
     if args.formulae:
@@ -206,7 +219,10 @@ def main() -> int:
             parser.error("--base is required unless --all or --formulae is used")
         names = git_changed_formulae(args.base, args.head)
 
-    emit(classify(names, args.runner))
+    selected = classify(names, args.runner)
+    if args.exclude_runtime:
+        selected = [n for n in selected if n not in ("rocm-runtime", "cuda-runtime")]
+    emit(selected, fmt=args.format)
     return 0
 
 

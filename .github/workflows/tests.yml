@@ -416,7 +416,7 @@ jobs:
           path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
   toolchain-image:
-    name: Check CUDA and ROCm toolchain images
+    name: Check toolchain images & plan matrices
     needs: changes
     if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
@@ -426,7 +426,17 @@ jobs:
     outputs:
       cuda: ${{ steps.check.outputs.cuda }}
       rocm: ${{ steps.check.outputs.rocm }}
+      cuda_matrix: ${{ steps.plan.outputs.cuda_matrix }}
+      cuda_non_empty: ${{ steps.plan.outputs.cuda_non_empty }}
+      rocm_matrix: ${{ steps.plan.outputs.rocm_matrix }}
+      rocm_non_empty: ${{ steps.plan.outputs.rocm_non_empty }}
+      rocm_runtime: ${{ steps.plan.outputs.rocm_runtime }}
     steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
       - name: Check for published brew-cuda and brew-rocm images
         id: check
         env:
@@ -452,14 +462,55 @@ jobs:
           echo "cuda=${cuda_ok}" >> "${GITHUB_OUTPUT}"
           echo "rocm=${rocm_ok}" >> "${GITHUB_OUTPUT}"
 
+      - name: Plan CUDA and ROCm per-formula matrices
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          args=()
+          if [[ -n "${FORCED_FORMULAE}" ]]
+          then
+            args=(--formulae "${FORCED_FORMULAE}")
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
+          then
+            args=(--base "${BASE_SHA}" --head HEAD)
+          else
+            args=(--all)
+          fi
+
+          cuda_json="$(python3 scripts/classify_changed_formulae.py --runner hosted-cuda --exclude-runtime --format json "${args[@]}")"
+          rocm_all="$(python3 scripts/classify_changed_formulae.py --runner hosted-rocm --format csv "${args[@]}")"
+          rocm_json="$(python3 scripts/classify_changed_formulae.py --runner hosted-rocm --exclude-runtime --format json "${args[@]}")"
+
+          cuda_non_empty=false
+          [[ "${cuda_json}" != "[]" ]] && cuda_non_empty=true
+          rocm_non_empty=false
+          [[ "${rocm_json}" != "[]" ]] && rocm_non_empty=true
+          rocm_runtime=false
+          [[ ",${rocm_all}," == *",rocm-runtime,"* ]] && rocm_runtime=true
+
+          {
+            echo "cuda_matrix=${cuda_json}"
+            echo "cuda_non_empty=${cuda_non_empty}"
+            echo "rocm_matrix=${rocm_json}"
+            echo "rocm_non_empty=${rocm_non_empty}"
+            echo "rocm_runtime=${rocm_runtime}"
+          } >> "${GITHUB_OUTPUT}"
+
   bottles-cuda:
-    name: CUDA bottles (hosted toolchain image)
+    name: CUDA bottle (${{ matrix.formula }})
     needs: [changes, toolchain-image]
     if: >-
       always() &&
       (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true') &&
-      needs.toolchain-image.outputs.cuda == 'true'
+      needs.toolchain-image.outputs.cuda == 'true' &&
+      needs.toolchain-image.outputs.cuda_non_empty == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        formula: ${{ fromJSON(needs.toolchain-image.outputs.cuda_matrix) }}
     container:
       image: ghcr.io/heretek-ai/brew-cuda:13.5.0
       options: --privileged
@@ -470,14 +521,13 @@ jobs:
       packages: read
       pull-requests: read
     env:
-      SCCACHE_GHA_ENABLED: "true"
-      CMAKE_C_COMPILER_LAUNCHER: sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      CMAKE_CUDA_COMPILER_LAUNCHER: sccache
-      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "false"
+      SCCACHE_DIR: /tmp/sccache
+      SCCACHE_CACHE_SIZE: "4G"
       CUDA_HOME: /usr/local/cuda-13.5
       # Homebrew sanitises non-HOMEBREW_* variables before formula installs.
       HOMEBREW_CUDA_PATH: /usr/local/cuda-13.5
+      HOMEBREW_SCCACHE_DIR: /tmp/sccache
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
@@ -492,13 +542,25 @@ jobs:
           key: ubuntu-latest-cuda-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ubuntu-latest-cuda-rubygems-
 
-      - name: Install Python for formula classification
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3
+      - name: Cache sccache disk directory
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/sccache
+          key: sccache-cuda-${{ matrix.formula }}-${{ github.sha }}
+          restore-keys: |
+            sccache-cuda-${{ matrix.formula }}-
 
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Export sccache path for Homebrew superenv
+        run: |
+          mkdir -p /tmp/sccache
+          sccache_bin="${SCCACHE_PATH:-$(command -v sccache || true)}"
+          if [[ -n "${sccache_bin}" && -x "${sccache_bin}" ]]
+          then
+            echo "HOMEBREW_SCCACHE_PATH=${sccache_bin}" >> "${GITHUB_ENV}"
+          fi
 
       - name: Locate tap checkout
         run: |
@@ -519,39 +581,18 @@ jobs:
           echo "::add-mask::${token}"
           echo "token=${token}" >> "${GITHUB_OUTPUT}"
 
-      - name: Select changed CUDA formulae
-        id: formulae
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
-        run: |
-          cd "${TAP_DIR}"
-          if [[ -n "${FORCED_FORMULAE}" ]]
-          then
-            python3 scripts/classify_changed_formulae.py --runner hosted-cuda --formulae "${FORCED_FORMULAE}"
-          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
-          then
-            python3 scripts/classify_changed_formulae.py --runner hosted-cuda --base "${BASE_SHA}" --head HEAD
-          else
-            python3 scripts/classify_changed_formulae.py --runner hosted-cuda --all
-          fi
-
-      - name: Build CUDA bottles
-        if: steps.formulae.outputs.formulae != ''
+      - name: Build CUDA bottle
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
             --only-formulae \
-            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --testing-formulae="${{ matrix.formula }}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
-      - name: Fail on skipped or failed CUDA formulae
-        if: steps.formulae.outputs.formulae != ''
+      - name: Fail on skipped or failed CUDA formula
         run: |
-          # test-bot exits 0 when it ignores a non-default formula failure;
-          # its own summary is the authoritative result.
           cd "${TAP_DIR}"
           if [[ ! -f steps_output.txt ]]
           then
@@ -575,20 +616,21 @@ jobs:
             exit 1
           fi
 
-      - name: Upload CUDA bottles
-        if: always() && steps.formulae.outputs.formulae != ''
+      - name: Upload CUDA bottle
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: bottles_cuda
+          name: bottles_cuda_${{ matrix.formula }}
           path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
 
-  bottles-rocm:
-    name: ROCm bottles (hosted toolchain image)
+  bottles-rocm-runtime:
+    name: ROCm runtime bottle (hosted)
     needs: [changes, toolchain-image]
     if: >-
       always() &&
       (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true') &&
-      needs.toolchain-image.outputs.rocm == 'true'
+      needs.toolchain-image.outputs.rocm == 'true' &&
+      needs.toolchain-image.outputs.rocm_runtime == 'true'
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/heretek-ai/brew-rocm:10.3.0a20261126
@@ -600,13 +642,7 @@ jobs:
       packages: read
       pull-requests: read
     env:
-      SCCACHE_GHA_ENABLED: "true"
-      CMAKE_C_COMPILER_LAUNCHER: sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      CMAKE_HIP_COMPILER_LAUNCHER: sccache
-      RUSTC_WRAPPER: sccache
       ROCM_PATH: /opt/rocm
-      # Homebrew sanitises non-HOMEBREW_* variables before formula installs.
       HOMEBREW_ROCM_PATH: /opt/rocm
     steps:
       - name: Set up Homebrew
@@ -622,9 +658,6 @@ jobs:
           key: ubuntu-latest-rocm-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ubuntu-latest-rocm-rubygems-
 
-      - name: Set up sccache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-
       - name: Locate tap checkout
         run: |
           tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
@@ -644,39 +677,18 @@ jobs:
           echo "::add-mask::${token}"
           echo "token=${token}" >> "${GITHUB_OUTPUT}"
 
-      - name: Select changed ROCm formulae
-        id: formulae
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
-        run: |
-          cd "${TAP_DIR}"
-          if [[ -n "${FORCED_FORMULAE}" ]]
-          then
-            python3 scripts/classify_changed_formulae.py --runner hosted-rocm --formulae "${FORCED_FORMULAE}"
-          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
-          then
-            python3 scripts/classify_changed_formulae.py --runner hosted-rocm --base "${BASE_SHA}" --head HEAD
-          else
-            python3 scripts/classify_changed_formulae.py --runner hosted-rocm --all
-          fi
-
-      - name: Build ROCm bottles
-        if: steps.formulae.outputs.formulae != ''
+      - name: Build rocm-runtime bottle
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
             --only-formulae \
-            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --testing-formulae="rocm-runtime" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
-      - name: Fail on skipped or failed ROCm formulae
-        if: steps.formulae.outputs.formulae != ''
+      - name: Fail on skipped or failed rocm-runtime
         run: |
-          # test-bot exits 0 when it ignores a non-default formula failure;
-          # its own summary is the authoritative result.
           cd "${TAP_DIR}"
           if [[ ! -f steps_output.txt ]]
           then
@@ -700,9 +712,152 @@ jobs:
             exit 1
           fi
 
-      - name: Upload ROCm bottles
-        if: always() && steps.formulae.outputs.formulae != ''
+      - name: Upload rocm-runtime bottle
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: bottles_rocm
+          name: bottles_rocm_runtime
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
+
+  bottles-rocm:
+    name: ROCm bottle (${{ matrix.formula }})
+    needs: [changes, toolchain-image, bottles-rocm-runtime]
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true') &&
+      needs.toolchain-image.outputs.rocm == 'true' &&
+      needs.toolchain-image.outputs.rocm_non_empty == 'true' &&
+      (needs.bottles-rocm-runtime.result == 'success' || needs.bottles-rocm-runtime.result == 'skipped')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        formula: ${{ fromJSON(needs.toolchain-image.outputs.rocm_matrix) }}
+    container:
+      image: ghcr.io/heretek-ai/brew-rocm:10.3.0a20261126
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "false"
+      SCCACHE_DIR: /tmp/sccache
+      SCCACHE_CACHE_SIZE: "4G"
+      ROCM_PATH: /opt/rocm
+      # Homebrew sanitises non-HOMEBREW_* variables before formula installs.
+      HOMEBREW_ROCM_PATH: /opt/rocm
+      HOMEBREW_SCCACHE_DIR: /tmp/sccache
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ubuntu-latest-rocm-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ubuntu-latest-rocm-rubygems-
+
+      - name: Cache sccache disk directory
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/sccache
+          key: sccache-rocm-${{ matrix.formula }}-${{ github.sha }}
+          restore-keys: |
+            sccache-rocm-${{ matrix.formula }}-
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Export sccache path for Homebrew superenv
+        run: |
+          mkdir -p /tmp/sccache
+          sccache_bin="${SCCACHE_PATH:-$(command -v sccache || true)}"
+          if [[ -n "${sccache_bin}" && -x "${sccache_bin}" ]]
+          then
+            echo "HOMEBREW_SCCACHE_PATH=${sccache_bin}" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Locate tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Download rocm-runtime bottle
+        if: needs.bottles-rocm-runtime.result == 'success'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bottles_rocm_runtime
+          path: /tmp/rocm-runtime-bottle
+
+      - name: Install prebuilt rocm-runtime bottle
+        if: needs.bottles-rocm-runtime.result == 'success'
+        run: |
+          shopt -s nullglob
+          bottles=(/tmp/rocm-runtime-bottle/*.bottle*.tar.gz)
+          if (( ${#bottles[@]} > 0 ))
+          then
+            brew install --formula "${bottles[0]}"
+          fi
+
+      - name: Base64-encode GITHUB_TOKEN
+        id: registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          token="$(printf '%s' "${TOKEN}" | base64 | tr -d '\n')"
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build ROCm bottle
+        env:
+          HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+        run: |
+          cd "${TAP_DIR}"
+          brew test-bot \
+            --only-formulae \
+            --testing-formulae="${{ matrix.formula }}" \
+            --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Fail on skipped or failed ROCm formula
+        run: |
+          cd "${TAP_DIR}"
+          if [[ ! -f steps_output.txt ]]
+          then
+            echo "::error::brew test-bot did not write steps_output.txt"
+            exit 1
+          fi
+          cat steps_output.txt
+          if ! grep -qx 'All steps passed!' steps_output.txt
+          then
+            echo "::error::brew test-bot reported skipped or failed steps"
+            exit 1
+          fi
+          if ! compgen -G 'skipped_or_failed_formulae-*.txt' > /dev/null
+          then
+            echo "::error::brew test-bot did not write skipped_or_failed_formulae output"
+            exit 1
+          fi
+          if [[ -n "$(cat skipped_or_failed_formulae-*.txt)" ]]
+          then
+            echo "::error::brew test-bot skipped formulae: $(cat skipped_or_failed_formulae-*.txt)"
+            exit 1
+          fi
+
+      - name: Upload ROCm bottle
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles_rocm_${{ matrix.formula }}
           path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'

@@ -70,6 +70,7 @@ class Lucebox < Formula
         args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
       end
       args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
+      args << "-DCMAKE_CUDA_FLAGS=--threads=0"
 
       # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>, which
       # argsort.cu (cuda::make_strided_iterator) and top-k.cu (cuda::discard_iterator) need.
@@ -90,6 +91,10 @@ class Lucebox < Formula
       end
     end
     args << "-DCMAKE_INSTALL_RPATH=#{rpath}"
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX CUDA HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     system "cmake", "-S", "server", "-B", "build", *std_cmake_args, *args
     system "cmake", "--build", "build", "--target", "luce_server"

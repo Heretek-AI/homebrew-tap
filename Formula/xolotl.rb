@@ -90,11 +90,16 @@ class Xolotl < Formula
       -DSTRATA_GGML_DIR=#{llama_dir}
       -DCMAKE_CUDA_ARCHITECTURES=80;86;89;90;100;120
       -DCMAKE_CUDA_COMPILER=#{cuda}/bin/nvcc
+      -DCMAKE_CUDA_FLAGS=--threads=0
       -DCUDAToolkit_ROOT=#{cuda}
       -DCMAKE_INSTALL_RPATH=#{rpath}
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX CUDA].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     system "cmake", "-S", ".", "-B", "build-xolotl", *std_cmake_args, *args
     system "cmake", "--build", "build-xolotl"

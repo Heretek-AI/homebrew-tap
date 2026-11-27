@@ -111,6 +111,10 @@ class Gufo < Formula
     # gufo uses find_path(HIPCUB_INCLUDE_DIR ...) rather than the hipCUB CMake
     # package, so it would otherwise find /opt/rocm/include and miss libhipcxx.
     args << "-DHIPCUB_INCLUDE_DIR=#{hipcub_dir}" if hipcub_dir
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     prefix_paths = [
       rocm_path,
