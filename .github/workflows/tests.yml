@@ -502,6 +502,9 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository)) &&
       (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
     runs-on: [self-hosted, stx-halo, Linux]
+    # Environment protection requires a maintainer approval before any job
+    # step runs on the physical Strix Halo machine.
+    environment: stx-halo
     permissions:
       actions: read
       checks: read

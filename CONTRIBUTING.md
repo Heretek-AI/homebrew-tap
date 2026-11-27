@@ -58,7 +58,7 @@ Keep workflow permissions minimal, pin every third-party action to a full commit
 
 Never run untrusted fork code on self-hosted hardware. The self-hosted runners in this repository have access to maintainer machines and must be limited to trusted branches, maintainer-authored pull requests, or explicitly approved runs. Do not use `pull_request_target` to check out and execute code from an untrusted fork, do not expose secrets to self-hosted jobs triggered by forks, and do not add a self-hosted runner label to a workflow that can be reached by an external contributor without maintainer approval. Use GitHub-hosted runners for untrusted pull-request validation.
 
-The ROCm `stx-halo` job is additionally gated by the repository variable `STX_HALO_ENABLED=true`. Leave it unset while the runner is offline; the job is skipped instead of remaining queued.
+The ROCm `stx-halo` job is additionally gated by the repository variable `STX_HALO_ENABLED=true` and the protected GitHub environment `stx-halo`. A required reviewer must approve the deployment before any job step runs on the physical machine. Leave the variable unset while the runner is offline; the job is skipped instead of remaining queued.
 
 ## Reporting problems
 
