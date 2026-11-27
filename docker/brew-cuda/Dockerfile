@@ -19,6 +19,7 @@ COPY --from=cuda /usr/local/cuda-13.5 /usr/local/cuda-13.5
 
 ENV CUDA_HOME=/usr/local/cuda-13.5 \
     CUDAToolkit_ROOT=/usr/local/cuda-13.5 \
+    HOMEBREW_CUDA_PATH=/usr/local/cuda-13.5 \
     PATH=/usr/local/cuda-13.5/bin:$PATH \
     LD_LIBRARY_PATH=/usr/local/cuda-13.5/lib64:/usr/local/cuda-13.5/lib
 
