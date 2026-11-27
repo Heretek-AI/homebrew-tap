@@ -18,6 +18,7 @@ class Lucebox < Formula
   depends_on "curl"
   depends_on "heretek-ai/tap/cuda-runtime"
   depends_on :linux
+  depends_on "nlohmann-json"
 
   def install
     backend = build.with?("rocm") ? "hip" : "cuda"
@@ -62,6 +63,11 @@ class Lucebox < Formula
         ENV.prepend_path "PATH", "#{cuda_root}/bin"
         args << "-DCUDAToolkit_ROOT=#{cuda_root}"
         args << "-DCMAKE_CUDA_COMPILER=#{cuda_root}/bin/nvcc"
+        # nvcc cannot use Homebrew's superenv shim for its host-compiler
+        # probe; point it at the real system compiler so the CUDA toolkit
+        # headers are found without cuda-runtime supplying a partial copy.
+        host_cxx = ["/usr/bin/g++-13", "/usr/bin/g++"].find { |path| File.executable?(path) }
+        args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
       end
       args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
     end
