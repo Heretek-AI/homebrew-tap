@@ -55,6 +55,12 @@ class TestClassifyChangedFormulae(unittest.TestCase):
         self.assertEqual(classifier.classify(["lucebox"], "hosted-cuda"), ["lucebox"])
         self.assertEqual(classifier.classify(["lucebox"], "stx-halo"), [])
 
+    def test_macos_only_formula_is_linux_excluded(self) -> None:
+        self.assertEqual(classifier.classify(["uzu"], "hosted-macos"), ["uzu"])
+        self.assertEqual(classifier.classify(["uzu"], "hosted-linux"), [])
+        self.assertEqual(classifier.classify(["uzu"], "hosted-cuda"), [])
+        self.assertEqual(classifier.classify(["uzu"], "stx-halo"), [])
+
     def test_hosted_formulae(self) -> None:
         self.assertEqual(classifier.classify(["shimmy"], "hosted-macos"), ["shimmy"])
         self.assertEqual(
