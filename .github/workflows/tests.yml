@@ -1,4 +1,4 @@
-name: Brew CI & Formula Audit
+name: brew test-bot
 
 on:
   push:
@@ -6,70 +6,616 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      formulae:
+        description: "Comma-separated formula names to force-test (empty: detect changes)"
+        required: false
+        default: ""
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  # Include the head SHA so a stale queued run for an older commit cannot block
+  # the current push (GitHub keeps a run queued while a self-hosted job waits).
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
-jobs:
-  style-and-audit:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-14]
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
 
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+jobs:
+  changes:
+    name: Detect code changes
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Filter heavy CI paths
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            code:
+              - 'Formula/**'
+              - 'Casks/**'
+              - 'cmd/**'
+              - 'scripts/**'
+              - 'tests/**'
+              - 'utils/**'
+              - 'docker/**'
+              - '.github/**'
+              - '!README.md'
+              - '!CONTRIBUTING.md'
+              - '!docs/**'
+              - '!Brewfiles/**'
+
+  syntax-audit:
+    name: Syntax, style and strict audit
+    needs: changes
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/homebrew/brew:main
+      options: --privileged
+    permissions:
+      contents: read
+    steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Formula Style
-        run: |
-          brew style Formula/
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ubuntu-latest-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ubuntu-latest-rubygems-
 
-      - name: Audit Formulae
+      - name: Locate tap checkout
         run: |
-          TAP_NAME="${{ steps.set-up-homebrew.outputs.tap-name || github.repository }}"
-          if [ "${{ matrix.os }}" = "macos-14" ]; then
-            # On macOS, audit multi-platform formulas (Linux-only formulas declare depends_on :linux)
-            for formula in shimmy stable-diffusion-cpp strata project-maya; do
-              if [ -f "Formula/${formula}.rb" ]; then
-                brew audit --strict --online "${TAP_NAME}/${formula}" || true
-              fi
-            done
-          else
-            brew audit --strict --online --tap="${TAP_NAME}"
-          fi
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Tap readall check
+        run: |
+          brew readall --aliases --os=all --arch=all heretek-ai/tap
+
+      - name: Formula, cask and command style
+        run: |
+          cd "${TAP_DIR}"
+          brew style Formula/ Casks/ cmd/
+
+      - name: Strict formula audit
+        run: |
+          cd "${TAP_DIR}"
+          brew audit --strict --tap=heretek-ai/tap
+
+      - name: Strict cask audit
+        run: |
+          cd "${TAP_DIR}"
+          brew audit --cask --strict --tap=heretek-ai/tap
+
+      - name: Install Python for README verification
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3
+
+      - name: Verify README is generated from current metadata
+        run: |
+          cd "${TAP_DIR}"
+          python3 scripts/generate_readme.py --check
 
   test-scripts:
-    runs-on: ubuntu-24.04
+    name: Scripts, YAML and unit tests
+    needs: changes
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
 
-      - name: Install Test Dependencies
+      - name: Install test dependencies
         run: |
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pyyaml
 
-      - name: Run Script & Toolchain Unit Tests
+      - name: Run script and toolchain unit tests
         env:
           PYTHONIOENCODING: utf-8
         run: |
-          pytest tests/ -v
+          python3 -m unittest discover -s tests/ -v
+          python3 -m pytest tests/ -q
 
-      - name: Lint Shell Scripts
+      - name: Lint shell scripts
         run: |
-          sudo apt-get update && sudo apt-get install -y shellcheck
-          shellcheck .github/scripts/*.sh
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck .github/scripts/*.sh scripts/*.sh
+
+      - name: Validate workflow YAML
+        run: |
+          python3 - <<'PY'
+          import glob
+          import yaml
+          for path in sorted(glob.glob(".github/**/*.yml", recursive=True)):
+              with open(path, encoding="utf-8") as handle:
+                  yaml.safe_load(handle)
+              print(f"ok {path}")
+          PY
+
+      - name: Run actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint" -color
+
+  bottles-macos:
+    name: macOS bottles (hosted)
+    needs: changes
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: macos-26
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      CMAKE_CUDA_COMPILER_LAUNCHER: sccache
+      CMAKE_HIP_COMPILER_LAUNCHER: sccache
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: macos-26-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: macos-26-rubygems-
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@d651010b8da762cde178750d8eda7b5febfe147a # v0.0.9
+
+      - name: Locate tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Base64-encode GITHUB_TOKEN
+        id: registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          token="$(printf '%s' "${TOKEN}" | base64 | tr -d '\n')"
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+
+      - name: Select changed macOS formulae
+        id: formulae
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          cd "${TAP_DIR}"
+          if [[ -n "${FORCED_FORMULAE}" ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner hosted-macos --formulae "${FORCED_FORMULAE}"
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner hosted-macos --base "${BASE_SHA}" --head HEAD
+          else
+            python3 scripts/classify_changed_formulae.py --runner hosted-macos --all
+          fi
+
+      - name: Build macOS bottles
+        if: steps.formulae.outputs.formulae != ''
+        env:
+          HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+        run: |
+          cd "${TAP_DIR}"
+          brew test-bot \
+            --only-formulae \
+            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Upload macOS bottles
+        if: always() && steps.formulae.outputs.formulae != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles_macos
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
+
+  bottles-linux:
+    name: Linux CPU bottles (hosted)
+    needs: changes
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/homebrew/brew:main
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      CMAKE_CUDA_COMPILER_LAUNCHER: sccache
+      CMAKE_HIP_COMPILER_LAUNCHER: sccache
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ubuntu-latest-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ubuntu-latest-rubygems-
+
+      - name: Install Python for formula classification
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@d651010b8da762cde178750d8eda7b5febfe147a # v0.0.9
+
+      - name: Locate tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Base64-encode GITHUB_TOKEN
+        id: registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          token="$(printf '%s' "${TOKEN}" | base64 | tr -d '\n')"
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+
+      - name: Select changed hosted Linux formulae
+        id: formulae
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          cd "${TAP_DIR}"
+          if [[ -n "${FORCED_FORMULAE}" ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner hosted-linux --formulae "${FORCED_FORMULAE}"
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner hosted-linux --base "${BASE_SHA}" --head HEAD
+          else
+            python3 scripts/classify_changed_formulae.py --runner hosted-linux --all
+          fi
+
+      - name: Build hosted Linux bottles
+        if: steps.formulae.outputs.formulae != ''
+        env:
+          HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+        run: |
+          cd "${TAP_DIR}"
+          brew test-bot \
+            --only-formulae \
+            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Upload Linux bottles
+        if: always() && steps.formulae.outputs.formulae != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles_linux
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
+
+  toolchain-image:
+    name: Check CUDA toolchain image
+    needs: changes
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      cuda: ${{ steps.check.outputs.cuda }}
+    steps:
+      - name: Check for published brew-cuda image
+        id: check
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if printf '%s' "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null 2>&1
+          then
+            if docker manifest inspect ghcr.io/heretek-ai/brew-cuda:13.5.0 >/dev/null 2>&1
+            then
+              echo "cuda=true" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+          fi
+          echo "cuda=false" >> "${GITHUB_OUTPUT}"
+          echo "::notice::ghcr.io/heretek-ai/brew-cuda:13.5.0 is not published yet; CUDA bottles will be skipped."
+
+  bottles-cuda:
+    name: CUDA bottles (hosted toolchain image)
+    needs: [changes, toolchain-image]
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true') &&
+      needs.toolchain-image.outputs.cuda == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/heretek-ai/brew-cuda:13.5.0
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      CMAKE_CUDA_COMPILER_LAUNCHER: sccache
+      RUSTC_WRAPPER: sccache
+      CUDA_HOME: /usr/local/cuda-13.5
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ubuntu-latest-cuda-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ubuntu-latest-cuda-rubygems-
+
+      - name: Install Python for formula classification
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@d651010b8da762cde178750d8eda7b5febfe147a # v0.0.9
+
+      - name: Locate tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Base64-encode GITHUB_TOKEN
+        id: registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          token="$(printf '%s' "${TOKEN}" | base64 | tr -d '\n')"
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+
+      - name: Select changed CUDA formulae
+        id: formulae
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          cd "${TAP_DIR}"
+          if [[ -n "${FORCED_FORMULAE}" ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner hosted-cuda --formulae "${FORCED_FORMULAE}"
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner hosted-cuda --base "${BASE_SHA}" --head HEAD
+          else
+            python3 scripts/classify_changed_formulae.py --runner hosted-cuda --all
+          fi
+
+      - name: Build CUDA bottles
+        if: steps.formulae.outputs.formulae != ''
+        env:
+          HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+        run: |
+          cd "${TAP_DIR}"
+          brew test-bot \
+            --only-formulae \
+            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Upload CUDA bottles
+        if: always() && steps.formulae.outputs.formulae != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles_cuda
+          path: '${{ env.TAP_DIR }}/*.bottle*.tar.gz'
+
+  bottles-rocm:
+    name: ROCm bottles and GPU validation (stx-halo)
+    needs: changes
+    # SECURITY: self-hosted hardware must never execute fork pull-request code.
+    # Only same-repository PRs, pushes to main and manual dispatches are trusted.
+    if: >-
+      always() &&
+      vars.STX_HALO_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event_name == 'push' ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository)) &&
+      (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: [self-hosted, stx-halo, Linux]
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      CMAKE_CUDA_COMPILER_LAUNCHER: sccache
+      CMAKE_HIP_COMPILER_LAUNCHER: sccache
+      RUSTC_WRAPPER: sccache
+      ROCM_PATH: /opt/rocm
+      HOMEBREW_ROCM_PATH: /opt/rocm
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: stx-halo-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: stx-halo-rubygems-
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@d651010b8da762cde178750d8eda7b5febfe147a # v0.0.9
+
+      - name: Locate tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Base64-encode GITHUB_TOKEN
+        id: registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          token="$(printf '%s' "${TOKEN}" | base64 | tr -d '\n')"
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+          brew test-bot --only-tap-syntax
+
+      - name: Select changed ROCm formulae
+        id: formulae
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          cd "${TAP_DIR}"
+          if [[ -n "${FORCED_FORMULAE}" ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner stx-halo --formulae "${FORCED_FORMULAE}"
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]
+          then
+            python3 scripts/classify_changed_formulae.py --runner stx-halo --base "${BASE_SHA}" --head HEAD
+          else
+            python3 scripts/classify_changed_formulae.py --runner stx-halo --all
+          fi
+
+      - name: Build ROCm bottles
+        if: steps.formulae.outputs.formulae != ''
+        env:
+          HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+        run: |
+          cd "${TAP_DIR}"
+          brew test-bot \
+            --only-formulae \
+            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --root-url=https://ghcr.io/v2/heretek-ai/tap
+
+      - name: Validate ROCm bottles on real hardware
+        if: steps.formulae.outputs.formulae != ''
+        run: |
+          cd "${TAP_DIR}"
+          shopt -s nullglob
+          bottles=(*.bottle*.tar.gz)
+          if (( ${#bottles[@]} == 0 ))
+          then
+            echo "::warning::No bottle archives were produced; skipping hardware validation."
+            exit 0
+          fi
+
+          for bottle in "${bottles[@]}"
+          do
+            formula="${bottle%%--*}"
+            if ! python3 -c 'import json,sys; data=json.load(open(".github/validation-specs.json")); sys.exit(0 if sys.argv[1] in data.get("formulas", {}) else 1)' "${formula}"
+            then
+              echo "No validation spec for ${formula}; skipping."
+              continue
+            fi
+
+            brew install --formula "${bottle}"
+            keg="$(brew --prefix "${formula}")"
+            python3 .github/scripts/validate_bottle.py \
+              --keg "${keg}" \
+              --formula "${formula}" \
+              --variant rocm \
+              --hardware present \
+              --out "validation-${formula}.json"
+          done
+
+      - name: Upload ROCm bottles and validation proofs
+        if: always() && steps.formulae.outputs.formulae != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles_rocm_stx_halo
+          path: |
+            ${{ env.TAP_DIR }}/*.bottle*.tar.gz
+            ${{ env.TAP_DIR }}/validation-*.json

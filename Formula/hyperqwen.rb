@@ -14,6 +14,7 @@ class Hyperqwen < Formula
   depends_on "cmake" => :build
   depends_on "git" => :build
   depends_on "ninja" => :build
+  depends_on "heretek-ai/tap/cuda-runtime"
   depends_on :linux
   depends_on "python@3.12"
 
@@ -41,6 +42,7 @@ class Hyperqwen < Formula
       ENV["MAX_JOBS"] = ENV.make_jobs.to_s
     else
       opoo "NVIDIA CUDA nvcc not found at #{nvcc}. liblsa.so will not be compiled at installation time."
+      opoo "The hyperqwen-serve wrapper will use the shared runtime from heretek-ai/tap/cuda-runtime."
     end
 
     # 1. Stage CUTLASS v4.2.1 so fa2/CMakeLists.txt does not run FetchContent
@@ -103,6 +105,7 @@ class Hyperqwen < Formula
     (bin/"hyperqwen-serve").write <<~EOS
       #!/usr/bin/env bash
       export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
+      export LD_LIBRARY_PATH="#{formula_opt_lib("cuda-runtime")}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       [ -f "#{libexec}/lib/liblsa.so" ] && export LD_PRELOAD="#{libexec}/lib/liblsa.so${LD_PRELOAD:+:$LD_PRELOAD}"
       MODEL="${HYPERQWEN_MODEL:-QuantTrio/Qwen3.8-27B-AWQ}"
       PORT="${HYPERQWEN_PORT:-18020}"
@@ -151,15 +154,19 @@ class Hyperqwen < Formula
     chmod 0755, bin/"hyperqwen-chat"
 
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
-      variant:   "cuda",
-      cuda_home: cuda_home,
-      have_nvcc: have_nvcc,
+      variant:     "cuda",
+      cuda_home:   cuda_home,
+      have_nvcc:   have_nvcc,
+      runtime_lib: formula_opt_lib("cuda-runtime").to_s,
     )
   end
 
   def caveats
     <<~EOS
       HyperQwen is an NVIDIA CUDA 13.0 (sm_80/86/89/120) appliance for Qwen3.8-27B-AWQ.
+      The hyperqwen-serve wrapper uses the shared CUDA 13 runtime from
+      heretek-ai/tap/cuda-runtime. A full toolkit with nvcc is only needed to
+      compile liblsa.so at install time.
       Start the server on port 18020:
         hyperqwen-serve
       Run throughput benchmarks:
@@ -169,6 +176,7 @@ class Hyperqwen < Formula
 
   service do
     run [opt_bin/"hyperqwen-serve"]
+    environment_variables HYPERQWEN_PORT: "18020"
     keep_alive true
     working_dir var
     log_path var/"log/hyperqwen.log"

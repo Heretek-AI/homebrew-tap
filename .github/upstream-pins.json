@@ -9,7 +9,14 @@
     "min_version": "10.1.0",
     "max_version": null,
     "channel": "nightly",
-    "build_family": "gfx1151",
+    "build_family": "multiarch",
+    "pinned_version": "10.3.0a20261126",
+    "tarball_families": [
+      "gfx1151",
+      "gfx110X",
+      "gfx1150",
+      "gfx120X"
+    ],
     "last_index_url": "https://nightly.repo.amd.com/rocm/core/tarball/",
     "last_build_stamp": null,
     "last_tarballs": {}
@@ -21,13 +28,13 @@
       "repo": "gufo-org/gufo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "215b1b6aa72e15f40741f95bfd40d7930b51caf3e6e5b758f0aee82d6bf5435c",
+      "formula_sha256": "6f319cc0360f7cbfce9d769fe79e245622892975b3d0aef68ad3e99f291a1684",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -61,13 +68,13 @@
       "repo": "community-token-labs/gufetto",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "2e4538b13a0797955804c5dee2cb8f0b862057cd197220d2a0023ae758bf2204",
+      "formula_sha256": "c05f1abb8f9f6ff1df75cefbb9903f0e0d82177588db14d6fe026c523004504a",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -101,13 +108,13 @@
       "repo": "franzmoca/gufo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "ac2c19805d2e95a62036e39a3d1859ff7ad6f17b38dd5ff2ad0db174a0621870",
+      "formula_sha256": "7a4a56f5cec4421c46fc37f038a9074b370c27e9bfee6cb07ccd3ccf4ff21959",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -141,7 +148,7 @@
       "repo": "syv-ai/HyperQwen",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "fc2ffca947528075a0005e47984a590eaae119d91ceb907cea026372decef42e",
+      "formula_sha256": "d31663824c501324928949e5874939570516a213e4a04e6decc31bfee491e1c4",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -179,13 +186,13 @@
       "repo": "IIIIIllllIIIIIlllll/Qwenox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "0249b4a24587255d23374becfdd8db87f1269f8a9ea59e194a8986e6e5591445",
+      "formula_sha256": "3916a4602563608e453da38984c2bb3eb2fb7c5227bacd708108ffbef9ec8095",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -218,13 +225,13 @@
       "repo": "snowllm/snowllm",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "7c045068f939927ba674a941c1fa695bdf6f61bb72f3feb8a574d7c3711665ac",
+      "formula_sha256": "7cf7ea24818bdf347dd513b40794f9e45219661111ccf62cfd700fd72f6cbe87",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -257,13 +264,13 @@
       "repo": "Yamz-Labs/kyojin",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "4588d5bc379a2c55f2c3f96b55b1fcb306031b06b5d3dce4e9dc24ae715e94c0",
+      "formula_sha256": "6ee58e93afc398fdfd48e678609ddb85fc66594b872b1e8e6f06dae45e634f4d",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1150;gfx1151",
           "rocm_family": "gfx1151",
@@ -305,13 +312,13 @@
       "repo": "mw00/project-maya",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "a7ddc2c0d2e9c3980ad2c16dd6632b0131da1f802e6967f0652aec991dfaabfe",
+      "formula_sha256": "addb1c0d89ff1d98e1a5d22b88af5db9f50b215de29b8cc6853bf7c7abcc3b6d",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1100;gfx1150;gfx1151",
           "rocm_family": "gfx1151",
@@ -360,13 +367,13 @@
       "repo": "Niko1221/Strata",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "b401e63e0da5fea5c3bf506516b94d441246754462698aefe5b1392e4fb754a2",
+      "formula_sha256": "7da984c58e5e6c1cdc7d768fd86b20b48d52b40820198590c02ce86d3bb559df",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1100;gfx1150;gfx1151",
           "rocm_family": "gfx1151",
@@ -415,13 +422,13 @@
       "repo": "shawnshekari/strixite",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "8d3e3217c9524d6808bab4ce6e8bd573be2a9aca28b4bb185c0151c904f88a4d",
+      "formula_sha256": "9811c8e88e62dd30f08e2795b8be255fd1561b431d65f5b10450bd68e1cc5a6d",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -455,13 +462,13 @@
       "repo": "jaedync/crucible-strix-halo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "730053841a5e1ba9fa0279c64542411bf4ea54ddccb69f70429a3cf6441ad741",
+      "formula_sha256": "40eba6e8dee92a7253f078181b5fe5e4b2b51737d340e4e0134a34333a975d27",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "amdgpu_targets": "gfx1151",
           "rocm_family": "gfx1151",
@@ -490,22 +497,22 @@
     },
     "rocmfpx": {
       "formula": "rocmfpx",
-      "remote": "https://github.com/Heretek-AI/homebrew-tap.git",
-      "repo": "Heretek-AI/homebrew-tap",
+      "remote": "https://github.com/charlie12345/ROCmFPX.git",
+      "repo": "charlie12345/ROCmFPX",
       "branch": "main",
-      "track": "builder",
-      "formula_sha256": "93ca0de3f9fd33feb5dc356d0b21c9ac930a7821668e88cb946b289ce3aeacd3",
+      "track": "commit",
+      "formula_sha256": "02542bb6b2876a95d42cc900720fcca060607bdda85fdf4289154cf22e96ab47",
       "variants": {
         "rocm": {
           "status": "enabled",
           "backend": "rocm",
           "default": true,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1100;gfx1150;gfx1151;gfx90a;gfx942",
+          "amdgpu_targets": "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201",
           "rocm_family": "multiarch",
           "hw_validate": true,
-          "last_built_commit": "1136",
+          "last_built_commit": "fb08d7cdb67082ddda15a25e64dc7ec413afc41c",
           "last_rocm_stamp": null,
           "last_success_at": null
         },
@@ -533,7 +540,7 @@
       "repo": "Luce-Org/lucebox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "8e94471885fb06db2476f01a3183230ba87d9855b4fa0690a91881d2ac4bd5f4",
+      "formula_sha256": "4579836ffc3a6af17b226adc2d1394a492feca028257312db0a37f6b6c119dbb",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -551,7 +558,7 @@
           "status": "enabled",
           "backend": "rocm",
           "default": false,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "brew_flags": "--with-rocm",
           "amdgpu_targets": "gfx1150;gfx1151",
@@ -581,7 +588,7 @@
       "repo": "Michael-A-Kuykendall/shimmy",
       "branch": "main",
       "track": "release",
-      "formula_sha256": "c6c582119c17d1b8deda5a5f9a161eb4feca1999468babab3e25e937e9249e7d",
+      "formula_sha256": "354cf06787eda26ab642fcc43b28663f88d753ebd7282717f45021b4b17e97be",
       "variants": {
         "cpu": {
           "status": "enabled",
@@ -625,7 +632,7 @@
       "repo": "leejet/stable-diffusion.cpp",
       "branch": "master",
       "track": "rolling_release",
-      "formula_sha256": "e8be6baafe6b0ec0d299da8bffe911829f812c2900215529726222601a79d3d4",
+      "formula_sha256": "53b4f096d712426bbf8c598bf370714b8fce43f1e042fb342596bbf720e2e403",
       "variants": {
         "vulkan": {
           "status": "enabled",
@@ -653,7 +660,7 @@
           "status": "enabled",
           "backend": "rocm",
           "default": false,
-          "runner": "ubuntu-24.04",
+          "runner": "stx-halo",
           "bottle_tag": "x86_64_linux",
           "brew_flags": "--with-rocm",
           "hw_validate": true,

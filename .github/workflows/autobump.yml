@@ -1,0 +1,230 @@
+name: brew bump
+
+# The optional GitHub App (`vars.APP_ID` + `secrets.APP_PRIVATE_KEY`) needs
+# Contents and Pull requests write to push branches and open pull requests, and
+# Issues write to manage the `autobump` label. Without the App the workflow
+# falls back to `GITHUB_TOKEN`, but pull requests created with that token do not
+# trigger `brew test-bot`.
+on:
+  schedule:
+    # Release-tag and livecheck bumps, every six hours.
+    - cron: "17 */6 * * *"
+    # Commit-tracking and rolling bumps, Mondays at 04:43 UTC.
+    - cron: "43 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Formula key to sync, or "all" to run release bumps'
+        required: false
+        default: all
+      release_tag:
+        description: Release tag to sync, or "latest"
+        required: false
+        default: latest
+  repository_dispatch:
+    types: [builder-release]
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  release-bump:
+    name: Release and livecheck bumps
+    # Runs every six hours and on manual dispatches that target "all":
+    # `brew bump` discovers new release and livecheck versions itself.
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '17 */6 * * *') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.target || 'all') == 'all')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      # Equivalent to `if: vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != ''`,
+      # which is invalid in a step-level `if` because `secrets` is not an
+      # available context there. Only the boolean enters the job env; the
+      # private key is passed directly to the token action.
+      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        if: env.APP_CONFIGURED == 'true'
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+
+      - name: Ensure autobump label exists
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh label create autobump --color 0e8a16 --description "Automated version bump" --force
+
+      - name: Bump formulae and casks
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
+          HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: |
+          tap_dir="$(brew --repository "${TAP_NAME}")"
+
+          # rocm-runtime and cuda-runtime pin several tarballs and SHA256s in
+          # one formula. A single-formula `brew bump` would update only the
+          # primary URL, so those two are bumped deliberately with all pins at
+          # once. Everything else is eligible for automatic release bumps.
+          mapfile -t formulae < <(
+            find "${tap_dir}/Formula" -maxdepth 1 -name '*.rb' -printf '%f\n' \
+              | sed 's/\.rb$//' \
+              | grep -vxE 'rocm-runtime|cuda-runtime' \
+              | sort \
+              | sed "s#^#${TAP_NAME}/#"
+          )
+
+          brew bump --formula --no-fork --open-pr --bump-synced \
+            "${formulae[@]}" 2>&1 | tee bump-output.txt
+          brew bump --no-fork --open-pr --cask --tap="${TAP_NAME}" 2>&1 | tee -a bump-output.txt
+
+      - name: Label opened pull requests
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mapfile -t pr_numbers < <(
+            awk 'match($0, /https:\/\/github\.com\/[^[:space:]]+\/pull\/[0-9]+/) {
+              url = substr($0, RSTART, RLENGTH)
+              sub(/.*\//, "", url)
+              print url
+            }' bump-output.txt | sort -u
+          )
+
+          if (( ${#pr_numbers[@]} == 0 ))
+          then
+            echo "brew bump opened no pull requests; nothing to label."
+            exit 0
+          fi
+
+          for pr in "${pr_numbers[@]}"
+          do
+            echo "Adding 'autobump' label to pull request #${pr}"
+            gh pr edit "${pr}" --add-label autobump
+          done
+
+  commit-bump:
+    name: Weekly commit-tracking bumps
+    # Runs on the weekly schedule, on builder-release dispatches, and on manual
+    # dispatches for a specific formula key (the legacy sync path).
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '43 4 * * 1') ||
+      github.event_name == 'repository_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.target || 'all') != 'all')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      # See the release-bump job: this is the App-configured check moved out of
+      # step-level `if`, where `secrets` is not an available context.
+      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+      TARGET: ${{ github.event.client_payload.target || github.event.client_payload.builder || inputs.target || 'all' }}
+      TAG: ${{ github.event.client_payload.release_tag || github.event.client_payload.tag || inputs.release_tag || 'latest' }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        if: env.APP_CONFIGURED == 'true'
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          # The App token makes pushes trigger `brew test-bot`; GITHUB_TOKEN
+          # pushes do not start new workflow runs.
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@ceec4e8419bb3c97ce96e9dda7738499ed5f869d # 2026.11.14.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Update commit-tracking formulae
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${TARGET}" == "all" ]]
+          then
+            python3 scripts/update_formulae.py --repo all --skip-upstream-releases --tag "${TAG}"
+          else
+            python3 scripts/update_formulae.py --repo "${TARGET}" --tag "${TAG}"
+          fi
+
+      - name: Detect formula changes
+        id: changes
+        run: |
+          if [[ -n "$(git status --porcelain -- Formula/)" ]]
+          then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "No formula changes detected."
+          fi
+
+      - name: Ensure autobump label exists
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh label create autobump --color 0e8a16 --description "Automated version bump" --force
+
+      - name: Open pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TARGET: ${{ env.TARGET }}
+          TAG: ${{ env.TAG }}
+        run: |
+          branch="autobump/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          title="chore(formulae): automated weekly commit-tracking bump"
+          if [[ "${TARGET}" != "all" ]]
+          then
+            title="chore(formulae): sync ${TARGET} at ${TAG}"
+          fi
+
+          git checkout -b "${branch}"
+          git add -- Formula/
+          git commit -m "${title}"
+          git push origin "${branch}"
+
+          gh pr create \
+            --base main \
+            --head "${branch}" \
+            --title "${title}" \
+            --label autobump \
+            --body "Automated commit-tracking and rolling update produced by \`scripts/update_formulae.py\`.
+
+          - Target: **${TARGET}**
+          - Tag: **${TAG}**
+          - Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          Opened by the \`brew bump\` workflow and labelled \`autobump\`. After \`brew test-bot\` passes, the \`brew auto-publish\` workflow dispatches \`brew pr-pull\` automatically; otherwise a maintainer can publish it manually."

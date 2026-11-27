@@ -12,14 +12,18 @@ import hashlib
 import json
 import os
 import re
-import sys
+import time
 import urllib.error
 import urllib.request
+from typing import Dict, Optional, Tuple
 
 GITHUB_API_BASE = "https://api.github.com/repos"
 
+
 def load_config_from_ledger():
-    ledger_path = os.path.join(os.path.dirname(__file__), "..", ".github", "upstream-pins.json")
+    ledger_path = os.path.join(
+        os.path.dirname(__file__), "..", ".github", "upstream-pins.json"
+    )
     if os.path.exists(ledger_path):
         try:
             with open(ledger_path, "r", encoding="utf-8") as f:
@@ -43,10 +47,8 @@ def load_config_from_ledger():
                     "type": ttype,
                     "repo": pdata.get("repo", name),
                     "branch": pdata.get("branch", "main"),
-                    "formulae": [f"{pdata.get('formula', name)}.rb"]
+                    "formulae": [f"{pdata.get('formula', name)}.rb"],
                 }
-                if name == "rocmfpx":
-                    entry["fallback_repo"] = "Heretek-AI/ROCmFPX-BUILDER"
                 cfg[name] = entry
             if cfg:
                 return cfg
@@ -54,11 +56,10 @@ def load_config_from_ledger():
             pass
 
     return {
-        # Fallback in-repo multi-arch ROCm release tracking
         "rocmfpx": {
-            "type": "builder",
-            "repo": "Heretek-AI/homebrew-tap",
-            "fallback_repo": "Heretek-AI/ROCmFPX-BUILDER",
+            "type": "upstream_commit",
+            "repo": "charlie12345/ROCmFPX",
+            "branch": "main",
             "formulae": ["rocmfpx.rb"],
         },
         "shimmy": {
@@ -121,7 +122,170 @@ def load_config_from_ledger():
         },
     }
 
+
 CONFIG = load_config_from_ledger()
+
+# Per-formula release-asset families. Prefixes are intentionally formula
+# specific: rocmfpx must never accept kingjones-rocmfpx or q38rocm assets.
+ASSET_RULES: Dict[str, Dict[str, Tuple[str, ...]]] = {
+    "rocmfpx.rb": {
+        "prefixes": ("rocmfpx-",),
+        "excludes": ("-q38rocm", "-kairic-edge", "-promptforge"),
+    },
+}
+
+_ARCHIVE_SUFFIX_RE = re.compile(r"\.(?:zip|tar\.gz|tar\.xz|tgz)$", re.IGNORECASE)
+_RELEASE_TAG_PATTERNS = (
+    re.compile(r"(?:^|-)llama-ai-b\d+(?=-|$)", re.IGNORECASE),
+    re.compile(r"(?:^|-)b\d+(?=-|$)", re.IGNORECASE),
+    re.compile(r"(?:^|-)master-\d+-[0-9a-f]{7,40}(?=-|$)", re.IGNORECASE),
+)
+_PREFIX_TOKENS = tuple(
+    sorted(
+        (
+            "kingjones-rocmfpx",
+            "ciru-rocmfpx",
+            "stable-diffusion",
+            "cachy-llama",
+            "engramhalo",
+            "q38rocm",
+            "llama-ai",
+            "rocmfpx",
+            "ember",
+            "bin",
+            "sd",
+        ),
+        key=len,
+        reverse=True,
+    )
+)
+
+_RELEASE_URL_PAIR_RE = re.compile(
+    r'(?P<url_prefix>url\s+"https://github\.com/[^/"]+/[^/"]+/releases/download/)'
+    r'(?P<tag>[^/"]+)/(?P<filename>[^"]+)"\n'
+    r'(?P<extra>(?:[ \t]*version\s+"[^"]+"\n)?)'
+    r'(?P<sha_indent>[ \t]*)sha256\s+"(?P<sha>[0-9a-fA-F]{64})"'
+)
+
+
+def get_asset_rules(formula_path: str) -> Dict[str, Tuple[str, ...]]:
+    return ASSET_RULES.get(os.path.basename(formula_path), {})
+
+
+def is_asset_allowed(asset_name: str, rules: Dict[str, Tuple[str, ...]]) -> bool:
+    if ".bottle." in asset_name or asset_name.endswith(".bottle.json"):
+        return False
+
+    if any(asset_name.startswith(prefix) for prefix in rules.get("prefixes", ())):
+        return not any(marker in asset_name for marker in rules.get("excludes", ()))
+
+    legacy_prefixes = rules.get("legacy_prefixes", ())
+    legacy_markers = rules.get("legacy_markers", ())
+    return bool(
+        legacy_prefixes
+        and legacy_markers
+        and any(asset_name.startswith(prefix) for prefix in legacy_prefixes)
+        and any(marker in asset_name for marker in legacy_markers)
+    )
+
+
+def asset_role(filename: str) -> str:
+    """Return a tag-independent role such as ubuntu-rocm-gfx1151-x64."""
+    name = _ARCHIVE_SUFFIX_RE.sub("", filename)
+    name = re.sub(r"^sd-master-[0-9a-f]+-bin-", "", name, flags=re.IGNORECASE)
+
+    for pattern in _RELEASE_TAG_PATTERNS:
+        name = pattern.sub("", name)
+
+    for token in _PREFIX_TOKENS:
+        name = re.sub(
+            rf"(?:^|-){re.escape(token)}(?=-|$)", "", name, flags=re.IGNORECASE
+        )
+
+    name = re.sub(r"(?:^|-)q38rocm(?=-|$)", "", name, flags=re.IGNORECASE)
+    return re.sub(r"-{2,}", "-", name).strip("-").lower()
+
+
+def sd_asset_role(filename: str) -> Optional[str]:
+    name = filename.lower()
+    if "darwin" in name or "macos" in name:
+        return "darwin-arm64" if "arm64" in name else "darwin-x86_64"
+    if "linux" not in name:
+        return None
+    if "rocm" in name:
+        return "linux-rocm"
+    if "vulkan" in name:
+        return "linux-vulkan"
+    if "x86_64" in name or "x64" in name:
+        return "linux-cpu"
+    return None
+
+
+def find_matching_asset(
+    old_filename: str,
+    asset_shas: Dict[str, str],
+    rules: Dict[str, Tuple[str, ...]],
+    role_function=asset_role,
+) -> Tuple[Optional[str], Optional[str]]:
+    allowed = {
+        name: sha for name, sha in asset_shas.items() if is_asset_allowed(name, rules)
+    }
+    if old_filename in allowed:
+        return old_filename, allowed[old_filename]
+
+    old_role = role_function(old_filename)
+    if not old_role:
+        return None, None
+
+    matches = [
+        (name, sha) for name, sha in allowed.items() if role_function(name) == old_role
+    ]
+    if not matches:
+        return None, None
+
+    if len(matches) > 1:
+        for prefix in (*rules.get("prefixes", ()), *rules.get("legacy_prefixes", ())):
+            if not old_filename.startswith(prefix):
+                continue
+            same_family = [match for match in matches if match[0].startswith(prefix)]
+            if same_family:
+                matches = same_family
+            break
+
+    return matches[0]
+
+
+def _release_version(release_tag: str) -> str:
+    version = release_tag.lstrip("v").removeprefix("llama-ai-")
+    version = version.removeprefix("b")
+    return version.replace("master-", "")
+
+
+def find_latest_release_with_assets(
+    repo: str,
+    formula_path: str,
+    token: Optional[str] = None,
+    max_pages: int = 3,
+) -> Optional[dict]:
+    """Find the newest release that actually contains assets for this formula."""
+    rules = get_asset_rules(formula_path)
+
+    for page in range(1, max_pages + 1):
+        url = f"{GITHUB_API_BASE}/{repo}/releases?per_page=100&page={page}"
+        releases = fetch_json(url, token)
+        if not isinstance(releases, list) or not releases:
+            break
+
+        for release in releases:
+            if release.get("draft") or release.get("prerelease"):
+                continue
+            if any(
+                is_asset_allowed(asset.get("name", ""), rules)
+                for asset in release.get("assets", [])
+            ):
+                return release
+
+    return None
 
 
 def fetch_json(url: str, token: str = None) -> dict:
@@ -159,7 +323,14 @@ def get_latest_commit(repo: str, branch: str = "main", token: str = None) -> dic
     return fetch_json(url, token)
 
 
-def update_builder_formula_content(formula_path: str, release_tag: str, asset_shas: dict, repo_name: str = None, dry_run: bool = False) -> bool:
+def update_builder_formula_content(
+    formula_path: str,
+    release_tag: str,
+    asset_shas: Dict[str, str],
+    repo_name: str = None,
+    dry_run: bool = False,
+    asset_rules: Dict[str, Tuple[str, ...]] = None,
+) -> bool:
     if not os.path.exists(formula_path):
         print(f"[-] Formula not found: {formula_path}")
         return False
@@ -167,79 +338,63 @@ def update_builder_formula_content(formula_path: str, release_tag: str, asset_sh
     with open(formula_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    original_content = content
+    rules = asset_rules or get_asset_rules(formula_path)
+    matched_count = 0
 
-    version_clean = release_tag.lstrip("v").lstrip("b").replace("llama-ai-", "")
-    content = re.sub(r'version\s+"[^"]+"', f'version "{version_clean}"', content, count=1)
-
-    def find_matching_asset(old_asset_filename: str):
-        if old_asset_filename in asset_shas:
-            return old_asset_filename, asset_shas[old_asset_filename]
-
-        stripped = None
-        if re.match(r'^[A-Za-z0-9._-]+?-b\d+', old_asset_filename):
-            stripped = re.sub(r'-b\d+', f'-{release_tag}', old_asset_filename, count=1)
-        if stripped and stripped in asset_shas:
-            return stripped, asset_shas[stripped]
-
-        prefix_match = re.match(r'^([a-zA-Z0-9._-]+?)-b\d+', old_asset_filename)
-        expected_prefix = prefix_match.group(1) if prefix_match else ""
-
-        suffix_match = re.search(r'(?:^|-)((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm|q38rocm)-.*)', old_asset_filename)
-        if suffix_match:
-            suffix = suffix_match.group(1)
-            for asset_name, sha in asset_shas.items():
-                if expected_prefix and asset_name.startswith(expected_prefix) and asset_name.endswith(suffix):
-                    return asset_name, sha
-            for asset_name, sha in asset_shas.items():
-                if asset_name.endswith(suffix):
-                    return asset_name, sha
-
-        for asset_name, sha in asset_shas.items():
-            if asset_name == old_asset_filename or asset_name.endswith(old_asset_filename):
-                return asset_name, sha
-
-        return None, None
-
-    def url_replacer(match):
-        prefix = match.group(1)
-        old_tag = match.group(2)
-        old_filename = match.group(3)
-
-        matched_name, sha = find_matching_asset(old_filename)
+    def url_replacer(match: re.Match) -> str:
+        nonlocal matched_count
+        old_filename = match.group("filename")
+        matched_name, sha = find_matching_asset(old_filename, asset_shas, rules)
         if not matched_name:
-            print(f"[*] No matching asset for {old_filename}; keeping {old_tag} URL")
+            print(f"[*] No matching asset for {old_filename}; keeping existing URL")
             return match.group(0)
-        new_prefix = f"https://github.com/{repo_name}/releases/download/" if repo_name else prefix
-        return f'url "{new_prefix}{release_tag}/{matched_name}"'
 
-    content = re.sub(
-        r'url\s+"(https://github\.com/[^/]+/[^/]+/releases/download/)([^/]+)/([^"]+)"',
-        url_replacer,
-        content,
+        matched_count += 1
+        prefix = (
+            f"https://github.com/{repo_name}/releases/download/"
+            if repo_name
+            else match.group("url_prefix").split('"', 1)[1]
+        )
+        return (
+            f'url "{prefix}{release_tag}/{matched_name}"\n'
+            f"{match.group('extra')}"
+            f'{match.group("sha_indent")}sha256 "{sha}"'
+        )
+
+    updated_content = _RELEASE_URL_PAIR_RE.sub(url_replacer, content)
+
+    if matched_count == 0:
+        print(f"[*] No matching assets for {formula_path}; version left unchanged")
+        return False
+
+    version = _release_version(release_tag)
+    updated_content = re.sub(
+        r'version\s+"[^"]+"',
+        f'version "{version}"',
+        updated_content,
+        count=1,
     )
 
-    for asset_name, sha in asset_shas.items():
-        suffix_match = re.search(r'((?:ubuntu|macos|windows|linux|cpu|metal|vulkan|rocm|q38rocm).*)', asset_name)
-        suffix = suffix_match.group(1) if suffix_match else asset_name
-
-        pattern = rf'(url\s+"https://github\.com/[^/]+/[^/]+/releases/download/[^/]+/[^"]*{re.escape(suffix)}"[^\n]*\n(?:\s*version[^\n]*\n)?\s*sha256\s+")[a-fA-F0-9]+(")'
-        content = re.sub(pattern, rf'\g<1>{sha}\g<2>', content)
-
-    if content != original_content:
-        if dry_run:
-            print(f"[DRY-RUN] Formula {formula_path} has updates:")
-        else:
-            with open(formula_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            print(f"[OK] Saved updates to {formula_path}")
-        return True
-    else:
+    if updated_content == content:
         print(f"[*] No changes needed for {formula_path}")
         return False
 
+    if dry_run:
+        print(f"[DRY-RUN] Formula {formula_path} has updates for {release_tag}")
+    else:
+        with open(formula_path, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+        print(f"[OK] Saved updates to {formula_path} ({release_tag})")
+    return True
 
-def update_upstream_release_formula(formula_path: str, repo: str, token: str = None, tag: str = "latest", dry_run: bool = False) -> bool:
+
+def update_upstream_release_formula(
+    formula_path: str,
+    repo: str,
+    token: str = None,
+    tag: str = "latest",
+    dry_run: bool = False,
+) -> bool:
     if not os.path.exists(formula_path):
         print(f"[-] Formula not found: {formula_path}")
         return False
@@ -274,7 +429,9 @@ def update_upstream_release_formula(formula_path: str, repo: str, token: str = N
 
     if content != original_content:
         if dry_run:
-            print(f"[DRY-RUN] Upstream release formula {formula_path} has updates -> tag: {tag_name}, sha256: {sha256_digest}")
+            print(
+                f"[DRY-RUN] Upstream release formula {formula_path} has updates -> tag: {tag_name}, sha256: {sha256_digest}"
+            )
         else:
             with open(formula_path, "w", encoding="utf-8") as f:
                 f.write(content)
@@ -285,7 +442,15 @@ def update_upstream_release_formula(formula_path: str, repo: str, token: str = N
         return False
 
 
-def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "main", token: str = None, commit_sha: str = None, sha256_digest: str = None, dry_run: bool = False) -> bool:
+def update_upstream_commit_formula(
+    formula_path: str,
+    repo: str,
+    branch: str = "main",
+    token: str = None,
+    commit_sha: str = None,
+    sha256_digest: str = None,
+    dry_run: bool = False,
+) -> bool:
     if not os.path.exists(formula_path):
         print(f"[-] Formula not found: {formula_path}")
         return False
@@ -293,7 +458,12 @@ def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "
     if not commit_sha:
         commit_data = get_latest_commit(repo, branch, token)
         commit_sha = commit_data.get("sha", "")
-        commit_date = commit_data.get("commit", {}).get("committer", {}).get("date", "")[:10].replace("-", ".")
+        commit_date = (
+            commit_data.get("commit", {})
+            .get("committer", {})
+            .get("date", "")[:10]
+            .replace("-", ".")
+        )
     else:
         commit_date = time.strftime("%Y.%m.%d", time.gmtime())
 
@@ -337,18 +507,28 @@ def update_upstream_commit_formula(formula_path: str, repo: str, branch: str = "
 
     if content != original_content:
         if dry_run:
-            print(f"[DRY-RUN] Upstream commit formula {formula_path} has updates -> commit: {commit_sha[:7]} ({commit_date}), sha256: {sha256_digest}")
+            print(
+                f"[DRY-RUN] Upstream commit formula {formula_path} has updates -> commit: {commit_sha[:7]} ({commit_date}), sha256: {sha256_digest}"
+            )
         else:
             with open(formula_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"[OK] Updated {formula_path} to commit {commit_sha[:7]} ({commit_date})")
+            print(
+                f"[OK] Updated {formula_path} to commit {commit_sha[:7]} ({commit_date})"
+            )
         return True
     else:
         print(f"[*] No changes needed for {formula_path} (already at {commit_sha[:7]})")
         return False
 
 
-def update_rolling_release_formula(formula_path: str, repo: str, token: str = None, tag: str = "latest", dry_run: bool = False) -> bool:
+def update_rolling_release_formula(
+    formula_path: str,
+    repo: str,
+    token: str = None,
+    tag: str = "latest",
+    dry_run: bool = False,
+) -> bool:
     if not os.path.exists(formula_path):
         print(f"[-] Formula not found: {formula_path}")
         return False
@@ -361,110 +541,180 @@ def update_rolling_release_formula(formula_path: str, repo: str, token: str = No
 
     print(f"[+] Found rolling release: {tag_name} ({rel.get('name', '')})")
 
-    version_match = re.search(r'master-(\d+)', tag_name)
+    version_match = re.search(r"master-(\d+)", tag_name)
     version_str = version_match.group(1) if version_match else tag_name
 
-    asset_map = {}
+    asset_map: Dict[str, Tuple[str, str]] = {}
     for asset in rel.get("assets", []):
         name = asset.get("name", "")
-        dl_url = asset.get("browser_download_url", "")
-        role = None
-        if ("Darwin" in name or "macOS" in name) and "arm64" in name:
-            role = "darwin_arm64"
-        elif "Linux" in name and "rocm" in name:
-            role = "linux_rocm"
-        elif "Linux" in name and "vulkan" in name:
-            role = "linux_vulkan"
-        elif "Linux" in name and not ("rocm" in name or "vulkan" in name) and ("x86_64" in name or "x64" in name):
-            role = "linux_cpu"
+        role = sd_asset_role(name)
+        if not role or role in asset_map:
+            continue
 
-        if role:
-            digest = asset.get("digest")
-            if digest and digest.startswith("sha256:"):
-                sha = digest.split("sha256:")[1]
-            else:
-                print(f"[*] Downloading {name} to compute SHA256...")
-                try:
-                    sha = download_and_compute_sha256(dl_url, token)
-                except Exception as ex:
-                    print(f"[-] Error downloading {name}: {ex}")
-                    continue
-            asset_map[role] = {"name": name, "url": dl_url, "sha256": sha}
+        digest = asset.get("digest")
+        if digest and digest.startswith("sha256:"):
+            sha = digest.split("sha256:", 1)[1]
+        else:
+            print(f"[*] Downloading {name} to compute SHA256...")
+            try:
+                sha = download_and_compute_sha256(
+                    asset.get("browser_download_url"), token
+                )
+            except Exception as ex:
+                print(f"[-] Error downloading {name}: {ex}")
+                continue
+        asset_map[role] = (name, sha)
 
     with open(formula_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    original_content = content
+    matched_count = 0
 
-    content = re.sub(r'version\s+"[^"]+"', f'version "{version_str}"', content, count=1)
+    def url_replacer(match: re.Match) -> str:
+        nonlocal matched_count
+        role = sd_asset_role(match.group("filename"))
+        if role is None or role not in asset_map:
+            print(
+                f"[*] No matching asset for {match.group('filename')}; keeping existing URL"
+            )
+            return match.group(0)
 
-    if "darwin_arm64" in asset_map:
-        info = asset_map["darwin_arm64"]
-        content = re.sub(
-            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Darwin[^"]+"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
-            f'url "{info["url"]}"\n      sha256 "{info["sha256"]}"',
-            content,
+        matched_count += 1
+        name, sha = asset_map[role]
+        return (
+            f'url "https://github.com/{repo}/releases/download/{tag_name}/{name}"\n'
+            f"{match.group('extra')}"
+            f'{match.group("sha_indent")}sha256 "{sha}"'
         )
 
-    if "linux_rocm" in asset_map:
-        info = asset_map["linux_rocm"]
-        content = re.sub(
-            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Linux[^"]+rocm[^"]+"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
-            f'url "{info["url"]}"\n        sha256 "{info["sha256"]}"',
-            content,
-        )
+    updated_content = _RELEASE_URL_PAIR_RE.sub(url_replacer, content)
 
-    if "linux_cpu" in asset_map:
-        info = asset_map["linux_cpu"]
-        content = re.sub(
-            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Linux[^"]+x86_64\.zip"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
-            f'url "{info["url"]}"\n        sha256 "{info["sha256"]}"',
-            content,
-        )
+    if matched_count == 0:
+        print(f"[*] No matching assets for {formula_path}; version left unchanged")
+        return False
 
-    if "linux_vulkan" in asset_map:
-        info = asset_map["linux_vulkan"]
-        content = re.sub(
-            rf'url\s+"https://github\.com/{re.escape(repo)}/releases/download/[^/]+/sd-master-[^"]+Linux[^"]+vulkan\.zip"\s*\n\s*sha256\s+"[a-fA-F0-9]+"',
-            f'url "{info["url"]}"\n        sha256 "{info["sha256"]}"',
-            content,
-        )
+    updated_content = re.sub(
+        r'version\s+"[^"]+"',
+        f'version "{version_str}"',
+        updated_content,
+        count=1,
+    )
 
-    if content != original_content:
-        if dry_run:
-            print(f"[DRY-RUN] Rolling release formula {formula_path} has updates -> tag: {tag_name}")
-        else:
-            with open(formula_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            print(f"[OK] Updated {formula_path} to {tag_name}")
-        return True
-    else:
+    if updated_content == content:
         print(f"[*] No changes needed for {formula_path} (already at {tag_name})")
         return False
+
+    if dry_run:
+        print(f"[DRY-RUN] Rolling release formula {formula_path} -> tag: {tag_name}")
+    else:
+        with open(formula_path, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+        print(f"[OK] Updated {formula_path} to {tag_name}")
+    return True
 
 
 # Backward compatibility alias
 update_formula_content = update_builder_formula_content
 
 
+def _resolve_builder_release(cfg, formula_path, token, tag):
+    repo = cfg["repo"]
+
+    if tag == "latest":
+        try:
+            release = find_latest_release_with_assets(repo, formula_path, token)
+        except Exception as e:
+            print(f"[-] Failed to fetch release for {repo}: {e}")
+            return None, None
+
+        if release:
+            return release, repo
+        return None, None
+
+    try:
+        release = get_latest_release(repo, token, tag)
+    except Exception as e:
+        print(f"[-] Failed to fetch release for {repo}: {e}")
+        return None, None
+
+    if release:
+        return release, repo
+
+    return None, None
+
+
+def _release_asset_shas(release, token):
+    asset_shas = {}
+    for asset in release.get("assets", []):
+        name = asset.get("name")
+        if not name:
+            continue
+        digest = asset.get("digest")
+        if digest and digest.startswith("sha256:"):
+            asset_shas[name] = digest.split("sha256:", 1)[1]
+            continue
+
+        download_url = asset.get("browser_download_url")
+        print(f"[*] Downloading {name} to compute SHA256...")
+        try:
+            asset_shas[name] = download_and_compute_sha256(download_url, token)
+        except Exception as ex:
+            print(f"[-] Error downloading {name}: {ex}")
+    return asset_shas
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Update Homebrew Tap Formulae with new releases and commits")
+    parser = argparse.ArgumentParser(
+        description="Update Homebrew Tap Formulae with new releases and commits"
+    )
     parser.add_argument(
         "--repo",
         choices=list(CONFIG.keys()) + ["all"],
         default="all",
         help="Target builder repo or formula key",
     )
-    parser.add_argument("--tag", default="latest", help="Specific release tag or 'latest'")
-    parser.add_argument("--commit", default=None, help="Explicit target commit SHA for upstream_commit formulae")
-    parser.add_argument("--sha256", default=None, help="Precomputed sha256 checksum for the archive")
-    parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub API token")
-    parser.add_argument("--formula-dir", default=os.path.join(os.path.dirname(__file__), "..", "Formula"), help="Path to Formula directory")
-    parser.add_argument("--dry-run", action="store_true", help="Print updates without modifying files")
+    parser.add_argument(
+        "--tag", default="latest", help="Specific release tag or 'latest'"
+    )
+    parser.add_argument(
+        "--commit",
+        default=None,
+        help="Explicit target commit SHA for upstream_commit formulae",
+    )
+    parser.add_argument(
+        "--sha256", default=None, help="Precomputed sha256 checksum for the archive"
+    )
+    parser.add_argument(
+        "--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub API token"
+    )
+    parser.add_argument(
+        "--formula-dir",
+        default=os.path.join(os.path.dirname(__file__), "..", "Formula"),
+        help="Path to Formula directory",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print updates without modifying files"
+    )
+    parser.add_argument(
+        "--builders-only",
+        action="store_true",
+        help="Only process multi-asset BUILDER targets",
+    )
+    parser.add_argument(
+        "--skip-upstream-releases",
+        action="store_true",
+        help="Skip upstream release-tag formulae that are handled by brew bump",
+    )
 
     args = parser.parse_args()
 
     targets = list(CONFIG.keys()) if args.repo == "all" else [args.repo]
+    if args.builders_only:
+        targets = [target for target in targets if CONFIG[target]["type"] == "builder"]
+    if args.skip_upstream_releases:
+        targets = [
+            target for target in targets if CONFIG[target]["type"] != "upstream_release"
+        ]
 
     updated_targets = []
 
@@ -481,65 +731,44 @@ def main():
             changed = False
 
             if target_type == "builder":
-                rel = None
-                try:
-                    rel = get_latest_release(repo_name, args.token, args.tag)
-                except urllib.error.HTTPError as e:
-                    fallback = cfg.get("fallback_repo")
-                    if fallback and e.code == 404:
-                        print(f"[*] No release found on {repo_name}; checking fallback {fallback}...")
-                        try:
-                            rel = get_latest_release(fallback, args.token, args.tag)
-                        except Exception as e2:
-                            print(f"[-] Failed to fetch fallback release for {fallback}: {e2}")
-                            continue
-                    else:
-                        print(f"[-] Failed to fetch release for {repo_name}: {e}")
-                        continue
-                except Exception as e:
-                    fallback = cfg.get("fallback_repo")
-                    if fallback:
-                        try:
-                            rel = get_latest_release(fallback, args.token, args.tag)
-                        except Exception as e2:
-                            print(f"[-] Failed to fetch fallback release for {fallback}: {e2}")
-                            continue
-                    else:
-                        print(f"[-] Failed to fetch release for {repo_name}: {e}")
-                        continue
+                release, release_repo = _resolve_builder_release(
+                    cfg, formula_path, args.token, args.tag
+                )
+                if not release:
+                    print(f"[*] No release with matching assets for {formula_file}")
+                    continue
 
-                tag_name = rel.get("tag_name", "")
-                print(f"[+] Found builder release: {tag_name} ({rel.get('name', '')})")
-
-                asset_shas = {}
-                for asset in rel.get("assets", []):
-                    name = asset.get("name")
-                    digest = asset.get("digest")
-                    if digest and digest.startswith("sha256:"):
-                        sha = digest.split("sha256:")[1]
-                    else:
-                        download_url = asset.get("browser_download_url")
-                        print(f"[*] Downloading {name} to compute SHA256...")
-                        try:
-                            sha = download_and_compute_sha256(download_url, args.token)
-                        except Exception as ex:
-                            print(f"[-] Error downloading {name}: {ex}")
-                            continue
-                    asset_shas[name] = sha
-
-                changed = update_builder_formula_content(formula_path, tag_name, asset_shas, repo_name=repo_name, dry_run=args.dry_run)
+                tag_name = release.get("tag_name", "")
+                print(
+                    f"[+] Found builder release: {tag_name} ({release.get('name', '')})"
+                )
+                changed = update_builder_formula_content(
+                    formula_path,
+                    tag_name,
+                    _release_asset_shas(release, args.token),
+                    repo_name=release_repo,
+                    dry_run=args.dry_run,
+                )
 
             elif target_type == "upstream_release":
                 try:
-                    changed = update_upstream_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
+                    changed = update_upstream_release_formula(
+                        formula_path, repo_name, args.token, args.tag, args.dry_run
+                    )
                 except Exception as e:
-                    print(f"[-] Failed to update upstream release formula {formula_file}: {e}")
+                    print(
+                        f"[-] Failed to update upstream release formula {formula_file}: {e}"
+                    )
 
             elif target_type == "rolling_release":
                 try:
-                    changed = update_rolling_release_formula(formula_path, repo_name, args.token, args.tag, args.dry_run)
+                    changed = update_rolling_release_formula(
+                        formula_path, repo_name, args.token, args.tag, args.dry_run
+                    )
                 except Exception as e:
-                    print(f"[-] Failed to update rolling release formula {formula_file}: {e}")
+                    print(
+                        f"[-] Failed to update rolling release formula {formula_file}: {e}"
+                    )
 
             elif target_type == "upstream_commit":
                 branch = cfg.get("branch", "main")
@@ -551,10 +780,12 @@ def main():
                         token=args.token,
                         commit_sha=args.commit,
                         sha256_digest=args.sha256,
-                        dry_run=args.dry_run
+                        dry_run=args.dry_run,
                     )
                 except Exception as e:
-                    print(f"[-] Failed to update upstream commit formula {formula_file}: {e}")
+                    print(
+                        f"[-] Failed to update upstream commit formula {formula_file}: {e}"
+                    )
 
             if changed and target not in updated_targets:
                 updated_targets.append(target)
@@ -563,7 +794,10 @@ def main():
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
             f.write(f"updated_targets={','.join(updated_targets)}\n")
             f.write(f"has_updates={'true' if updated_targets else 'false'}\n")
-    print(f"\n[*] Summary: {len(updated_targets)} formula(e) updated: {', '.join(updated_targets) if updated_targets else 'none'}")
+    print(
+        f"\n[*] Summary: {len(updated_targets)} formula(e) updated: "
+        f"{', '.join(updated_targets) if updated_targets else 'none'}"
+    )
 
 
 if __name__ == "__main__":

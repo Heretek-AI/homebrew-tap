@@ -3,7 +3,7 @@ class Qwenox < Formula
   homepage "https://github.com/IIIIIllllIIIIIlllll/Qwenox"
   url "https://github.com/IIIIIllllIIIIIlllll/Qwenox/archive/dedb058b1ca7d9c1cffbdb44b51defb2d496a692.tar.gz"
   version "0.1.0-gitdedb058"
-  sha256 "0561584c6c96568bb908d16781fec86c07bb500ca89f64a4d673dfa2f5ae120d"
+  sha256 "43a1e8c4d88092c0440587eb02c74b98ded31dbd6b1e3eb313c01a47ab8eabbb"
   license "AGPL-3.0-only"
   head "https://github.com/IIIIIllllIIIIIlllll/Qwenox.git", branch: "main"
 
@@ -11,6 +11,8 @@ class Qwenox < Formula
     skip "Tracks upstream commit"
   end
 
+  depends_on "patchelf" => :build
+  depends_on "heretek-ai/tap/rocm-runtime"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on :linux
@@ -39,51 +41,64 @@ class Qwenox < Formula
 
     ENV["HIPCC"] = hipcc
     ENV["GPU_ARCH"] = "gfx1151"
+    ENV.prepend "LDFLAGS", "-Wl,-rpath,#{formula_opt_lib("rocm-runtime")}"
 
     # Compile engine, bench, and API server tools
     system "bash", "build.sh", "all"
 
-    bin.install "build/qwenox-engine" => "qwenox_engine"
-    bin.install "build/qwenox-bench" => "qwenox_bench"
-    bin.install "build/qwenox-api" => "qwenox_server"
-    bin.install_symlink bin/"qwenox_engine" => "qwenox"
+    bin.install "build/qwenox-engine" => "qwenox-engine"
+    bin.install "build/qwenox-bench" => "qwenox-bench"
+    bin.install "build/qwenox-api" => "qwenox-server"
+    bin.install_symlink bin/"qwenox-engine" => "qwenox"
 
     %w[tok_cli tpl_cli eng_cli].each do |cli|
       bin.install "build/#{cli}" => "qwenox-#{cli.tr("_", "-")}" if File.exist?("build/#{cli}")
     end
 
+    runtime_rpath = "#{formula_opt_lib("rocm-runtime")}:#{HOMEBREW_PREFIX}/lib"
+    Dir["#{bin}/qwenox-*"].each do |path|
+      next if File.symlink?(path)
+
+      system "patchelf", "--set-rpath", runtime_rpath, path
+    end
+
     (pkgshare/"build-manifest.json").write JSON.pretty_generate(
-      variant:   "rocm",
-      gpu_arch:  "gfx1151",
-      rocm_root: rocm,
-      hipcc:     hipcc,
-      cxx:       ENV.cxx,
-      commit:    "dedb058b1ca7d9c1cffbdb44b51defb2d496a692",
+      variant:          "rocm",
+      gpu_arch:         "gfx1151",
+      rocm_root:        rocm,
+      hipcc:            hipcc,
+      cxx:              ENV.cxx,
+      runtime_lib:      formula_opt_lib("rocm-runtime").to_s,
+      rpath_limitation: "build.sh does not forward LDFLAGS; installed ELF RPATH is normalized with patchelf",
+      commit:           "dedb058b1ca7d9c1cffbdb44b51defb2d496a692",
     )
   end
 
   def caveats
     <<~EOS
       Qwenox targets the AMD Ryzen AI Max+ 395 ("Strix Halo", gfx1151) APU.
+      It links the shared runtime from heretek-ai/tap/rocm-runtime. The upstream
+      build.sh does not forward LDFLAGS, so the installed ELF RPATH is normalized
+      to the shared runtime with patchelf after build.
       Start the inference daemon:
-        qwenox_engine --help
+        qwenox-engine --help
       Start the OpenAI-compatible HTTP API server:
-        qwenox_server --help
+        qwenox-server --help
     EOS
   end
 
   test do
     # 1. Dynamic Linker & ABI Audit
-    out = shell_output("ldd #{bin}/qwenox_engine")
+    out = shell_output("ldd #{bin}/qwenox-engine")
     refute_match(/not found/, out)
     assert_match(/libamdhip64\.so/, out)
 
     # 2. CLI Introspection
-    assert_match(/qwenox|usage|engine/i, shell_output("#{bin}/qwenox_engine --help 2>&1"))
-    assert_match(/usage|api|server/i, shell_output("#{bin}/qwenox_server --help 2>&1"))
+    assert_match(/qwenox|usage|engine/i, shell_output("#{bin}/qwenox-engine --help 2>&1"))
+    assert_match(/usage|api|server/i, shell_output("#{bin}/qwenox-server --help 2>&1"))
 
     # 3. Device Discovery Smoke Test
-    probe = shell_output("#{bin}/qwenox_engine --info 2>&1", nil)
+    probe = shell_output("#{bin}/qwenox-engine --info 2>&1", nil)
     assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
   end
 end
