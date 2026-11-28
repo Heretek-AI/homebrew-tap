@@ -136,10 +136,11 @@ jobs:
       ROCM_PATH: /opt/rocm
       HOMEBREW_ROCM_PATH: /opt/rocm
     steps:
-      - name: Fix container workspace permissions
-        run: |
-          sudo chmod -R a+rwX /__w/_temp
-          sudo chown -R "$(id -u):$(id -g)" "${GITHUB_WORKSPACE}"
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out action definitions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -156,6 +157,8 @@ jobs:
           use-sccache: "false"
           artifact-name: bottles_rocm_runtime
           rubygems-cache-prefix: ubuntu-latest-rocm
+          gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
           free-disk-space: "true"
 
   bottles-rocm:
@@ -189,10 +192,11 @@ jobs:
       HOMEBREW_ROCM_PATH: /opt/rocm
       HOMEBREW_SCCACHE_DIR: /tmp/sccache
     steps:
-      - name: Fix container workspace permissions
-        run: |
-          sudo chmod -R a+rwX /__w/_temp
-          sudo chown -R "$(id -u):$(id -g)" "${GITHUB_WORKSPACE}"
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out action definitions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -211,4 +215,6 @@ jobs:
           runtime-artifact: ${{ needs.bottles-rocm-runtime.result == 'success' && 'bottles_rocm_runtime' || '' }}
           artifact-name: bottles_rocm_${{ matrix.item.formula }}
           rubygems-cache-prefix: ubuntu-latest-rocm
+          gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
           free-disk-space: "true"

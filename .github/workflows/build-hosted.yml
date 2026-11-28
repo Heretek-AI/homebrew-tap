@@ -107,6 +107,12 @@ jobs:
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
       RUSTC_WRAPPER: sccache
     steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check out action definitions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -123,6 +129,8 @@ jobs:
           sccache-mode: gha
           artifact-name: bottles_macos_${{ matrix.item.formula }}
           rubygems-cache-prefix: macos-26
+          gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
 
   bottles-linux:
     name: Linux bottle (${{ matrix.item.formula }})
@@ -149,10 +157,11 @@ jobs:
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
       RUSTC_WRAPPER: sccache
     steps:
-      - name: Fix container workspace permissions
-        run: |
-          sudo chmod -R a+rwX /__w/_temp
-          sudo chown -R "$(id -u):$(id -g)" "${GITHUB_WORKSPACE}"
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out action definitions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -171,3 +180,5 @@ jobs:
           install-python: "true"
           artifact-name: bottles_linux_${{ matrix.item.formula }}
           rubygems-cache-prefix: ubuntu-latest
+          gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
