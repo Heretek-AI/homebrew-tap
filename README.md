@@ -2,7 +2,10 @@
 
 A Homebrew tap for 22 accelerator-focused inference runtimes, servers, and kernel harnesses, two keg-only shared runtime formulae (`rocm-runtime` and `cuda-runtime`), and two macOS GUI casks. Most formulae target AMD ROCm on Linux; the tap also covers NVIDIA CUDA, Apple Metal, Vulkan, and CPU paths where the pinned upstream project supports them.
 
-[![brew test-bot](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml)
+[![Lint and Test](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/lint-and-test.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/lint-and-test.yml)
+[![Hosted Bottles](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-hosted.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-hosted.yml)
+[![CUDA Bottles](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-cuda.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-cuda.yml)
+[![ROCm Bottles](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocm.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/build-rocm.yml)
 [![brew pr-pull](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/publish.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 

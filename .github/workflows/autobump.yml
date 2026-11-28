@@ -4,25 +4,29 @@ name: brew bump
 # Contents and Pull requests write to push branches and open pull requests, and
 # Issues write to manage the `autobump` label. Without the App the workflow
 # falls back to `GITHUB_TOKEN`, but pull requests created with that token do not
-# trigger `brew test-bot`.
+# trigger the independent builder workflows.
 on:
   schedule:
     # Release-tag and livecheck bumps, every six hours.
     - cron: "17 */6 * * *"
-    # Commit-tracking and rolling bumps, Mondays at 04:43 UTC.
-    - cron: "43 4 * * 1"
+    # Commit-tracking and rolling/multi-asset bumps, every twelve hours.
+    - cron: "43 */12 * * *"
   workflow_dispatch:
     inputs:
       target:
-        description: 'Formula key to sync, or "all" to run release bumps'
+        description: 'Formula key to sync, or "all" to run scheduled bumps'
         required: false
         default: all
       release_tag:
         description: Release tag to sync, or "latest"
         required: false
         default: latest
+      max_prs:
+        description: Maximum number of per-formula PRs to open or update in one run
+        required: false
+        default: "5"
   repository_dispatch:
-    types: [builder-release]
+    types: [builder-release, upstream-update]
 
 permissions: {}
 
@@ -34,20 +38,18 @@ jobs:
   release-bump:
     name: Release and livecheck bumps
     # Runs every six hours and on manual dispatches that target "all":
-    # `brew bump` discovers new release and livecheck versions itself.
+    # `brew bump` discovers new release and livecheck versions itself and opens
+    # one PR per formula/cask.
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '17 */6 * * *') ||
       (github.event_name == 'workflow_dispatch' && (inputs.target || 'all') == 'all')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       issues: write
       pull-requests: write
     env:
-      # Equivalent to `if: vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != ''`,
-      # which is invalid in a step-level `if` because `secrets` is not an
-      # available context there. Only the boolean enters the job env; the
-      # private key is passed directly to the token action.
       APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
       - name: Generate GitHub App token
@@ -87,13 +89,12 @@ jobs:
           tap_dir="$(brew --repository "${TAP_NAME}")"
 
           # rocm-runtime and cuda-runtime pin several tarballs and SHA256s in
-          # one formula. A single-formula `brew bump` would update only the
-          # primary URL, so those two are bumped deliberately with all pins at
-          # once. Everything else is eligible for automatic release bumps.
+          # one formula. Multi-asset formulae with paired binary assets are
+          # handled by the per-formula updater job below.
           mapfile -t formulae < <(
             find "${tap_dir}/Formula" -maxdepth 1 -name '*.rb' -printf '%f\n' \
               | sed 's/\.rb$//' \
-              | grep -vxE 'rocm-runtime|cuda-runtime' \
+              | grep -vxE 'rocm-runtime|cuda-runtime|basalt|colibri|hipfire|infr|magnitude|stable-diffusion-cpp|uzu|zinc' \
               | sort \
               | sed "s#^#${TAP_NAME}/#"
           )
@@ -115,37 +116,36 @@ jobs:
             }' bump-output.txt | sort -u
           )
 
-          if (( ${#pr_numbers[@]} == 0 ))
-          then
+          if (( ${#pr_numbers[@]} == 0 )); then
             echo "brew bump opened no pull requests; nothing to label."
             exit 0
           fi
 
-          for pr in "${pr_numbers[@]}"
-          do
+          for pr in "${pr_numbers[@]}"; do
             echo "Adding 'autobump' label to pull request #${pr}"
             gh pr edit "${pr}" --add-label autobump
           done
 
-  commit-bump:
-    name: Weekly commit-tracking bumps
-    # Runs on the weekly schedule, on builder-release dispatches, and on manual
-    # dispatches for a specific formula key (the legacy sync path).
+  per-formula-bump:
+    name: Per-formula commit & multi-asset bumps
+    # Runs every 12 hours, on upstream-update / builder-release dispatches, and
+    # on manual dispatches. Opens or updates ONE deduplicated PR per formula
+    # (`autobump/<formula>`) so one broken upstream never blocks other formulae.
     if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '43 4 * * 1') ||
+      (github.event_name == 'schedule' && github.event.schedule == '43 */12 * * *') ||
       github.event_name == 'repository_dispatch' ||
-      (github.event_name == 'workflow_dispatch' && (inputs.target || 'all') != 'all')
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: write
       issues: write
       pull-requests: write
     env:
-      # See the release-bump job: this is the App-configured check moved out of
-      # step-level `if`, where `secrets` is not an available context.
       APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
-      TARGET: ${{ github.event.client_payload.target || github.event.client_payload.builder || inputs.target || 'all' }}
+      TARGET: ${{ github.event.client_payload.formula || github.event.client_payload.target || github.event.client_payload.builder || inputs.target || 'all' }}
       TAG: ${{ github.event.client_payload.release_tag || github.event.client_payload.tag || inputs.release_tag || 'latest' }}
+      MAX_PRS: ${{ inputs.max_prs || '5' }}
     steps:
       - name: Generate GitHub App token
         id: app-token
@@ -164,10 +164,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
-          # The App token makes pushes trigger `brew test-bot`; GITHUB_TOKEN
-          # pushes do not start new workflow runs.
+          fetch-depth: 0
           token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
-          persist-credentials: true # brew bump pushes with the checkout credential
+          persist-credentials: true
 
       - name: Set up git
         id: git_setup
@@ -178,64 +177,95 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Update commit-tracking formulae
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ "${TARGET}" == "all" ]]
-          then
-            python3 scripts/update_formulae.py --repo all --skip-upstream-releases --tag "${TAG}"
-          else
-            python3 scripts/update_formulae.py --repo "${TARGET}" --tag "${TAG}"
-          fi
-
-      - name: Detect formula changes
-        id: changes
-        run: |
-          if [[ -n "$(git status --porcelain -- Formula/)" ]]
-          then
-            echo "changed=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "changed=false" >> "${GITHUB_OUTPUT}"
-            echo "No formula changes detected."
-          fi
-
-      - name: Ensure autobump label exists
-        if: steps.changes.outputs.changed == 'true'
+      - name: Ensure autobump labels exist
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: gh label create autobump --color 0e8a16 --description "Automated version bump" --force
+        run: |
+          gh label create autobump --color 0e8a16 --description "Automated version bump" --force
+          gh label create autobump-failed --color d73a4a --description "Automated bump failed CI build" --force
 
-      - name: Open pull request
-        if: steps.changes.outputs.changed == 'true'
+      - name: Detect and open deduplicated per-formula PRs
         env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           TARGET: ${{ env.TARGET }}
           TAG: ${{ env.TAG }}
+          MAX_PRS: ${{ env.MAX_PRS }}
         run: |
-          branch="autobump/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          title="chore(formulae): automated weekly commit-tracking bump"
-          if [[ "${TARGET}" != "all" ]]
-          then
-            title="chore(formulae): sync ${TARGET} at ${TAG}"
+          if [[ "${TARGET}" == "all" ]]; then
+            python3 scripts/update_formulae.py \
+              --repo all \
+              --skip-upstream-releases \
+              --tag "${TAG}" \
+              --max-updates "${MAX_PRS}" \
+              --sync-pins \
+              --output-json /tmp/updated-formulae.json
+          else
+            python3 scripts/update_formulae.py \
+              --repo "${TARGET}" \
+              --tag "${TAG}" \
+              --sync-pins \
+              --output-json /tmp/updated-formulae.json
           fi
 
-          git checkout -b "${branch}"
-          git add -- Formula/
-          git commit -m "${title}"
-          git push origin "${branch}"
+          mapfile -t updated_list < <(
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("/tmp/updated-formulae.json")
+          if p.is_file():
+              for item in json.loads(p.read_text(encoding="utf-8")):
+                  print(item["target"])
+          PY
+          )
 
-          gh pr create \
-            --base main \
-            --head "${branch}" \
-            --title "${title}" \
-            --label autobump \
-            --body "Automated commit-tracking and rolling update produced by \`scripts/update_formulae.py\`.
+          if (( ${#updated_list[@]} == 0 )); then
+            echo "No formula updates detected."
+            exit 0
+          fi
 
-          - Target: **${TARGET}**
+          # Stash the combined working tree changes and replay one formula per branch
+          git checkout -- .
+          for formula in "${updated_list[@]}"; do
+            branch="autobump/${formula}"
+            git checkout -B "${branch}" origin/main
+
+            python3 scripts/update_formulae.py \
+              --repo "${formula}" \
+              --tag "${TAG}" \
+              --sync-pins
+
+            if [[ -z "$(git status --porcelain -- "Formula/${formula}.rb" .github/upstream-pins.json)" ]]; then
+              echo "No diff for ${formula}; skipping."
+              continue
+            fi
+
+            title="chore(${formula}): automated upstream bump"
+            git add -- "Formula/${formula}.rb" .github/upstream-pins.json
+            git commit -m "${title}"
+            git push --force-with-lease origin "${branch}"
+
+            existing_pr="$(gh pr list --repo "${GH_REPO}" --head "${branch}" --state open --json number --jq '.[0].number // empty')"
+            body="Automated upstream bump for \`${formula}\` produced by \`scripts/update_formulae.py\`.
+
+          - Formula: **${formula}**
           - Tag: **${TAG}**
           - Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
 
-          Opened by the \`brew bump\` workflow and labelled \`autobump\`. After \`brew test-bot\` passes, the \`brew auto-publish\` workflow dispatches \`brew pr-pull\` automatically; otherwise a maintainer can publish it manually."
+          Opened on deduplicated branch \`${branch}\` with label \`autobump\`. Once the independent builder workflows pass, \`brew auto-publish\` dispatches \`brew pr-pull\` automatically."
+
+            if [[ -n "${existing_pr}" ]]; then
+              echo "Updated existing PR #${existing_pr} on branch ${branch}"
+              gh pr edit "${existing_pr}" --title "${title}" --body "${body}" --add-label autobump --remove-label autobump-failed || true
+            else
+              gh pr create \
+                --base main \
+                --head "${branch}" \
+                --title "${title}" \
+                --label autobump \
+                --body "${body}"
+            fi
+          done
+          git checkout main

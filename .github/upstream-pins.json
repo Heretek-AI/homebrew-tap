@@ -19,9 +19,174 @@
     ],
     "last_index_url": "https://nightly.repo.amd.com/rocm/core/tarball/",
     "last_build_stamp": null,
-    "last_tarballs": {}
+    "last_tarballs": {},
+    "pinned_family": "gfx1151",
+    "pinned_sha256": "874371b060a4ea2a8be617aee1107e7703628e28609642f706a691a690524abd"
   },
   "packages": {
+    "basalt": {
+      "formula": "basalt",
+      "remote": "https://github.com/jesdga95/basalt.git",
+      "repo": "jesdga95/basalt",
+      "branch": "main",
+      "track": "release",
+      "timeout_minutes": 60,
+      "formula_sha256": "8d55a345c8b1c4824a9d23ee6bb5477f4c5e93fccfe5213ecbb7bedf47bb908b",
+      "variants": {
+        "cuda": {
+          "status": "enabled",
+          "backend": "cuda",
+          "default": true,
+          "runner": "hosted-cuda",
+          "bottle_tag": "x86_64_linux",
+          "cuda_version": "13.5",
+          "hw_validate": false,
+          "last_built_commit": "v0.5.7",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "Basalt is an NVIDIA Blackwell CUDA 13 engine"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend upstream"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Requires NVIDIA CUDA 13 runtime"
+        }
+      }
+    },
+    "colibri": {
+      "formula": "colibri",
+      "remote": "https://github.com/JustVugg/colibri.git",
+      "repo": "JustVugg/colibri",
+      "branch": "main",
+      "track": "multi_asset_release",
+      "timeout_minutes": 30,
+      "formula_sha256": "92e8d11876225ef8c4d2bc129c95de5512e33018fe581d84583c04d57f6340a3",
+      "variants": {
+        "cpu": {
+          "status": "enabled",
+          "backend": "cpu",
+          "default": true,
+          "runner": "hosted-linux",
+          "bottle_tag": "x86_64_linux",
+          "hw_validate": false,
+          "last_built_commit": "v2.2.0",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "metal": {
+          "status": "enabled",
+          "backend": "metal",
+          "default": true,
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
+          "hw_validate": true,
+          "last_built_commit": "v2.2.0",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "Upstream publishes CPU/Vulkan Linux and Metal macOS archives"
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "Upstream publishes CPU/Vulkan Linux and Metal macOS archives"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "Bundled in Linux CPU/Vulkan archive"
+        }
+      }
+    },
+    "crucible-strix-halo": {
+      "formula": "crucible-strix-halo",
+      "remote": "https://github.com/jaedync/crucible-strix-halo.git",
+      "repo": "jaedync/crucible-strix-halo",
+      "branch": "main",
+      "track": "commit",
+      "formula_sha256": "40eba6e8dee92a7253f078181b5fe5e4b2b51737d340e4e0134a34333a975d27",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1151",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": null,
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "Dedicated AMD Strix Halo kernel harness and ISA registers"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend upstream"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Hardware register level tuning requires gfx1151 APU"
+        }
+      },
+      "timeout_minutes": 60
+    },
+    "cuda-runtime": {
+      "formula": "cuda-runtime",
+      "remote": "https://developer.nvidia.com/cuda-toolkit",
+      "repo": "nvidia/cuda-runtime",
+      "branch": "main",
+      "track": "runtime",
+      "timeout_minutes": 45,
+      "formula_sha256": "1c1b7e4548fc7e0e89942458cd7bc4f010dc41121d6963e81696112508cd61f4",
+      "variants": {
+        "cuda": {
+          "status": "enabled",
+          "backend": "cuda",
+          "default": true,
+          "runner": "hosted-linux",
+          "bottle_tag": "x86_64_linux",
+          "cuda_version": "13.5",
+          "hw_validate": false,
+          "last_built_commit": "13.5.37",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "NVIDIA CUDA runtime"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "Linux-only shared runtime"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "NVIDIA CUDA runtime"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "NVIDIA CUDA runtime"
+        }
+      }
+    },
     "gufo": {
       "formula": "gufo",
       "remote": "https://github.com/gufo-org/gufo.git",
@@ -60,6 +225,88 @@
           "status": "excluded",
           "reason": "Gufo CMake rejects non-gfx1151 target; host CPU build is test harness only"
         }
+      },
+      "timeout_minutes": 120
+    },
+    "gufo-ds41": {
+      "formula": "gufo-ds41",
+      "remote": "https://github.com/franzmoca/ds41-gufo-extension.git",
+      "repo": "franzmoca/ds41-gufo-extension",
+      "branch": "main",
+      "track": "release",
+      "formula_sha256": "08c05468736a8e697757d89c69f1535deb1542e20cbd08d6a10d3b6e6365addb",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1151",
+          "rocm_family": "gfx1151",
+          "brew_flags": "--with-znver4",
+          "hw_validate": false,
+          "last_built_commit": "v0.5.1",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "No CUDA backend upstream"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend upstream"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Requires AMD gfx1151 APU architecture"
+        }
+      },
+      "timeout_minutes": 120
+    },
+    "hipfire": {
+      "formula": "hipfire",
+      "remote": "https://github.com/warpfront/hipfire.git",
+      "repo": "warpfront/hipfire",
+      "branch": "main",
+      "track": "multi_asset_release",
+      "timeout_minutes": 45,
+      "formula_sha256": "a10b0c7b864b536cdf1f275593c074dde2814c6ba03bcfd76cf0af725fe2520d",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1151",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": "v0.4.8",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "HIP/ROCm inference engine for AMD GPUs"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend upstream"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Requires AMD ROCm runtime"
+        }
       }
     },
     "hyperqwen": {
@@ -76,7 +323,7 @@
           "default": true,
           "runner": "ubuntu-24.04",
           "bottle_tag": "x86_64_linux",
-          "cuda_version": "12.8",
+          "cuda_version": "13.5",
           "hw_validate": false,
           "last_built_commit": "6ab9bd05cb84b538a6595d634f3e337ac8a80856",
           "last_rocm_stamp": null,
@@ -98,7 +345,283 @@
           "status": "excluded",
           "reason": "Pure GPU inference server backend"
         }
+      },
+      "timeout_minutes": 90
+    },
+    "infr": {
+      "formula": "infr",
+      "remote": "https://github.com/kryptic-sh/infr.git",
+      "repo": "kryptic-sh/infr",
+      "branch": "main",
+      "track": "multi_asset_release",
+      "timeout_minutes": 30,
+      "formula_sha256": "4749dfb2766ffcc7644fca16602b881b7fb5abd712c17043ccfc04420659cc39",
+      "variants": {
+        "vulkan": {
+          "status": "enabled",
+          "backend": "vulkan",
+          "default": true,
+          "runner": "hosted-linux",
+          "bottle_tag": "x86_64_linux",
+          "hw_validate": false,
+          "last_built_commit": "v0.3.0",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "metal": {
+          "status": "enabled",
+          "backend": "metal",
+          "default": true,
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
+          "hw_validate": true,
+          "last_built_commit": "v0.3.0",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "Vulkan-first on Linux, Metal on macOS"
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "Vulkan-first on Linux, Metal on macOS"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "CPU fallback included in Vulkan build"
+        }
       }
+    },
+    "kyojin": {
+      "formula": "kyojin",
+      "remote": "https://github.com/Yamz-Labs/kyojin.git",
+      "repo": "Yamz-Labs/kyojin",
+      "branch": "main",
+      "track": "commit",
+      "formula_sha256": "6ee58e93afc398fdfd48e678609ddb85fc66594b872b1e8e6f06dae45e634f4d",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1150;gfx1151",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": "f52fb101598d93f5134ab7fb09a1aec8d8a9d918",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "enabled",
+          "backend": "cuda",
+          "default": false,
+          "runner": "ubuntu-24.04",
+          "bottle_tag": "x86_64_linux",
+          "brew_flags": "--with-cuda",
+          "cuda_version": "13.5",
+          "hw_validate": false,
+          "last_built_commit": null,
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend in Kyojin engine"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend in Kyojin engine"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Engine requires CUDA or ROCm GPU backend"
+        }
+      },
+      "timeout_minutes": 90
+    },
+    "libosmos": {
+      "formula": "libosmos",
+      "remote": "https://github.com/mrsirg97-rgb/libosmos.git",
+      "repo": "mrsirg97-rgb/libosmos",
+      "branch": "main",
+      "track": "release",
+      "timeout_minutes": 60,
+      "formula_sha256": "a27c9e1367e934c0c16e686ddc539b64ceccac964a9cbc71e031f043621d49a6",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1151",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": "v0.18.1",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "HIP inference engine for AMD Strix Halo"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend upstream"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Requires AMD ROCm gfx1151"
+        }
+      }
+    },
+    "magnitude": {
+      "formula": "magnitude",
+      "remote": "https://github.com/magnitudedev/magnitude.git",
+      "repo": "magnitudedev/magnitude",
+      "branch": "main",
+      "track": "multi_asset_release",
+      "timeout_minutes": 30,
+      "formula_sha256": "aef3562bafe57513809b3e6b76b268b86a9a7909f0e88eaa179cb137e8983d5f",
+      "variants": {
+        "cpu": {
+          "status": "enabled",
+          "backend": "cpu",
+          "default": true,
+          "runner": "hosted-linux",
+          "bottle_tag": "x86_64_linux",
+          "hw_validate": false,
+          "last_built_commit": "@magnitudedev/cli@0.3.5",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "metal": {
+          "status": "enabled",
+          "backend": "metal",
+          "default": true,
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
+          "hw_validate": true,
+          "last_built_commit": "@magnitudedev/cli@0.3.5",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "Prebuilt self-contained CLI"
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "Prebuilt self-contained CLI"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "Prebuilt self-contained CLI"
+        }
+      }
+    },
+    "nib": {
+      "formula": "nib",
+      "remote": "https://github.com/Chromadera/nib.git",
+      "repo": "Chromadera/nib",
+      "branch": "main",
+      "track": "release",
+      "timeout_minutes": 60,
+      "formula_sha256": "2cfd0677ee36c916b13e2a088627e4b2d49f0bf306228ec142f894f216e5d739",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1100",
+          "rocm_family": "gfx110X",
+          "hw_validate": false,
+          "last_built_commit": "v0.2.0",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "HIP engine tuned for AMD RDNA3 gfx1100"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "No Vulkan backend upstream"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Requires AMD RDNA3 gfx1100"
+        }
+      }
+    },
+    "project-maya": {
+      "formula": "project-maya",
+      "remote": "https://github.com/mw00/project-maya.git",
+      "repo": "mw00/project-maya",
+      "branch": "main",
+      "track": "commit",
+      "formula_sha256": "5a727e7ab766c6762394633ff18e6961bde9f15007c26a70cd8e6ccb9411ac7e",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1100;gfx1150;gfx1151",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": "3c935e411cd6625a9af0f292dd0af52598e866d8",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "metal": {
+          "status": "enabled",
+          "backend": "metal",
+          "default": true,
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
+          "hw_validate": true,
+          "last_built_commit": null,
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "enabled",
+          "backend": "cuda",
+          "default": false,
+          "runner": "ubuntu-24.04",
+          "bottle_tag": "x86_64_linux",
+          "brew_flags": "--with-cuda",
+          "cuda_version": "13.5",
+          "hw_validate": false,
+          "last_built_commit": null,
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "CMake uses ggml-metal on Darwin and HIP/CUDA on Linux; no Vulkan target"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Embedded CPU fallback compiled with portable dispatch within GPU builds"
+        }
+      },
+      "timeout_minutes": 180
     },
     "qwenox": {
       "formula": "qwenox",
@@ -136,6 +659,131 @@
         "cpu": {
           "status": "excluded",
           "reason": "Pre-tuned gfx1151 kernel primitives required"
+        }
+      },
+      "timeout_minutes": 75
+    },
+    "rocm-runtime": {
+      "formula": "rocm-runtime",
+      "remote": "https://github.com/ROCm/TheRock.git",
+      "repo": "ROCm/TheRock",
+      "branch": "main",
+      "track": "runtime",
+      "timeout_minutes": 60,
+      "formula_sha256": "cd16ecb76170be00e9b559a9197fdad09f3334ec9b88a617c2fc5fb5d4725250",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1151;gfx110X;gfx1150;gfx120X",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": "10.3.0a20261126",
+          "last_rocm_stamp": "20261126",
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "AMD ROCm runtime"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "Linux-only shared runtime"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "AMD ROCm runtime"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "AMD ROCm runtime"
+        }
+      }
+    },
+    "rulith-inference": {
+      "formula": "rulith-inference",
+      "remote": "https://github.com/rulith-dev/llama.cpp.git",
+      "repo": "rulith-dev/llama.cpp",
+      "branch": "rulith",
+      "track": "commit",
+      "formula_sha256": "a81a6d90d094ec5284f80ee5bc67eadcd369abf055c792ef8660cf709088ff31",
+      "variants": {
+        "rocm": {
+          "status": "enabled",
+          "backend": "rocm",
+          "default": true,
+          "runner": "hosted-rocm",
+          "bottle_tag": "x86_64_linux",
+          "amdgpu_targets": "gfx1151",
+          "rocm_family": "gfx1151",
+          "hw_validate": false,
+          "last_built_commit": "fa391c74002fd4927307945c0fe58667576c2d22",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "Rulith kernels target AMD Strix Halo gfx1151"
+        },
+        "metal": {
+          "status": "excluded",
+          "reason": "No Metal backend upstream"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "Rulith kernels require HIP/ROCm on gfx1151"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "Engine kernels target gfx1151 APU"
+        }
+      },
+      "timeout_minutes": 90
+    },
+    "shimmy": {
+      "formula": "shimmy",
+      "remote": "https://github.com/Michael-A-Kuykendall/shimmy.git",
+      "repo": "Michael-A-Kuykendall/shimmy",
+      "branch": "main",
+      "track": "release",
+      "formula_sha256": "354cf06787eda26ab642fcc43b28663f88d753ebd7282717f45021b4b17e97be",
+      "variants": {
+        "cpu": {
+          "status": "enabled",
+          "backend": "cpu",
+          "default": true,
+          "runner": "ubuntu-24.04",
+          "bottle_tag": "x86_64_linux",
+          "hw_validate": false,
+          "last_built_commit": "v2.6.5",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "metal": {
+          "status": "enabled",
+          "backend": "metal",
+          "default": true,
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
+          "hw_validate": true,
+          "last_built_commit": null,
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "Upstream shimmy Cargo.toml llama-cuda feature is empty/unimplemented"
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "No ROCm backend in shimmy"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "Upstream shimmy Cargo.toml llama-vulkan feature is empty/unimplemented"
         }
       }
     },
@@ -176,74 +824,25 @@
           "status": "excluded",
           "reason": "Native kernels require ROCm/HIP device execution"
         }
-      }
+      },
+      "timeout_minutes": 75
     },
-    "kyojin": {
-      "formula": "kyojin",
-      "remote": "https://github.com/Yamz-Labs/kyojin.git",
-      "repo": "Yamz-Labs/kyojin",
-      "branch": "main",
-      "track": "commit",
-      "formula_sha256": "6ee58e93afc398fdfd48e678609ddb85fc66594b872b1e8e6f06dae45e634f4d",
+    "stable-diffusion-cpp": {
+      "formula": "stable-diffusion-cpp",
+      "remote": "https://github.com/leejet/stable-diffusion.cpp.git",
+      "repo": "leejet/stable-diffusion.cpp",
+      "branch": "master",
+      "track": "rolling_release",
+      "formula_sha256": "53b4f096d712426bbf8c598bf370714b8fce43f1e042fb342596bbf720e2e403",
       "variants": {
-        "rocm": {
+        "vulkan": {
           "status": "enabled",
-          "backend": "rocm",
+          "backend": "vulkan",
           "default": true,
-          "runner": "hosted-rocm",
-          "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1150;gfx1151",
-          "rocm_family": "gfx1151",
-          "hw_validate": false,
-          "last_built_commit": "f52fb101598d93f5134ab7fb09a1aec8d8a9d918",
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "cuda": {
-          "status": "enabled",
-          "backend": "cuda",
-          "default": false,
           "runner": "ubuntu-24.04",
           "bottle_tag": "x86_64_linux",
-          "brew_flags": "--with-cuda",
-          "cuda_version": "12.8",
           "hw_validate": false,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "metal": {
-          "status": "excluded",
-          "reason": "No Metal backend in Kyojin engine"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "No Vulkan backend in Kyojin engine"
-        },
-        "cpu": {
-          "status": "excluded",
-          "reason": "Engine requires CUDA or ROCm GPU backend"
-        }
-      }
-    },
-    "project-maya": {
-      "formula": "project-maya",
-      "remote": "https://github.com/mw00/project-maya.git",
-      "repo": "mw00/project-maya",
-      "branch": "main",
-      "track": "commit",
-      "formula_sha256": "5a727e7ab766c6762394633ff18e6961bde9f15007c26a70cd8e6ccb9411ac7e",
-      "variants": {
-        "rocm": {
-          "status": "enabled",
-          "backend": "rocm",
-          "default": true,
-          "runner": "hosted-rocm",
-          "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1100;gfx1150;gfx1151",
-          "rocm_family": "gfx1151",
-          "hw_validate": false,
-          "last_built_commit": "3c935e411cd6625a9af0f292dd0af52598e866d8",
+          "last_built_commit": "master-975-95b3090",
           "last_rocm_stamp": null,
           "last_success_at": null
         },
@@ -251,33 +850,40 @@
           "status": "enabled",
           "backend": "metal",
           "default": true,
-          "runner": "macos-14",
-          "bottle_tag": "arm64_sonoma",
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
           "hw_validate": true,
           "last_built_commit": null,
           "last_rocm_stamp": null,
           "last_success_at": null
         },
-        "cuda": {
+        "rocm": {
           "status": "enabled",
-          "backend": "cuda",
+          "backend": "rocm",
           "default": false,
-          "runner": "ubuntu-24.04",
+          "runner": "hosted-rocm",
           "bottle_tag": "x86_64_linux",
-          "brew_flags": "--with-cuda",
-          "cuda_version": "12.8",
+          "brew_flags": "--with-rocm",
           "hw_validate": false,
           "last_built_commit": null,
           "last_rocm_stamp": null,
           "last_success_at": null
         },
-        "vulkan": {
+        "cuda": {
           "status": "excluded",
-          "reason": "CMake uses ggml-metal on Darwin and HIP/CUDA on Linux; no Vulkan target"
+          "reason": "Precompiled binaries tracked for Vulkan, Metal, and ROCm"
         },
         "cpu": {
-          "status": "excluded",
-          "reason": "Embedded CPU fallback compiled with portable dispatch within GPU builds"
+          "status": "enabled",
+          "backend": "cpu",
+          "default": false,
+          "runner": "ubuntu-24.04",
+          "bottle_tag": "x86_64_linux",
+          "brew_flags": "--with-cpu",
+          "hw_validate": false,
+          "last_built_commit": null,
+          "last_rocm_stamp": null,
+          "last_success_at": null
         }
       }
     },
@@ -319,190 +925,8 @@
           "status": "excluded",
           "reason": "No CPU-only fallback inference backend"
         }
-      }
-    },
-    "crucible-strix-halo": {
-      "formula": "crucible-strix-halo",
-      "remote": "https://github.com/jaedync/crucible-strix-halo.git",
-      "repo": "jaedync/crucible-strix-halo",
-      "branch": "main",
-      "track": "commit",
-      "formula_sha256": "40eba6e8dee92a7253f078181b5fe5e4b2b51737d340e4e0134a34333a975d27",
-      "variants": {
-        "rocm": {
-          "status": "enabled",
-          "backend": "rocm",
-          "default": true,
-          "runner": "hosted-rocm",
-          "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1151",
-          "rocm_family": "gfx1151",
-          "hw_validate": false,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "cuda": {
-          "status": "excluded",
-          "reason": "Dedicated AMD Strix Halo kernel harness and ISA registers"
-        },
-        "metal": {
-          "status": "excluded",
-          "reason": "No Metal backend upstream"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "No Vulkan backend upstream"
-        },
-        "cpu": {
-          "status": "excluded",
-          "reason": "Hardware register level tuning requires gfx1151 APU"
-        }
-      }
-    },
-    "shimmy": {
-      "formula": "shimmy",
-      "remote": "https://github.com/Michael-A-Kuykendall/shimmy.git",
-      "repo": "Michael-A-Kuykendall/shimmy",
-      "branch": "main",
-      "track": "release",
-      "formula_sha256": "354cf06787eda26ab642fcc43b28663f88d753ebd7282717f45021b4b17e97be",
-      "variants": {
-        "cpu": {
-          "status": "enabled",
-          "backend": "cpu",
-          "default": true,
-          "runner": "ubuntu-24.04",
-          "bottle_tag": "x86_64_linux",
-          "hw_validate": false,
-          "last_built_commit": "v2.6.5",
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "metal": {
-          "status": "enabled",
-          "backend": "metal",
-          "default": true,
-          "runner": "macos-14",
-          "bottle_tag": "arm64_sonoma",
-          "hw_validate": true,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "cuda": {
-          "status": "excluded",
-          "reason": "Upstream shimmy Cargo.toml llama-cuda feature is empty/unimplemented"
-        },
-        "rocm": {
-          "status": "excluded",
-          "reason": "No ROCm backend in shimmy"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "Upstream shimmy Cargo.toml llama-vulkan feature is empty/unimplemented"
-        }
-      }
-    },
-    "stable-diffusion-cpp": {
-      "formula": "stable-diffusion-cpp",
-      "remote": "https://github.com/leejet/stable-diffusion.cpp.git",
-      "repo": "leejet/stable-diffusion.cpp",
-      "branch": "master",
-      "track": "rolling_release",
-      "formula_sha256": "53b4f096d712426bbf8c598bf370714b8fce43f1e042fb342596bbf720e2e403",
-      "variants": {
-        "vulkan": {
-          "status": "enabled",
-          "backend": "vulkan",
-          "default": true,
-          "runner": "ubuntu-24.04",
-          "bottle_tag": "x86_64_linux",
-          "hw_validate": false,
-          "last_built_commit": "master-975-95b3090",
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "metal": {
-          "status": "enabled",
-          "backend": "metal",
-          "default": true,
-          "runner": "macos-14",
-          "bottle_tag": "arm64_sonoma",
-          "hw_validate": true,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "rocm": {
-          "status": "enabled",
-          "backend": "rocm",
-          "default": false,
-          "runner": "hosted-rocm",
-          "bottle_tag": "x86_64_linux",
-          "brew_flags": "--with-rocm",
-          "hw_validate": false,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "cuda": {
-          "status": "excluded",
-          "reason": "Precompiled binaries tracked for Vulkan, Metal, and ROCm"
-        },
-        "cpu": {
-          "status": "enabled",
-          "backend": "cpu",
-          "default": false,
-          "runner": "ubuntu-24.04",
-          "bottle_tag": "x86_64_linux",
-          "brew_flags": "--with-cpu",
-          "hw_validate": false,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        }
-      }
-    },
-    "gufo-ds41": {
-      "formula": "gufo-ds41",
-      "remote": "https://github.com/franzmoca/ds41-gufo-extension.git",
-      "repo": "franzmoca/ds41-gufo-extension",
-      "branch": "main",
-      "track": "release",
-      "formula_sha256": "08c05468736a8e697757d89c69f1535deb1542e20cbd08d6a10d3b6e6365addb",
-      "variants": {
-        "rocm": {
-          "status": "enabled",
-          "backend": "rocm",
-          "default": true,
-          "runner": "hosted-rocm",
-          "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1151",
-          "rocm_family": "gfx1151",
-          "brew_flags": "--with-znver4",
-          "hw_validate": false,
-          "last_built_commit": "v0.5.1",
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "cuda": {
-          "status": "excluded",
-          "reason": "No CUDA backend upstream"
-        },
-        "metal": {
-          "status": "excluded",
-          "reason": "No Metal backend upstream"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "No Vulkan backend upstream"
-        },
-        "cpu": {
-          "status": "excluded",
-          "reason": "Requires AMD gfx1151 APU architecture"
-        }
-      }
+      },
+      "timeout_minutes": 90
     },
     "strixolotl": {
       "formula": "strixolotl",
@@ -527,7 +951,7 @@
         },
         "cuda": {
           "status": "excluded",
-          "reason": "Strixolotl is a Strix Halo HIP port of Xolotl; use xolotl for NVIDIA CUDA"
+          "reason": "Strixolotl is a Strix Halo HIP port targeting AMD gfx1151"
         },
         "metal": {
           "status": "excluded",
@@ -541,15 +965,55 @@
           "status": "excluded",
           "reason": "Requires AMD gfx1151 APU architecture"
         }
+      },
+      "timeout_minutes": 90
+    },
+    "uzu": {
+      "formula": "uzu",
+      "remote": "https://github.com/trymirai/uzu.git",
+      "repo": "trymirai/uzu",
+      "branch": "main",
+      "track": "multi_asset_release",
+      "timeout_minutes": 30,
+      "formula_sha256": "6f0565461b9c68d47a626ed1417ac38af512a95536259d7c7a502abb68aa7e52",
+      "variants": {
+        "metal": {
+          "status": "enabled",
+          "backend": "metal",
+          "default": true,
+          "runner": "macos-26",
+          "bottle_tag": "arm64_tahoe",
+          "hw_validate": true,
+          "last_built_commit": "0.7.5",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "rocm": {
+          "status": "excluded",
+          "reason": "macOS-only Apple Silicon/Intel engine"
+        },
+        "cuda": {
+          "status": "excluded",
+          "reason": "macOS-only Apple Silicon/Intel engine"
+        },
+        "vulkan": {
+          "status": "excluded",
+          "reason": "macOS-only Apple Silicon/Intel engine"
+        },
+        "cpu": {
+          "status": "excluded",
+          "reason": "macOS-only prebuilt archive"
+        }
       }
     },
-    "rulith-inference": {
-      "formula": "rulith-inference",
-      "remote": "https://github.com/rulith-dev/llama.cpp.git",
-      "repo": "rulith-dev/llama.cpp",
-      "branch": "rulith",
-      "track": "commit",
-      "formula_sha256": "a81a6d90d094ec5284f80ee5bc67eadcd369abf055c792ef8660cf709088ff31",
+    "zinc": {
+      "formula": "zinc",
+      "remote": "https://github.com/zolotukhin/zinc.git",
+      "repo": "zolotukhin/zinc",
+      "branch": "main",
+      "track": "multi_asset_release",
+      "timeout_minutes": 30,
+      "formula_sha256": "424d3e3aaab59f4342c480753669dcfc9d8cbdf403db24f8dbd0296430f66b22",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -557,30 +1021,41 @@
           "default": true,
           "runner": "hosted-rocm",
           "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1151",
-          "rocm_family": "gfx1151",
           "hw_validate": false,
-          "last_built_commit": "fa391c74002fd4927307945c0fe58667576c2d22",
+          "last_built_commit": "v0.1.1",
+          "last_rocm_stamp": null,
+          "last_success_at": null
+        },
+        "vulkan": {
+          "status": "enabled",
+          "backend": "vulkan",
+          "default": false,
+          "runner": "hosted-linux",
+          "bottle_tag": "x86_64_linux",
+          "brew_flags": "--with-vulkan",
+          "hw_validate": false,
+          "last_built_commit": "v0.1.1",
           "last_rocm_stamp": null,
           "last_success_at": null
         },
         "cuda": {
           "status": "excluded",
-          "reason": "Rulith kernels target AMD Strix Halo gfx1151"
+          "reason": "Upstream publishes ROCm and Vulkan Linux archives"
         },
         "metal": {
           "status": "excluded",
-          "reason": "No Metal backend upstream"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "Rulith kernels require HIP/ROCm on gfx1151"
+          "reason": "Tap packages Linux x86_64 archives"
         },
         "cpu": {
           "status": "excluded",
-          "reason": "Engine kernels target gfx1151 APU"
+          "reason": "ROCm or Vulkan backend required"
         }
       }
     }
+  },
+  "cuda": {
+    "pinned_version": "13.5.0",
+    "cudart_version": "13.5.37",
+    "cublas_version": "13.10.0.20"
   }
 }

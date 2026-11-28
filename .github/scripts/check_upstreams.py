@@ -263,9 +263,13 @@ def main():
                     upstream_results[pkg_name] = (data.get("target"), None)
                     continue
 
-            if track_type == "commit":
+            if track_type == "runtime":
+                # Runtime pins (rocm-runtime, cuda-runtime) are tracked via toolchain metadata
+                upstream_results[pkg_name] = (None, None)
+                continue
+            elif track_type == "commit":
                 future = executor.submit(fetch_remote_commit, pkg_info["remote"], pkg_info["branch"])
-            elif track_type in ("release", "rolling_release", "builder"):
+            elif track_type in ("release", "rolling_release", "multi_asset_release", "builder"):
                 future = executor.submit(fetch_latest_release, pkg_info["repo"], args.token)
             else:
                 future = executor.submit(fetch_remote_commit, pkg_info["remote"], pkg_info.get("branch", "main"))

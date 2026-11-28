@@ -202,8 +202,67 @@ def classify(
     return selected
 
 
-def emit(names: list[str], fmt: str = "csv") -> None:
-    value = json.dumps(names) if fmt == "json" else ",".join(names)
+def load_pins() -> dict:
+    pins_path = Path(".github/upstream-pins.json")
+    if not pins_path.is_file():
+        return {}
+    try:
+        return json.loads(pins_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def default_variant_for_runner(name: str, runner: str, pins: dict) -> str:
+    pkg = pins.get("packages", {}).get(name, {})
+    variants = pkg.get("variants", {})
+    preferred_backends = {
+        "hosted-rocm": ("rocm",),
+        "stx-halo": ("rocm",),
+        "hosted-cuda": ("cuda",),
+        "hosted-macos": ("metal", "cpu"),
+        "hosted-linux": ("vulkan", "cpu", "cuda"),
+    }.get(runner, ("cpu",))
+    for backend in preferred_backends:
+        v = variants.get(backend)
+        if isinstance(v, dict) and v.get("status") == "enabled":
+            return backend
+    for vname, v in variants.items():
+        if isinstance(v, dict) and v.get("status") == "enabled" and v.get("default"):
+            return vname
+    return preferred_backends[0]
+
+
+def build_matrix_entries(names: list[str], runner: str) -> list[dict]:
+    pins = load_pins()
+    packages = pins.get("packages", {})
+    default_timeout = {
+        "hosted-rocm": 90,
+        "stx-halo": 90,
+        "hosted-cuda": 90,
+        "hosted-linux": 45,
+        "hosted-macos": 45,
+    }.get(runner, 60)
+    entries = []
+    for name in names:
+        pkg = packages.get(name, {})
+        timeout = int(pkg.get("timeout_minutes") or default_timeout)
+        entries.append(
+            {
+                "formula": name,
+                "timeout_minutes": timeout,
+                "variant": default_variant_for_runner(name, runner, pins),
+            }
+        )
+    return entries
+
+
+def emit(names: list[str], fmt: str = "csv", runner: str = "") -> None:
+    if fmt == "matrix":
+        value = json.dumps(build_matrix_entries(names, runner))
+    elif fmt == "json":
+        value = json.dumps(names)
+    else:
+        value = ",".join(names)
     print(value)
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
@@ -241,7 +300,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--format",
-        choices=["csv", "json"],
+        choices=["csv", "json", "matrix"],
         default="csv",
         help="Output format (default: csv)",
     )
@@ -263,7 +322,7 @@ def main() -> int:
     )
     if args.exclude_runtime:
         selected = [n for n in selected if n not in ("rocm-runtime", "cuda-runtime")]
-    emit(selected, fmt=args.format)
+    emit(selected, fmt=args.format, runner=args.runner)
     return 0
 
 

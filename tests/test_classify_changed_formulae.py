@@ -217,6 +217,15 @@ class TestClassifyChangedFormulae(unittest.TestCase):
                 ["cuda-runtime", "xolotl"],
             )
 
+    def test_build_matrix_entries_includes_timeout_and_variant(self) -> None:
+        entries = classifier.build_matrix_entries(["project-maya", "gufo"], "hosted-rocm")
+        self.assertEqual(len(entries), 2)
+        by_name = {entry["formula"]: entry for entry in entries}
+        self.assertEqual(by_name["project-maya"]["timeout_minutes"], 180)
+        self.assertEqual(by_name["project-maya"]["variant"], "rocm")
+        self.assertEqual(by_name["gufo"]["timeout_minutes"], 120)
+        self.assertEqual(by_name["gufo"]["variant"], "rocm")
+
 
 if __name__ == "__main__":
     unittest.main()

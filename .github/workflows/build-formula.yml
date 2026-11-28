@@ -1,0 +1,83 @@
+name: Build Single Formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: "Formula name to build (e.g. gufo, basalt, colibri, rocm-runtime)"
+        required: true
+        type: string
+      backend:
+        description: "Target builder backend ('auto' dispatches all applicable builders)"
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - hosted
+          - cuda
+          - rocm
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  dispatch:
+    name: Dispatch independent builder(s)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Dispatch applicable builder workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORMULA: ${{ inputs.formula }}
+          BACKEND: ${{ inputs.backend }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ ! -f "Formula/${FORMULA}.rb" ]]; then
+            echo "::error::Formula/${FORMULA}.rb does not exist"
+            exit 1
+          fi
+
+          dispatched=0
+          if [[ "${BACKEND}" == "auto" || "${BACKEND}" == "hosted" ]]; then
+            hosted_lin="$(python3 scripts/classify_changed_formulae.py --runner hosted-linux --formulae "${FORMULA}" --format csv)"
+            hosted_mac="$(python3 scripts/classify_changed_formulae.py --runner hosted-macos --formulae "${FORMULA}" --format csv)"
+            if [[ -n "${hosted_lin}" || -n "${hosted_mac}" ]]; then
+              gh workflow run build-hosted.yml --repo "${GITHUB_REPOSITORY}" --ref "${REF_NAME}" -f formulae="${FORMULA}"
+              dispatched=$((dispatched + 1))
+            fi
+          fi
+
+          if [[ "${BACKEND}" == "auto" || "${BACKEND}" == "cuda" ]]; then
+            cuda_list="$(python3 scripts/classify_changed_formulae.py --runner hosted-cuda --formulae "${FORMULA}" --format csv)"
+            if [[ -n "${cuda_list}" ]]; then
+              gh workflow run build-cuda.yml --repo "${GITHUB_REPOSITORY}" --ref "${REF_NAME}" -f formulae="${FORMULA}"
+              dispatched=$((dispatched + 1))
+            fi
+          fi
+
+          if [[ "${BACKEND}" == "auto" || "${BACKEND}" == "rocm" ]]; then
+            rocm_list="$(python3 scripts/classify_changed_formulae.py --runner hosted-rocm --formulae "${FORMULA}" --format csv)"
+            if [[ -n "${rocm_list}" ]]; then
+              gh workflow run build-rocm.yml --repo "${GITHUB_REPOSITORY}" --ref "${REF_NAME}" -f formulae="${FORMULA}"
+              dispatched=$((dispatched + 1))
+            fi
+          fi
+
+          if (( dispatched == 0 )); then
+            echo "::error::Formula '${FORMULA}' did not match backend '${BACKEND}'"
+            exit 1
+          fi
+          echo "Dispatched ${dispatched} builder workflow(s) for ${FORMULA}."

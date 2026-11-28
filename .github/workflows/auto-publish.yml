@@ -2,22 +2,28 @@ name: brew auto-publish
 
 # Publishing policy:
 # - Human pull requests remain manual: a maintainer dispatches `brew pr-pull`,
-#   unless the PR deliberately carries the `autobump` label (the label is the
-#   opt-in to auto-publish).
-# - Bot pull requests that carry the `autobump` label are published
-#   automatically once `brew test-bot` succeeds.
-# - Fork pull requests are never auto-published: the job requires the head
-#   repository to be this repository, and a same-repo head SHA is needed for
-#   `brew pr-pull`.
+#   unless the PR deliberately carries the `autobump` label.
+# - Same-repo pull requests carrying the `autobump` label are published
+#   automatically once ALL triggered CI/builder workflows for the PR's head SHA
+#   have succeeded AND only safe paths (`Formula/`, `Casks/`,
+#   `.github/upstream-pins.json`, `README.md`) were modified.
+# - When a builder fails on an `autobump` PR, the PR is labelled
+#   `autobump-failed` and annotated with the failing workflow link so broken
+#   upstreams are immediately visible without blocking other formulae.
+# - Fork pull requests are never auto-published.
 on:
   workflow_run: # zizmor: ignore[dangerous-triggers] same-repo pr-pull only; never checks out PR head
-    workflows: ["brew test-bot"]
+    workflows:
+      - "Lint and Test"
+      - "Build Hosted Bottles"
+      - "Build CUDA Bottles"
+      - "Build ROCm Bottles"
     types: [completed]
 
 permissions: {}
 
 concurrency:
-  group: auto-publish-${{ github.event.workflow_run.id }}
+  group: auto-publish-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 defaults:
@@ -25,67 +31,142 @@ defaults:
     shell: bash -xeuo pipefail {0}
 
 jobs:
-  publish:
-    name: Dispatch pr-pull for labelled bot PRs
+  handle-result:
+    name: Coordinate auto-publish or record failure
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       actions: write
       contents: read
-      issues: read
-      pull-requests: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Resolve pull request
         id: pr
         env:
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
         run: |
-          if [[ -z "${PR_NUMBER}" ]]
-          then
-            echo "::notice::Workflow run ${GITHUB_RUN_ID} has no associated pull request (fork or push run); nothing to publish."
-            echo "publish=false" >> "${GITHUB_OUTPUT}"
+          if [[ -z "${PR_NUMBER}" ]]; then
+            echo "::notice::Workflow run ${GITHUB_RUN_ID} has no associated pull request; skipping."
+            echo "found=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
-          echo "publish=true" >> "${GITHUB_OUTPUT}"
+          echo "found=true" >> "${GITHUB_OUTPUT}"
           echo "number=${PR_NUMBER}" >> "${GITHUB_OUTPUT}"
 
-      - name: Verify autobump pull request
+      - name: Verify autobump label and safe changed paths
         id: verify
-        if: steps.pr.outputs.publish == 'true'
+        if: steps.pr.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --jq '.[].name')
-          if ! grep -qx 'autobump' <<< "${labels}"
-          then
-            echo "::notice::Pull request #${PR_NUMBER} does not carry the 'autobump' label; leaving it for manual pr-pull."
-            echo "publish=false" >> "${GITHUB_OUTPUT}"
+          if ! grep -qx 'autobump' <<< "${labels}"; then
+            echo "::notice::PR #${PR_NUMBER} does not carry 'autobump'; leaving for manual pr-pull."
+            echo "eligible=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
           author_type=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.type')
           head_repository=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.repo.full_name')
-          if [[ "${author_type}" != "Bot" && "${head_repository}" != "${GITHUB_REPOSITORY}" ]]
-          then
-            echo "::notice::Pull request #${PR_NUMBER} is not from a bot or this repository; refusing to auto-publish."
-            echo "publish=false" >> "${GITHUB_OUTPUT}"
+          if [[ "${author_type}" != "Bot" && "${head_repository}" != "${GITHUB_REPOSITORY}" ]]; then
+            echo "::notice::PR #${PR_NUMBER} is not from a bot or this repository; refusing to auto-publish."
+            echo "eligible=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
-          echo "publish=true" >> "${GITHUB_OUTPUT}"
+          mapfile -t changed_files < <(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename'
+          )
+          for file in "${changed_files[@]}"; do
+            case "${file}" in
+              Formula/*.rb|Casks/*.rb|.github/upstream-pins.json|README.md)
+                ;;
+              *)
+                echo "::warning::PR #${PR_NUMBER} modifies non-bump path '${file}'; refusing to auto-publish."
+                echo "eligible=false" >> "${GITHUB_OUTPUT}"
+                exit 0
+                ;;
+            esac
+          done
+
+          echo "eligible=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Record builder failure on autobump PR
+        if: steps.verify.outputs.eligible == 'true' && github.event.workflow_run.conclusion != 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          if [[ "${CONCLUSION}" == "cancelled" ]]; then
+            echo "Workflow ${WORKFLOW_NAME} was cancelled (likely superseded); skipping failure label."
+            exit 0
+          fi
+          gh label create autobump-failed --color d73a4a --description "Automated bump failed CI build" --force
+          gh pr edit "${PR_NUMBER}" --add-label autobump-failed
+          gh pr comment "${PR_NUMBER}" --body "Automated check **${WORKFLOW_NAME}** finished with \`${CONCLUSION}\`: ${RUN_URL}
+
+          This PR has been labelled \`autobump-failed\`. Other formulae will continue bumping and publishing independently."
+
+      - name: Check that all triggered workflows for head SHA succeeded
+        id: gate
+        if: steps.verify.outputs.eligible == 'true' && github.event.workflow_run.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # Verify every required workflow run for this PR head SHA is completed + success
+          status_report="$(
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${HEAD_SHA}&event=pull_request&per_page=100" \
+              --jq '
+                .workflow_runs
+                | map(select(.name == "Lint and Test" or .name == "Build Hosted Bottles" or .name == "Build CUDA Bottles" or .name == "Build ROCm Bottles"))
+                | group_by(.name)
+                | map(sort_by(.run_attempt) | last)
+                | map("\(.name)|\(.status)|\(.conclusion // "pending")")
+                | .[]
+              '
+          )"
+          printf '%s\n' "${status_report}"
+
+          if [[ -z "${status_report}" ]]; then
+            echo "ready=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if ! grep -q '^Lint and Test|completed|success$' <<< "${status_report}"; then
+            echo "::notice::Waiting for 'Lint and Test' to complete with success."
+            echo "ready=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          while IFS='|' read -r wf_name wf_status wf_conclusion; do
+            [[ -z "${wf_name}" ]] && continue
+            if [[ "${wf_status}" != "completed" || "${wf_conclusion}" != "success" ]]; then
+              echo "::notice::Workflow '${wf_name}' is ${wf_status}/${wf_conclusion}; waiting before auto-publish."
+              echo "ready=false" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+          done <<< "${status_report}"
+
+          echo "ready=true" >> "${GITHUB_OUTPUT}"
 
       - name: Dispatch pr-pull
-        if: steps.verify.outputs.publish == 'true'
+        if: steps.gate.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          echo "Dispatching brew pr-pull for pull request #${PR_NUMBER} at ${HEAD_SHA}"
+          echo "All required workflows passed; dispatching brew pr-pull for PR #${PR_NUMBER} at ${HEAD_SHA}"
           gh workflow run publish.yml \
             --repo "${GITHUB_REPOSITORY}" \
             --ref main \
