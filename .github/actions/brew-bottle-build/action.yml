@@ -137,18 +137,6 @@ runs:
         fi
         brew test-bot --only-setup
 
-    - name: Diagnose ROCm SDK after test-bot setup
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        set -x
-        id
-        ls -ld /home/linuxbrew/.linuxbrew/opt/rocm-sdk /home/linuxbrew/.linuxbrew/rocm-sdk 2>&1 || true
-        ls -l /home/linuxbrew/.linuxbrew/opt/rocm-sdk/include/hip/hip_runtime_api.h 2>&1 || true
-        test -f /home/linuxbrew/.linuxbrew/opt/rocm-sdk/include/hip/hip_runtime_api.h && echo OPT_SDK_PRESENT || echo OPT_SDK_MISSING
-        readlink -f /opt/rocm 2>&1 || true
-        env | grep -E '^(ROCM|HIP|HOMEBREW_ROCM|PATH)=' | sort || true
-
     - name: Download prebuilt runtime bottle
       if: inputs.runtime-artifact != ''
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -172,18 +160,6 @@ runs:
         if (( ${#jsons[@]} > 0 )); then
           (cd "${TAP_DIR}" && brew bottle --merge --write --no-commit --no-all-checks "${jsons[0]}")
         fi
-
-    - name: Diagnose ROCm SDK after runtime bottle install
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        set -x
-        id
-        ls -ld /home/linuxbrew/.linuxbrew/opt/rocm-sdk /home/linuxbrew/.linuxbrew/rocm-sdk 2>&1 || true
-        ls -l /home/linuxbrew/.linuxbrew/opt/rocm-sdk/include/hip/hip_runtime_api.h 2>&1 || true
-        test -f /home/linuxbrew/.linuxbrew/opt/rocm-sdk/include/hip/hip_runtime_api.h && echo OPT_SDK_PRESENT || echo OPT_SDK_MISSING
-        readlink -f /opt/rocm 2>&1 || true
-        env | grep -E '^(ROCM|HIP|HOMEBREW_ROCM|PATH)=' | sort || true
 
     - name: Base64-encode GITHUB_TOKEN
       id: registry

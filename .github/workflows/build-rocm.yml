@@ -133,8 +133,8 @@ jobs:
       packages: read
       pull-requests: read
     env:
-      ROCM_PATH: /home/linuxbrew/.linuxbrew/opt/rocm-sdk
-      HOMEBREW_ROCM_PATH: /home/linuxbrew/.linuxbrew/opt/rocm-sdk
+      ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
+      HOMEBREW_ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
@@ -147,15 +147,6 @@ jobs:
           tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
           mkdir -p .github/actions
           cp -a "${tap_dir}/.github/actions/brew-bottle-build" .github/actions/
-
-      - name: Materialize ROCm SDK under Homebrew opt
-        run: |
-          set -euo pipefail
-          src="/home/linuxbrew/.linuxbrew/rocm-sdk"
-          dst="/home/linuxbrew/.linuxbrew/opt/rocm-sdk"
-          if [[ -d "${src}" && ! -e "${dst}" ]]; then
-            cp -al "${src}" "${dst}"
-          fi
 
       - name: Build and validate rocm-runtime bottle
         uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
@@ -199,8 +190,8 @@ jobs:
       SCCACHE_GHA_ENABLED: "false"
       SCCACHE_DIR: /tmp/sccache
       SCCACHE_CACHE_SIZE: "4G"
-      ROCM_PATH: /home/linuxbrew/.linuxbrew/opt/rocm-sdk
-      HOMEBREW_ROCM_PATH: /home/linuxbrew/.linuxbrew/opt/rocm-sdk
+      ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
+      HOMEBREW_ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
       HOMEBREW_SCCACHE_DIR: /tmp/sccache
     steps:
       - name: Set up Homebrew
@@ -214,15 +205,6 @@ jobs:
           tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
           mkdir -p .github/actions
           cp -a "${tap_dir}/.github/actions/brew-bottle-build" .github/actions/
-
-      - name: Materialize ROCm SDK under Homebrew opt
-        run: |
-          set -euo pipefail
-          src="/home/linuxbrew/.linuxbrew/rocm-sdk"
-          dst="/home/linuxbrew/.linuxbrew/opt/rocm-sdk"
-          if [[ -d "${src}" && ! -e "${dst}" ]]; then
-            cp -al "${src}" "${dst}"
-          fi
 
       - name: Build and validate ROCm bottle
         uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
