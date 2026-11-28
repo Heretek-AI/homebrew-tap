@@ -149,6 +149,11 @@ jobs:
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
       RUSTC_WRAPPER: sccache
     steps:
+      - name: Fix container workspace permissions
+        run: |
+          sudo chmod -R a+rwX /__w/_temp
+          sudo chown -R "$(id -u):$(id -g)" "${GITHUB_WORKSPACE}"
+
       - name: Check out action definitions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
