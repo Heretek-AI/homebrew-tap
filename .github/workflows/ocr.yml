@@ -37,5 +37,5 @@ permissions:
 
 jobs:
   review:
-    uses: Heretek-AI/.github/.github/workflows/ocr-review.yml@2a30dcf73061ceee5e04496dcf2c7ac066e0fec3 # main
+    uses: Heretek-AI/.github/.github/workflows/ocr-review.yml@eccd9605395fa6dc993a3e95bc2b92cc369daf6c # main
     secrets: inherit # zizmor: ignore[secrets-inherit] org-owned reusable workflow needs the LLM secrets
