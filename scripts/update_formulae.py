@@ -407,15 +407,16 @@ def update_upstream_release_formula(
 
     original_content = content
 
-    # Replace URL and SHA256
-    content = re.sub(
-        r'url\s+"https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+"',
-        f'url "{tarball_url}"',
-        content,
+    # Replace the tag-archive URL together with the sha256 that immediately
+    # follows it. Rewriting the first sha256 in the file independently would
+    # corrupt formulae whose first checksum belongs to a different URL (e.g.
+    # gufo-ds41, whose main archive is pinned to a commit while the tag archive
+    # belongs to a resource block).
+    url_and_sha = re.compile(
+        r'(url\s+")https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+("\s*\n\s*sha256\s+")[a-fA-F0-9]+(")'
     )
-    content = re.sub(
-        r'sha256\s+"[a-fA-F0-9]+"',
-        f'sha256 "{sha256_digest}"',
+    content, replacements = url_and_sha.subn(
+        lambda m: f"{m.group(1)}{tarball_url}{m.group(2)}{sha256_digest}{m.group(3)}",
         content,
         count=1,
     )

@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Classify changed tap formulae for the CI runner that can build them.
 
-The tap has three build classes:
+The tap has four build classes:
 
 * ``hosted-linux`` / ``hosted-macos``: CPU, Metal, Vulkan and prebuilt
   formulae that need no GPU toolchain.
 * ``hosted-cuda``: CUDA formulae that only need ``nvcc`` (no GPU at build
   time), built in the ``brew-cuda`` toolchain image.
-* ``stx-halo``: ROCm source builds and hardware validation on the trusted
-  self-hosted ``stx-halo`` runner.
+* ``hosted-rocm``: the active ROCm bottle class, built on hosted Linux.
+* ``stx-halo``: optional/legacy hardware-validation class for the
+  self-hosted ``stx-halo`` runner. The active workflow no longer schedules
+  a ``stx-halo`` job; the class is kept for manual dispatch and testing.
 
 The script intentionally uses the formula source text and git diff rather
 than Homebrew internals so it can run before ``brew test-bot --only-setup``.

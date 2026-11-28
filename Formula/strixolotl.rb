@@ -166,6 +166,6 @@ class Strixolotl < Formula
     assert_match(/libamdhip64\.so/, dev_out)
 
     assert_match(/usage|model/i, shell_output("#{bin}/strixolotl --help 2>&1", 2))
-    assert_match(/device|no GPU/i, shell_output("#{libexec}/bin/strata-device --list-devices"))
+    assert_match(/device|no GPU/i, pipe_output("#{libexec}/bin/strata-device --list-devices 2>&1"))
   end
 end

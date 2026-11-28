@@ -119,7 +119,12 @@ class ProjectMaya < Formula
         strata-plan strata-device strata-gguf strata-dequant
         strata-load strata-concurrent strata-overlap
       ]
-      build_targets << "tune_hipblaslt" if build.without?("cuda")
+      if build.without?("cuda")
+        ninja_file = buildpath/"build/build.ninja"
+        if ninja_file.exist? && ninja_file.read.match?(/^build tune_hipblaslt:/)
+          build_targets << "tune_hipblaslt"
+        end
+      end
       system "cmake", "--build", "build", "--target", *build_targets
 
       vision_args = %W[
