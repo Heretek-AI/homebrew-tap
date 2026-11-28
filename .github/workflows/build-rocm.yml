@@ -133,8 +133,8 @@ jobs:
       packages: read
       pull-requests: read
     env:
-      ROCM_PATH: /opt/rocm
-      HOMEBREW_ROCM_PATH: /opt/rocm
+      ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
+      HOMEBREW_ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
@@ -189,8 +189,8 @@ jobs:
       SCCACHE_GHA_ENABLED: "false"
       SCCACHE_DIR: /tmp/sccache
       SCCACHE_CACHE_SIZE: "4G"
-      ROCM_PATH: /opt/rocm
-      HOMEBREW_ROCM_PATH: /opt/rocm
+      ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
+      HOMEBREW_ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk
       HOMEBREW_SCCACHE_DIR: /tmp/sccache
     steps:
       - name: Set up Homebrew
