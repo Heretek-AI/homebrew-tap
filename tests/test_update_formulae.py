@@ -43,6 +43,24 @@ SAMPLE_ROCMFPX_FORMULA = """class Rocmfpx < Formula
 end
 """
 
+SAMPLE_COMMIT_FORMULA = """class CrucibleStrixHalo < Formula
+  desc "AMD Strix Halo kernel harness"
+  homepage "https://github.com/jaedync/crucible-strix-halo"
+  url "https://github.com/jaedync/crucible-strix-halo/archive/aac3e4894a695fbf0db10c2de5607c9c2e6906f5.tar.gz"
+  version "0.33.1-gitaac3e48"
+  sha256 "bf2495495e09e6613a096177d3a300643a412336fc225ce8daaa35e65b4585f3"
+  license "Apache-2.0"
+end
+"""
+
+
+def _commit_payload(sha: str, date: str) -> dict:
+    return {
+        "sha": sha,
+        "commit": {"committer": {"date": date}},
+    }
+
+
 SAMPLE_SD_FORMULA = """class StableDiffusionCpp < Formula
   desc "Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++"
   homepage "https://github.com/leejet/stable-diffusion.cpp"
@@ -399,6 +417,151 @@ end
             self.assertIn("a" * 64, updated)
             self.assertIn("v2.3.0/colibri-v2.3.0-linux-x86_64.tar.gz", updated)
             self.assertIn("b" * 64, updated)
+
+    def test_update_upstream_commit_formula_uses_monotonic_version(self):
+        sha = "98e9870a8efb96f1a7f026764ccd6309f1fde465"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = self._write_formula(
+                tmpdir, "crucible-strix-halo.rb", SAMPLE_COMMIT_FORMULA
+            )
+            commit = _commit_payload(sha, "2026-11-26T08:46:36Z")
+
+            with patch("update_formulae.get_commit", return_value=commit):
+                changed = update_formulae.update_upstream_commit_formula(
+                    str(formula_file),
+                    "jaedync/crucible-strix-halo",
+                    commit_sha=sha,
+                    sha256_digest="a" * 64,
+                    dry_run=False,
+                )
+
+            self.assertTrue(changed)
+            updated = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "0.33.1.20261126084636-git98e9870"', updated)
+            self.assertIn(f"/archive/{sha}.tar.gz", updated)
+            self.assertIn(f'sha256 "{"a" * 64}"', updated)
+
+    def test_update_upstream_commit_formula_uses_branch_head(self):
+        sha = "0123456789abcdef0123456789abcdef01234567"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = self._write_formula(
+                tmpdir, "crucible-strix-halo.rb", SAMPLE_COMMIT_FORMULA
+            )
+            commit = _commit_payload(sha, "2026-11-27T10:11:12Z")
+
+            with patch("update_formulae.get_commit", return_value=commit):
+                changed = update_formulae.update_upstream_commit_formula(
+                    str(formula_file),
+                    "jaedync/crucible-strix-halo",
+                    sha256_digest="b" * 64,
+                    dry_run=False,
+                )
+
+            self.assertTrue(changed)
+            updated = formula_file.read_text(encoding="utf-8")
+            self.assertIn('version "0.33.1.20261127101112-git0123456"', updated)
+
+    def test_update_upstream_commit_formula_does_not_migrate_same_commit(self):
+        sha = "aac3e4894a695fbf0db10c2de5607c9c2e6906f5"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = self._write_formula(
+                tmpdir, "crucible-strix-halo.rb", SAMPLE_COMMIT_FORMULA
+            )
+            original = formula_file.read_text(encoding="utf-8")
+            commit = _commit_payload(sha, "2026-11-05T12:00:00Z")
+
+            with patch("update_formulae.get_commit", return_value=commit):
+                changed = update_formulae.update_upstream_commit_formula(
+                    str(formula_file),
+                    "jaedync/crucible-strix-halo",
+                    commit_sha=sha,
+                    sha256_digest="e" * 64,
+                    dry_run=False,
+                )
+
+            self.assertFalse(changed)
+            self.assertEqual(formula_file.read_text(encoding="utf-8"), original)
+
+    def test_update_upstream_commit_formula_skips_older_commit(self):
+        sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        older_formula = SAMPLE_COMMIT_FORMULA.replace(
+            'version "0.33.1-gitaac3e48"',
+            'version "0.33.1.20261126084636-git98e9870"',
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = self._write_formula(
+                tmpdir, "crucible-strix-halo.rb", older_formula
+            )
+            original = formula_file.read_text(encoding="utf-8")
+            commit = _commit_payload(sha, "2026-11-25T23:59:59Z")
+
+            with patch("update_formulae.get_commit", return_value=commit):
+                changed = update_formulae.update_upstream_commit_formula(
+                    str(formula_file),
+                    "jaedync/crucible-strix-halo",
+                    commit_sha=sha,
+                    sha256_digest="c" * 64,
+                    dry_run=False,
+                )
+
+            self.assertFalse(changed)
+            self.assertEqual(formula_file.read_text(encoding="utf-8"), original)
+
+    def test_update_upstream_commit_formula_skips_same_timestamp_lower_sha(self):
+        sha = "1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        newer_formula = SAMPLE_COMMIT_FORMULA.replace(
+            'version "0.33.1-gitaac3e48"',
+            'version "0.33.1.20261126084636-git98e9870"',
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = self._write_formula(
+                tmpdir, "crucible-strix-halo.rb", newer_formula
+            )
+            original = formula_file.read_text(encoding="utf-8")
+            commit = _commit_payload(sha, "2026-11-26T08:46:36Z")
+
+            with patch("update_formulae.get_commit", return_value=commit):
+                changed = update_formulae.update_upstream_commit_formula(
+                    str(formula_file),
+                    "jaedync/crucible-strix-halo",
+                    commit_sha=sha,
+                    sha256_digest="d" * 64,
+                    dry_run=False,
+                )
+
+            self.assertFalse(changed)
+            self.assertEqual(formula_file.read_text(encoding="utf-8"), original)
+
+    def test_commit_version_ordering(self):
+        self.assertTrue(
+            update_formulae._is_monotonic_bump(
+                "0.33.1.20261126084636-git98e9870", "0.33.1-gitaac3e48"
+            )
+        )
+        self.assertTrue(
+            update_formulae._is_monotonic_bump(
+                "0.33.1.20261127000000-git0000000",
+                "0.33.1.20261126084636-git98e9870",
+            )
+        )
+        self.assertFalse(
+            update_formulae._is_monotonic_bump(
+                "0.33.1.20261126084636-git98e9870",
+                "0.33.1.20261126084636-git98e9870",
+            )
+        )
+        self.assertFalse(
+            update_formulae._is_monotonic_bump(
+                "0.33.1.20261125000000-gitfffffff",
+                "0.33.1.20261126084636-git98e9870",
+            )
+        )
+        self.assertFalse(
+            update_formulae._is_monotonic_bump(
+                "0.33.1.20261105000000-gitaac3e48",
+                "0.33.1-gitaac3e48",
+            )
+        )
 
 
 if __name__ == "__main__":

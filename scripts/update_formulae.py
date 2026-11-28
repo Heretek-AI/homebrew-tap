@@ -315,9 +315,60 @@ def get_latest_release(repo: str, token: str = None, tag: str = None) -> dict:
     return fetch_json(url, token)
 
 
-def get_latest_commit(repo: str, branch: str = "main", token: str = None) -> dict:
-    url = f"{GITHUB_API_BASE}/{repo}/commits/{branch}"
+def get_commit(repo: str, ref: str, token: str = None) -> dict:
+    url = f"{GITHUB_API_BASE}/{repo}/commits/{ref}"
     return fetch_json(url, token)
+
+
+def get_latest_commit(repo: str, branch: str = "main", token: str = None) -> dict:
+    return get_commit(repo, branch, token)
+
+
+def _commit_timestamp(commit_data: dict) -> str:
+    """Return the UTC committer date as YYYYMMDDHHMMSS."""
+    raw_date = commit_data.get("commit", {}).get("committer", {}).get("date", "")
+    match = re.match(r"(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})", raw_date)
+    if match:
+        return "".join(match.groups())
+    return time.strftime("%Y%m%d%H%M%S", time.gmtime())
+
+
+def _split_commit_version(version: str) -> Optional[Tuple[str, str, str]]:
+    """Split a generated commit version into (base, timestamp, short sha)."""
+    match = re.match(
+        r"^(?P<base>.+?)(?:\.(?P<stamp>\d{14}))?-git(?P<sha>[0-9a-f]{7,40})$",
+        version,
+    )
+    if not match:
+        return None
+    return match.group("base"), match.group("stamp") or "", match.group("sha")
+
+
+def _commit_version(base_version: str, commit_timestamp: str, commit_sha: str) -> str:
+    """Build a version that is unique per commit and increases over time."""
+    return f"{base_version}.{commit_timestamp}-git{commit_sha[:7]}"
+
+
+def _is_monotonic_bump(new_version: str, current_version: str) -> bool:
+    """Return whether new_version sorts after current_version."""
+    new_parts = _split_commit_version(new_version)
+    current_parts = _split_commit_version(current_version)
+    if new_parts is None:
+        return False
+    if current_parts is None:
+        return new_version != current_version
+
+    new_base, new_stamp, new_sha = new_parts
+    current_base, current_stamp, current_sha = current_parts
+    if new_base != current_base:
+        # The base is normally copied from the formula, so a changed base is a
+        # deliberate manual version-scheme adjustment.
+        return True
+    if not current_stamp:
+        # Legacy versions carried no commit timestamp. Only migrate when the
+        # commit itself changes; a same-commit rerun leaves the formula alone.
+        return new_sha != current_sha
+    return (new_stamp, new_sha) > (current_stamp, current_sha)
 
 
 def update_builder_formula_content(
@@ -549,29 +600,40 @@ def update_upstream_commit_formula(
         print(f"[-] Formula not found: {formula_path}")
         return False
 
-    if not commit_sha:
+    with open(formula_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    current_ver_match = re.search(r'version\s+"([^"]+)"', content)
+    current_version = current_ver_match.group(1) if current_ver_match else "0.0.0"
+    current_parts = _split_commit_version(current_version)
+    base_version = current_parts[0] if current_parts else current_version
+
+    if commit_sha:
+        commit_data = get_commit(repo, commit_sha, token)
+        commit_sha = commit_data.get("sha") or commit_sha
+    else:
         commit_data = get_latest_commit(repo, branch, token)
         commit_sha = commit_data.get("sha", "")
-        commit_date = (
-            commit_data.get("commit", {})
-            .get("committer", {})
-            .get("date", "")[:10]
-            .replace("-", ".")
-        )
-    else:
-        commit_date = time.strftime("%Y.%m.%d", time.gmtime())
 
     if not commit_sha:
         print(f"[-] No commit SHA found for {repo}/{branch}")
+        return False
+
+    commit_timestamp = _commit_timestamp(commit_data)
+    commit_date = f"{commit_timestamp[:4]}-{commit_timestamp[4:6]}-{commit_timestamp[6:8]}"
+    new_version = _commit_version(base_version, commit_timestamp, commit_sha)
+
+    if not _is_monotonic_bump(new_version, current_version):
+        print(
+            f"[*] Skipping {formula_path}: commit {commit_sha[:7]} ({commit_date}) "
+            f"would not advance version {current_version}"
+        )
         return False
 
     tarball_url = f"https://github.com/{repo}/archive/{commit_sha}.tar.gz"
     if not sha256_digest:
         print(f"[*] Computing SHA256 for commit {commit_sha[:7]} ({tarball_url})...")
         sha256_digest = download_and_compute_sha256(tarball_url, token)
-
-    with open(formula_path, "r", encoding="utf-8") as f:
-        content = f.read()
 
     original_content = content
 
@@ -580,11 +642,6 @@ def update_upstream_commit_formula(
         f'url "{tarball_url}"',
         content,
     )
-    current_ver_match = re.search(r'version\s+"([^"]+)"', content)
-    base_version = "0.0.0"
-    if current_ver_match:
-        base_version = current_ver_match.group(1).split("-git")[0]
-    new_version = f"{base_version}-git{commit_sha[:7]}"
 
     content = re.sub(
         r'version\s+"[^"]+"',
