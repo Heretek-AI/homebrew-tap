@@ -8,6 +8,14 @@ class Infr < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    rebuild 1
+    manifest_sha256 "16a23a119e6442e2017b1aebdcb60390e343276f16be4281ad93ed63d2e25857"
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:  "e148413b83f6ccafac2c1efc0a6e242954b852dd450d19969193b451d2a0baad"
+    sha256 cellar: :any_skip_relocation, x86_64_linux: "65067c02e16a7c82d5f4cbe835cb9ab7d20e08faf360a43e9e699069534ba00a"
+  end
+
   on_macos do
     on_arm do
       url "https://github.com/kryptic-sh/infr/releases/download/v0.3.0/infr-v0.3.0-aarch64-apple-darwin.tar.gz"
