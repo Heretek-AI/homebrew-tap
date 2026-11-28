@@ -1,9 +1,9 @@
 class CrucibleStrixHalo < Formula
   desc "AMD Strix Halo (gfx1151) kernel harness and memory allocator tuners"
   homepage "https://github.com/jaedync/crucible-strix-halo"
-  url "https://github.com/jaedync/crucible-strix-halo/archive/aac3e4894a695fbf0db10c2de5607c9c2e6906f5.tar.gz"
-  version "0.33.1-gitaac3e48"
-  sha256 "bf2495495e09e6613a096177d3a300643a412336fc225ce8daaa35e65b4585f3"
+  url "https://github.com/jaedync/crucible-strix-halo/archive/98e9870a8efb96f1a7f026764ccd6309f1fde465.tar.gz"
+  version "0.33.1-git98e9870"
+  sha256 "597dd9aba9c036c37dc085ef384456a33281bf6c02e5440cff223d69871ff4e9"
   license "Apache-2.0"
   head "https://github.com/jaedync/crucible-strix-halo.git", branch: "main"
 
