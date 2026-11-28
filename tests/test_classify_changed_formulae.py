@@ -49,17 +49,26 @@ class TestClassifyChangedFormulae(unittest.TestCase):
 
     def test_source_rocm_and_cuda_formulae(self) -> None:
         self.assertEqual(
-            classifier.classify(["rocmfpx"], "stx-halo"), ["rocm-runtime", "rocmfpx"]
+            classifier.classify(["gufo-ds41"], "hosted-rocm"),
+            ["rocm-runtime", "gufo-ds41"],
         )
-        self.assertEqual(classifier.classify(["rocmfpx"], "hosted-linux"), [])
+        self.assertEqual(
+            classifier.classify(["gufo-ds41"], "stx-halo"),
+            ["rocm-runtime", "gufo-ds41"],
+        )
+        self.assertEqual(classifier.classify(["gufo-ds41"], "hosted-linux"), [])
+        self.assertEqual(
+            classifier.classify(["rulith-inference"], "stx-halo"),
+            ["rocm-runtime", "rulith-inference"],
+        )
+        self.assertEqual(
+            classifier.classify(["strixolotl"], "stx-halo"),
+            ["rocm-runtime", "strixolotl"],
+        )
         self.assertEqual(
             classifier.classify(["basalt"], "hosted-cuda"), ["cuda-runtime", "basalt"]
         )
         self.assertEqual(classifier.classify(["basalt"], "stx-halo"), [])
-        self.assertEqual(
-            classifier.classify(["lucebox"], "hosted-cuda"), ["cuda-runtime", "lucebox"]
-        )
-        self.assertEqual(classifier.classify(["lucebox"], "stx-halo"), [])
 
     def test_macos_only_formula_is_linux_excluded(self) -> None:
         self.assertEqual(classifier.classify(["uzu"], "hosted-macos"), ["uzu"])
@@ -111,6 +120,102 @@ class TestClassifyChangedFormulae(unittest.TestCase):
             classifier.classify(["cuda-runtime"], "hosted-linux"), ["cuda-runtime"]
         )
         self.assertEqual(classifier.classify(["cuda-runtime"], "hosted-cuda"), [])
+
+    def test_skip_bottled_runtime_respects_bottle_block_and_direct_changes(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            os.chdir(directory)
+            (Path("Formula")).mkdir()
+            (Path("Formula") / "rocm-runtime.rb").write_text(
+                "class RocmRuntime < Formula\n"
+                '  # ROCM_PATH="#{opt_prefix}"\n'
+                "  bottle do\n"
+                '    root_url "https://ghcr.io/v2/heretek-ai/tap"\n'
+                '    sha256 cellar: :any_skip_relocation, x86_64_linux: "abc123"\n'
+                "  end\n"
+                "end\n"
+            )
+            (Path("Formula") / "gufo.rb").write_text(
+                "class Gufo < Formula\n"
+                '  depends_on "heretek-ai/tap/rocm-runtime"\n'
+                "end\n"
+            )
+            (Path("Formula") / "cuda-runtime.rb").write_text(
+                "class CudaRuntime < Formula\n"
+                '  url "https://example.com/cuda.tar.xz"\n'
+                "end\n"
+            )
+            (Path("Formula") / "xolotl.rb").write_text(
+                "class Xolotl < Formula\n"
+                '  depends_on "heretek-ai/tap/cuda-runtime"\n'
+                "end\n"
+            )
+
+            self.assertTrue(classifier.has_x86_64_linux_bottle("rocm-runtime"))
+            self.assertFalse(classifier.has_x86_64_linux_bottle("cuda-runtime"))
+
+            # Unchanged bottled rocm-runtime is skipped when skip_bottled_runtime=True
+            self.assertEqual(
+                classifier.classify(["gufo"], "hosted-rocm", skip_bottled_runtime=True),
+                ["gufo"],
+            )
+            # Directly changed bottled rocm-runtime is still built
+            self.assertEqual(
+                classifier.classify(
+                    ["rocm-runtime", "gufo"],
+                    "hosted-rocm",
+                    skip_bottled_runtime=True,
+                ),
+                ["rocm-runtime", "gufo"],
+            )
+            self.assertEqual(
+                classifier.classify(
+                    ["rocm-runtime"], "hosted-rocm", skip_bottled_runtime=True
+                ),
+                ["rocm-runtime"],
+            )
+
+            # Unbottled cuda-runtime is auto-prepended for dependent CUDA formulae
+            self.assertEqual(
+                classifier.classify(
+                    ["xolotl"], "hosted-cuda", skip_bottled_runtime=True
+                ),
+                ["cuda-runtime", "xolotl"],
+            )
+            # Standalone cuda-runtime change does not enter hosted-cuda
+            self.assertEqual(
+                classifier.classify(
+                    ["cuda-runtime"], "hosted-cuda", skip_bottled_runtime=True
+                ),
+                [],
+            )
+
+            # Once cuda-runtime has an x86_64_linux bottle, unchanged runtime is skipped
+            # unless cuda-runtime itself changed.
+            (Path("Formula") / "cuda-runtime.rb").write_text(
+                "class CudaRuntime < Formula\n"
+                "  bottle do\n"
+                '    root_url "https://ghcr.io/v2/heretek-ai/tap"\n'
+                '    sha256 cellar: :any_skip_relocation, x86_64_linux: "def456"\n'
+                "  end\n"
+                "end\n"
+            )
+            self.assertTrue(classifier.has_x86_64_linux_bottle("cuda-runtime"))
+            self.assertEqual(
+                classifier.classify(
+                    ["xolotl"], "hosted-cuda", skip_bottled_runtime=True
+                ),
+                ["xolotl"],
+            )
+            self.assertEqual(
+                classifier.classify(
+                    ["cuda-runtime", "xolotl"],
+                    "hosted-cuda",
+                    skip_bottled_runtime=True,
+                ),
+                ["cuda-runtime", "xolotl"],
+            )
 
 
 if __name__ == "__main__":

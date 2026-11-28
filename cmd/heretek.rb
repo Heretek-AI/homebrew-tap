@@ -12,24 +12,22 @@ module Homebrew
 
       STRIX_HALO_FORMULAE = %w[
         crucible-strix-halo
-        gufetto
         gufo
-        gufo-franzmoca
+        gufo-ds41
         kyojin
         libosmos
         qwenox
-        rocmfpx
+        rulith-inference
         snowllm
         strixite
+        strixolotl
       ].freeze
 
       RDNA3_FORMULAE = %w[
         hipfire
         nib
         project-maya
-        rocmfpx
         stable-diffusion-cpp
-        strata
         zinc
       ].freeze
 
@@ -37,40 +35,31 @@ module Homebrew
         hipfire
         kyojin
         project-maya
-        rocmfpx
-        strata
       ].freeze
 
       BLACKWELL_FORMULAE = %w[
         basalt
         hyperqwen
-        lucebox
       ].freeze
 
       CUDA_8_9_FORMULAE = %w[
         hyperqwen
-        lucebox
         shimmy
       ].freeze
 
       APPLE_SILICON_FORMULAE = %w[
         colibri
-        gemma-cpp
         infr
         magnitude
         project-maya
-        saient-quartz
         shimmy
         stable-diffusion-cpp
-        strata
         uzu
       ].freeze
 
       CPU_VULKAN_FORMULAE = %w[
         colibri
-        gemma-cpp
         infr
-        saient-quartz
         shimmy
         stable-diffusion-cpp
         zinc
