@@ -12,8 +12,9 @@ class Nib < Formula
 
   bottle do
     root_url "https://ghcr.io/v2/heretek-ai/tap"
-    manifest_sha256 "433c0a92dff46c9fa799b7d4dc2f204632853197c9c95f384629ad16e1ce6c9c"
-    sha256 cellar: :any, x86_64_linux: "19e38d8359cd1171fe7a0fd6d2f200906a6d22188d477f9fac4480c621c39cd7"
+    rebuild 1
+    manifest_sha256 "f8140f5d4dd575d941f88435ab642514e0e931f7d1daaa1833d673ab0dd11ea2"
+    sha256 cellar: :any, x86_64_linux: "68ffb161ec57d23d5af3288032a01ca9f0c843bad714777f1743b00cb656ce19"
   end
 
   depends_on "cmake" => :build
