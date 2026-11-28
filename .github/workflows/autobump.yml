@@ -193,7 +193,11 @@ jobs:
 
           for pr in "${pr_numbers[@]}"; do
             echo "Adding 'autobump' label to cask pull request #${pr}"
-            gh pr edit "${pr}" --add-label autobump
+            curl -fsSL -X POST \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GH_REPO}/issues/${pr}/labels" \
+              -d '{"labels":["autobump"]}' >/dev/null
           done
 
   per-formula-bump:

@@ -130,6 +130,14 @@ class TestRepoConsistency(unittest.TestCase):
             jobs["pr-pull"]["if"], "needs.preflight.outputs.open == 'true'"
         )
 
+    def test_auto_publish_leaves_casks_for_manual_merge(self) -> None:
+        text = (WORKFLOWS_DIR / "auto-publish.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "only changes casks",
+            text,
+            "cask bumps have no bottle artifacts; auto-publish must not dispatch pr-pull",
+        )
+
     def test_publish_uses_scoped_token_for_github_api(self) -> None:
         text = (WORKFLOWS_DIR / "publish.yml").read_text(encoding="utf-8")
         self.assertIn(
