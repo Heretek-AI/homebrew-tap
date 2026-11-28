@@ -114,7 +114,7 @@
       "repo": "jaedync/crucible-strix-halo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "e5c566fc4f1d03f3e9a7bd67cf2ba4ec62a6ed84e60e6843508439dd3e07aa91",
+      "formula_sha256": "e2f30d07b51f3319e27b5021b225369acbe373960460e2cbc1ccb6bbf4d2f074",
       "variants": {
         "rocm": {
           "status": "enabled",
