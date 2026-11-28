@@ -1,6 +1,6 @@
 name: brew bump
 
-# The optional GitHub App (`vars.APP_ID` + `secrets.APP_PRIVATE_KEY`) needs
+# The optional GitHub App (`vars.APP_CLIENT_ID` + `secrets.APP_PRIVATE_KEY`) needs
 # Contents and Pull requests write to push branches and open pull requests, and
 # Issues write to manage the `autobump` label. Without the App the workflow
 # falls back to `GITHUB_TOKEN`, but pull requests created with that token do not
@@ -50,14 +50,14 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+      APP_CONFIGURED: ${{ vars.APP_CLIENT_ID != '' }}
     steps:
       - name: Generate GitHub App token
         id: app-token
         if: env.APP_CONFIGURED == 'true'
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
-          app-id: ${{ vars.APP_ID }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
@@ -142,14 +142,14 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+      APP_CONFIGURED: ${{ vars.APP_CLIENT_ID != '' }}
     steps:
       - name: Generate GitHub App token
         id: app-token
         if: env.APP_CONFIGURED == 'true'
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
-          app-id: ${{ vars.APP_ID }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
@@ -216,7 +216,7 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+      APP_CONFIGURED: ${{ vars.APP_CLIENT_ID != '' }}
       TARGET: ${{ github.event.client_payload.formula || github.event.client_payload.target || github.event.client_payload.builder || inputs.target || 'all' }}
       TAG: ${{ github.event.client_payload.release_tag || github.event.client_payload.tag || inputs.release_tag || 'latest' }}
       MAX_PRS: ${{ inputs.max_prs || '5' }}
@@ -226,7 +226,7 @@ jobs:
         if: env.APP_CONFIGURED == 'true'
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
-          app-id: ${{ vars.APP_ID }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
