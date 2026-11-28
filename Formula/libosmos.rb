@@ -41,6 +41,15 @@ class Libosmos < Formula
       "HIP_ARCH=gfx1151",
       "NPU=#{npu}",
     ]
+    # ROCm 10.3's clang warns that upstream kernels use deprecated HIP
+    # builtins; keep -Werror for everything else but not for that warning.
+    hipcc_wrapper = buildpath/"hipcc-wrapper"
+    hipcc_wrapper.write <<~SH
+      #!/bin/sh
+      exec "#{rocm}/bin/hipcc" -Wno-error=hip-deprecated-builtins "$@"
+    SH
+    chmod 0755, hipcc_wrapper
+    make_args << "HIPCC=#{hipcc_wrapper}"
     system "make", *make_args
 
     bin.install "bin/osmos-api", "bin/osmos-serve"
