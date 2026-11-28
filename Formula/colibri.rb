@@ -19,6 +19,8 @@ class Colibri < Formula
   end
 
   on_linux do
+    depends_on "webkitgtk"
+
     on_intel do
       url "https://github.com/JustVugg/colibri/releases/download/v2.2.0/colibri-v2.2.0-linux-x86_64.tar.gz"
       sha256 "b1e2bc8a650b2b216e17357614cfcb4355a83fb9d3077d61f8e1d63beea14d72"
