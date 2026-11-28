@@ -1,8 +1,8 @@
 class Nib < Formula
   desc "C++17 HIP inference engine for Inkling 2 Mini on AMD RDNA3"
   homepage "https://github.com/Chromadera/nib"
-  url "https://github.com/Chromadera/nib/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "7324c46300c15a2222a3f3b4706b5b57c6dc53ddf43ccdf764beee993d8a7079"
+  url "https://github.com/Chromadera/nib/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "cc774dc9f934b72d6c6258f3f533f913e49857b10a16ffc84bfd25dfcf45949a"
   license "Apache-2.0"
 
   livecheck do
