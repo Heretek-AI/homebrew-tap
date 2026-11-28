@@ -37,6 +37,12 @@ inputs:
   rubygems-cache-prefix:
     description: Prefix for Homebrew Bundler RubyGems cache key
     required: true
+  gems-path:
+    description: Gems path output from Homebrew/actions/setup-homebrew
+    required: true
+  gems-hash:
+    description: Gems hash output from Homebrew/actions/setup-homebrew
+    required: true
   install-python:
     description: Install python3 via apt-get (needed in bare ghcr.io/homebrew/brew:main)
     required: false
@@ -66,17 +72,11 @@ runs:
         done
         df -h / || true
 
-    - name: Set up Homebrew
-      id: set-up-homebrew
-      uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
-      with:
-        token: ${{ inputs.github-token }}
-
     - name: Cache Homebrew Bundler RubyGems
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-        key: ${{ inputs.rubygems-cache-prefix }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+        path: ${{ inputs.gems-path }}
+        key: ${{ inputs.rubygems-cache-prefix }}-rubygems-${{ inputs.gems-hash }}
         restore-keys: ${{ inputs.rubygems-cache-prefix }}-rubygems-
 
     - name: Install Python if requested
