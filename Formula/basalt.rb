@@ -10,6 +10,13 @@ class Basalt < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    rebuild 1
+    manifest_sha256 "a39a600e7e1f5e9c1d4d54e6de99fbbdfc600b280a42920b82e1743fcfae8a4e"
+    sha256 cellar: :any, x86_64_linux: "7841eae0dc6fabfe9089fb3344bcdde6ca1271513ef15a7674104ef3149da8c8"
+  end
+
   depends_on "patchelf" => :build
   depends_on "heretek-ai/tap/cuda-runtime"
   depends_on :linux
