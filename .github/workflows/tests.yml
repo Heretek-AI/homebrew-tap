@@ -210,7 +210,7 @@ jobs:
           restore-keys: macos-26-rubygems-
 
       - name: Set up sccache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
       - name: Locate tap checkout
         run: |
@@ -340,7 +340,7 @@ jobs:
           sudo apt-get install -y python3
 
       - name: Set up sccache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
       - name: Locate tap checkout
         run: |
@@ -683,7 +683,7 @@ jobs:
             sccache-cuda-${{ matrix.formula }}-
 
       - name: Set up sccache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
       - name: Export sccache path for Homebrew superenv
         run: |
@@ -939,7 +939,7 @@ jobs:
             sccache-rocm-${{ matrix.formula }}-
 
       - name: Set up sccache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
       - name: Export sccache path for Homebrew superenv
         run: |
