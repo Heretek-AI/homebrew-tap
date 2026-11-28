@@ -11,6 +11,13 @@ class Hyperqwen < Formula
     skip "Tracks upstream commit"
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    rebuild 1
+    manifest_sha256 "2e0bd437685fa84ce6ea1ffd98061efad38e21a5fbfb625c5cf0e85f36c43c70"
+    sha256 cellar: :any_skip_relocation, x86_64_linux: "a500491e3a25bfda889b1af635318d779311baa9c10dd548b3559538a9a11369"
+  end
+
   depends_on "cmake" => :build
   depends_on "git" => :build
   depends_on "ninja" => :build
