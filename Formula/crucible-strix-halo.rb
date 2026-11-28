@@ -1,9 +1,9 @@
 class CrucibleStrixHalo < Formula
   desc "AMD Strix Halo (gfx1151) kernel harness and memory allocator tuners"
   homepage "https://github.com/jaedync/crucible-strix-halo"
-  url "https://github.com/jaedync/crucible-strix-halo/archive/aac3e4894a695fbf0db10c2de5607c9c2e6906f5.tar.gz"
-  version "0.33.1-gitaac3e48"
-  sha256 "bf2495495e09e6613a096177d3a300643a412336fc225ce8daaa35e65b4585f3"
+  url "https://github.com/jaedync/crucible-strix-halo/archive/98e9870a8efb96f1a7f026764ccd6309f1fde465.tar.gz"
+  version "0.33.1.20261126084636-git98e9870"
+  sha256 "597dd9aba9c036c37dc085ef384456a33281bf6c02e5440cff223d69871ff4e9"
   license "Apache-2.0"
   head "https://github.com/jaedync/crucible-strix-halo.git", branch: "main"
 
@@ -67,7 +67,7 @@ class CrucibleStrixHalo < Formula
       hipcc:            hipcc,
       ldflags:          runtime_ldflags,
       rpath_limitation: "upstream flags may leave the SDK RUNPATH; installed ELF RPATH is normalized with patchelf",
-      commit:           "aac3e4894a695fbf0db10c2de5607c9c2e6906f5",
+      commit:           "98e9870a8efb96f1a7f026764ccd6309f1fde465",
     )
   end
 
@@ -89,10 +89,10 @@ class CrucibleStrixHalo < Formula
     assert_match(/libamdhip64\.so/, out)
 
     # 2. CLI Introspection
-    assert_match(/crucible|usage/i, shell_output("#{bin}/crucible-strix-halo --help 2>&1"))
+    assert_match(/crucible|usage/i, pipe_output("#{bin}/crucible-strix-halo --help 2>&1"))
 
     # 3. Device Discovery Smoke Test
-    probe = shell_output("#{bin}/crucible-strix-halo --list-devices 2>&1", nil)
+    probe = pipe_output("#{bin}/crucible-strix-halo --list-devices 2>&1")
     assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
   end
 end
