@@ -11,6 +11,13 @@ class CudaRuntime < Formula
     strategy :page_match
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    rebuild 1
+    manifest_sha256 "97368c094df2a7e9d14f486f9013f0d6adb328a8cc612ce555fd68dc10844873"
+    sha256 cellar: :any, x86_64_linux: "01a59b76e9ba16dfcadbf303189cf4dcfd801eb098af85fb229d7349630137ad"
+  end
+
   keg_only "it is a shared runtime that engines link against via opt_prefix"
 
   depends_on :linux
