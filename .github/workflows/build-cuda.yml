@@ -145,8 +145,15 @@ jobs:
       - name: Stage local composite action from tap checkout
         run: |
           tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          src="${tap_dir}/.github/actions/brew-bottle-build"
+          dst=".github/actions/brew-bottle-build"
           mkdir -p .github/actions
-          cp -a "${tap_dir}/.github/actions/brew-bottle-build" .github/actions/
+          src_real="$(cd "${src}" && pwd -P)"
+          dst_real="$(cd "${dst}" 2>/dev/null && pwd -P || true)"
+          if [[ "${src_real}" != "${dst_real}" ]]; then
+            rm -rf "${dst}"
+            cp -a "${src}" .github/actions/
+          fi
 
       - name: Build and validate cuda-runtime bottle
         uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
@@ -202,8 +209,15 @@ jobs:
       - name: Stage local composite action from tap checkout
         run: |
           tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          src="${tap_dir}/.github/actions/brew-bottle-build"
+          dst=".github/actions/brew-bottle-build"
           mkdir -p .github/actions
-          cp -a "${tap_dir}/.github/actions/brew-bottle-build" .github/actions/
+          src_real="$(cd "${src}" && pwd -P)"
+          dst_real="$(cd "${dst}" 2>/dev/null && pwd -P || true)"
+          if [[ "${src_real}" != "${dst_real}" ]]; then
+            rm -rf "${dst}"
+            cp -a "${src}" .github/actions/
+          fi
 
       - name: Build and validate CUDA bottle
         uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax

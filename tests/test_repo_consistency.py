@@ -98,6 +98,19 @@ class TestRepoConsistency(unittest.TestCase):
         self.assertIn("/home/linuxbrew/.linuxbrew/rocm-sdk", dockerfile)
         self.assertIn("ln -s /home/linuxbrew/.linuxbrew/rocm-sdk /opt/rocm", dockerfile)
 
+    def test_builders_do_not_copy_the_action_onto_itself(self) -> None:
+        for name in ("build-hosted.yml", "build-cuda.yml", "build-rocm.yml"):
+            text = (WORKFLOWS_DIR / name).read_text(encoding="utf-8")
+            self.assertIn(
+                'src_real="$(cd "${src}" && pwd -P)"',
+                text,
+                f"{name} must guard against staging the action onto itself on macOS",
+            )
+            self.assertIn(
+                'dst_real="$(cd "${dst}" 2>/dev/null && pwd -P || true)"',
+                text,
+            )
+
     def test_rocm_builds_use_the_prefix_sdk_path(self) -> None:
         workflow = load_workflow("build-rocm.yml")
         jobs = workflow["jobs"]
