@@ -10,6 +10,12 @@ class Nib < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    manifest_sha256 "433c0a92dff46c9fa799b7d4dc2f204632853197c9c95f384629ad16e1ce6c9c"
+    sha256 cellar: :any, x86_64_linux: "19e38d8359cd1171fe7a0fd6d2f200906a6d22188d477f9fac4480c621c39cd7"
+  end
+
   depends_on "cmake" => :build
   depends_on "patchelf" => :build
   depends_on arch: :x86_64
