@@ -142,10 +142,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check out action definitions
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+      - name: Stage local composite action from tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          mkdir -p .github/actions
+          cp -a "${tap_dir}/.github/actions/brew-bottle-build" .github/actions/
 
       - name: Build and validate cuda-runtime bottle
         uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
@@ -198,10 +199,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check out action definitions
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+      - name: Stage local composite action from tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          mkdir -p .github/actions
+          cp -a "${tap_dir}/.github/actions/brew-bottle-build" .github/actions/
 
       - name: Build and validate CUDA bottle
         uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
