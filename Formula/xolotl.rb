@@ -83,6 +83,13 @@ class Xolotl < Formula
 
     host_cxx = ["/usr/bin/g++-13", "/usr/bin/g++"].find { |path| File.executable?(path) }
     rpath = "#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib"
+
+    # Plain arch entries emit PTX+SASS; "-real" emits SASS only, and one
+    # "-virtual" entry keeps forward compatibility for the newest arch.
+    # ci-fast PR builds take a single arch to keep CUDA compile time down.
+    fast_arch = ENV["HOMEBREW_FAST_ARCH"] == "1"
+    cuda_archs = fast_arch ? "90-real" : "80-real;86-real;89-real;90-real;100-real;120-real;120-virtual"
+
     args = %W[
       -G Ninja
       -DCMAKE_BUILD_TYPE=Release
@@ -93,7 +100,7 @@ class Xolotl < Formula
       -DSTRATA_DSV41_FQ_OP=ON
       -DSTRATA_DSV41_HC_MIX=ON
       -DSTRATA_GGML_DIR=#{llama_dir}
-      -DCMAKE_CUDA_ARCHITECTURES=80;86;89;90;100;120
+      -DCMAKE_CUDA_ARCHITECTURES=#{cuda_archs}
       -DCMAKE_CUDA_COMPILER=#{cuda}/bin/nvcc
       -DCMAKE_CUDA_FLAGS=--threads=0
       -DCUDAToolkit_ROOT=#{cuda}
@@ -103,11 +110,27 @@ class Xolotl < Formula
     args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
     if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
       ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      ENV["SCCACHE_BASEDIRS"] = buildpath.to_s
+      quiet_system sccache, "--stop-server"
       %w[C CXX CUDA].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
     end
 
     system "cmake", "-S", ".", "-B", "build-xolotl", *std_cmake_args, *args
-    system "cmake", "--build", "build-xolotl"
+    # Build only what this formula installs. The tree defines hundreds of
+    # default targets (tools, benchmarks); the installed set is tiny.
+    wanted = %w[strata ds41_generate xolotl-dense glm_generate xolotl-inkling ernie_generate]
+    ninja_file = buildpath/"build-xolotl/build.ninja"
+    available = if ninja_file.exist?
+      ninja_file.read.scan(/^build ([^:\s]+):/).flatten
+    else
+      []
+    end
+    targets = wanted.select { |name| available.include?(name) }
+    if targets.empty?
+      system "cmake", "--build", "build-xolotl"
+    else
+      system "cmake", "--build", "build-xolotl", "--target", *targets
+    end
 
     if (buildpath/"tools/vision/CMakeLists.txt").exist?
       vision_args = %W[

@@ -287,7 +287,7 @@
       "repo": "Niko1221/Strata",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "bf70a125745835f4d7e7c55bdd394bff5da5296665f934ede72738886c1fdfe7",
+      "formula_sha256": "e1b53ae48c5ae511026eb0b9f51050cd26e95c979eb52de74c742e77b528380a",
       "variants": {
         "rocm": {
           "status": "enabled",
@@ -421,7 +421,7 @@
       "repo": "Luce-Org/lucebox",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "f575a6422610a8cafc1ec7e008e1b328d0fe40e92c58fc359e28db3b56836fa8",
+      "formula_sha256": "1c35124296031b97943286b2a2f6db0ced7f9d70dec4b6c59c77522345d7edc8",
       "variants": {
         "cuda": {
           "status": "enabled",
@@ -613,7 +613,7 @@
       "repo": "Indras-Mirror/Xolotl",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "7e9172619cb09b95390663a5f9bdb9a3580bc900c681c866e4795311d7ec3d37",
+      "formula_sha256": "e3f17167563e88edd36fb58837d604acd4c27ea7d9ee9194c6e8acd21a5bd859",
       "variants": {
         "cuda": {
           "status": "enabled",

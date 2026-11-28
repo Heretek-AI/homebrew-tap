@@ -718,8 +718,13 @@ jobs:
           echo "token=${token}" >> "${GITHUB_OUTPUT}"
 
       - name: Build CUDA bottle
+        # The ci-fast label is opt-in for PR iteration and compiles a single GPU
+        # architecture; full multi-arch bottles are built on main and
+        # workflow_dispatch, and the label must be removed before brew pr-pull
+        # publishes bottles.
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+          HOMEBREW_FAST_ARCH: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-fast') && '1' || '' }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
@@ -749,7 +754,8 @@ jobs:
           #   - the linkage check is the only failed step,
           #   - it names libcuda.so.1 and nothing else, and
           #   - the real `brew test` (which test-bot skipped) passes.
-          if [[ "$(cat steps_output.txt)" != "brew linkage --test ${formula}" ]]
+          failed_steps="$(grep -v '^Warning: 1 failed step ignored!$' steps_output.txt | sed '/^[[:space:]]*$/d')"
+          if [[ "${failed_steps}" != "brew linkage --test ${formula}" ]]
           then
             echo "::error::brew test-bot reported skipped or failed steps"
             exit 1
@@ -998,6 +1004,7 @@ jobs:
       - name: Build ROCm bottle
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+          HOMEBREW_FAST_ARCH: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-fast') && '1' || '' }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \

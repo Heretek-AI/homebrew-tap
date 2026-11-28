@@ -33,6 +33,12 @@ class Lucebox < Formula
     ]
     rpath = "#{libexec}/lib;#{formula_opt_lib("cuda-runtime")};#{HOMEBREW_PREFIX}/lib"
 
+    # Plain arch entries emit PTX+SASS; "-real" emits SASS only, and one
+    # "-virtual" entry keeps forward compatibility for the newest arch.
+    # ci-fast PR builds take a single arch to keep CUDA compile time down.
+    fast_arch = ENV["HOMEBREW_FAST_ARCH"] == "1"
+    cuda_archs = fast_arch ? "90-real" : "75-real;80-real;86-real;89-real;90-real;120-real;120-virtual"
+
     if build.with?("rocm")
       rocm = [
         ENV["HOMEBREW_ROCM_PATH"],
@@ -74,7 +80,7 @@ class Lucebox < Formula
         host_cxx = ["/usr/bin/g++-13", "/usr/bin/g++"].find { |path| File.executable?(path) }
         args << "-DCMAKE_CUDA_HOST_COMPILER=#{host_cxx}" if host_cxx
       end
-      args << "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;120"
+      args << "-DCMAKE_CUDA_ARCHITECTURES=#{cuda_archs}"
       args << "-DCMAKE_CUDA_FLAGS=--threads=0"
 
       # CUDA 13.5's CUB no longer transitively includes <cuda/iterator>, which
@@ -101,6 +107,8 @@ class Lucebox < Formula
     args << "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-rpath,#{rpath_colon}"
     if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
       ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      ENV["SCCACHE_BASEDIRS"] = buildpath.to_s
+      quiet_system sccache, "--stop-server"
       %w[C CXX CUDA HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
     end
 

@@ -64,7 +64,12 @@ class Strata < Formula
         "/opt/rocm",
       ].compact.find { |p| File.exist?("#{p}/include/hip/hip_runtime.h") } ||
                   odie("ROCm installation not found. Set HOMEBREW_ROCM_PATH to your ROCm SDK.")
-      hip_archs = build.with?("all-amdgpu") ? "all" : "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
+      # ci-fast PR builds compile one HIP arch; full bottles cover every family.
+      hip_archs = if ENV["HOMEBREW_FAST_ARCH"] == "1"
+        "gfx1151"
+      else
+        build.with?("all-amdgpu") ? "all" : "gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201"
+      end
 
       backend_args = if build.with?("cuda")
         %w[-DSTRATA_ENABLE_CUDA=ON -DSTRATA_PREFILL_MMQ=ON -DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;100;120]
