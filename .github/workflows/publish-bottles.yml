@@ -7,7 +7,7 @@ name: Publish Backfilled Bottles
 # generated `bottle do` blocks. The PR is deliberately not labelled `autobump`,
 # so it is reviewed and merged manually.
 #
-# The optional GitHub App (`vars.APP_ID` + `secrets.APP_PRIVATE_KEY`) needs
+# The optional GitHub App (`vars.APP_CLIENT_ID` + `secrets.APP_PRIVATE_KEY`) needs
 # Contents, Pull requests and Issues write. GHCR uploads use `GITHUB_TOKEN`
 # because the autobump App does not have `packages: write`. Without the App the
 # workflow falls back to `GITHUB_TOKEN`, but pull requests opened with that
@@ -46,7 +46,7 @@ jobs:
       pull-requests: write
       issues: write
     env:
-      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+      APP_CONFIGURED: ${{ vars.APP_CLIENT_ID != '' }}
       RUN_ID: ${{ inputs.run_id }}
       ROOT_URL: ${{ inputs.root_url }}
     steps:
@@ -62,7 +62,7 @@ jobs:
         if: env.APP_CONFIGURED == 'true'
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
-          app-id: ${{ vars.APP_ID }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
@@ -230,7 +230,7 @@ jobs:
           if [[ "${APP_CONFIGURED}" != "true" ]]; then
             body="${body}
 
-          Opened with the repository GITHUB_TOKEN because the GitHub App is not configured, so pull-request workflows will not run automatically. Re-run the checks manually or configure APP_ID and APP_PRIVATE_KEY."
+          Opened with the repository GITHUB_TOKEN because the GitHub App is not configured, so pull-request workflows will not run automatically. Re-run the checks manually or configure APP_CLIENT_ID and APP_PRIVATE_KEY."
           fi
 
           existing_pr="$(gh pr list --repo "${GH_REPO}" --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')"

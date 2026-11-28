@@ -181,6 +181,39 @@ class TestRepoConsistency(unittest.TestCase):
             "the App token should still authenticate the setup/git push",
         )
 
+    def test_app_token_workflows_use_client_id_not_deprecated_app_id(self) -> None:
+        app_token_workflows = ("autobump.yml", "publish.yml", "publish-bottles.yml")
+        for wf in WORKFLOWS_DIR.glob("*.yml"):
+            text = wf.read_text(encoding="utf-8")
+            self.assertNotIn(
+                "app-id:",
+                text,
+                f"{wf.name} must not pass the deprecated app-id input; "
+                "actions/create-github-app-token expects client-id",
+            )
+            self.assertNotIn(
+                "vars.APP_ID",
+                text,
+                f"{wf.name} must read the App client ID from vars.APP_CLIENT_ID",
+            )
+        for name in app_token_workflows:
+            text = (WORKFLOWS_DIR / name).read_text(encoding="utf-8")
+            self.assertIn(
+                "actions/create-github-app-token@",
+                text,
+                f"{name} is expected to mint a GitHub App token",
+            )
+            self.assertIn(
+                "client-id: ${{ vars.APP_CLIENT_ID }}",
+                text,
+                f"{name} must pass vars.APP_CLIENT_ID to the token action",
+            )
+            self.assertIn(
+                "APP_CONFIGURED: ${{ vars.APP_CLIENT_ID != '' }}",
+                text,
+                f"{name} must gate the App token on vars.APP_CLIENT_ID",
+            )
+
     def test_pins_define_positive_build_timeouts(self) -> None:
         packages = json.loads(PINS_PATH.read_text(encoding="utf-8"))["packages"]
         for name, package in packages.items():

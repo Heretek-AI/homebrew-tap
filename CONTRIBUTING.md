@@ -21,7 +21,7 @@ Do not commit local scratch clones, review checkouts, or nested repositories. Ev
 3. Dispatch **Publish Backfilled Bottles** (`publish-bottles.yml`) with that `run_id`. `root_url` defaults to `https://ghcr.io/v2/heretek-ai/tap`; leave it unchanged for this tap.
 4. Review the pull request labelled `bottle-bootstrap`. It contains only the `bottle do` blocks and manifest digests written by `brew pr-upload`; the archives are already in GHCR. Merge it manually once checks pass.
 
-This is the only path that persists bottle artifacts from `workflow_dispatch` builds. The PR is not labelled `autobump`, so `brew auto-publish` does not dispatch `brew pr-pull` for it. If the App variables are unset, the workflow falls back to `GITHUB_TOKEN`, which cannot trigger pull-request workflows for the PR it opens; configure `APP_ID` and `APP_PRIVATE_KEY` or re-run checks manually.
+This is the only path that persists bottle artifacts from `workflow_dispatch` builds. The PR is not labelled `autobump`, so `brew auto-publish` does not dispatch `brew pr-pull` for it. If the App variables are unset, the workflow falls back to `GITHUB_TOKEN`, which cannot trigger pull-request workflows for the PR it opens; configure `APP_CLIENT_ID` and `APP_PRIVATE_KEY` or re-run checks manually.
 
 ## Formula conventions
 
