@@ -94,17 +94,48 @@ jobs:
           # GHCR uploads also use GITHUB_TOKEN: the App has no packages permission.
           HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           HEAD_SHA: ${{ inputs.head_sha }}
           PULL_REQUEST: ${{ inputs.pull_request }}
         run: |
-          workflows="build-hosted.yml,build-cuda.yml,build-rocm.yml"
-          if [[ -n "$HEAD_SHA" ]]
-          then
-            brew pr-pull --debug --retain-bottle-dir --workflows="$workflows" --tap="$GITHUB_REPOSITORY" --head-sha="$HEAD_SHA" \
-              "$PULL_REQUEST"
-          else
-            brew pr-pull --debug --retain-bottle-dir --workflows="$workflows" --tap="$GITHUB_REPOSITORY" "$PULL_REQUEST"
+          if [[ -z "${HEAD_SHA}" ]]; then
+            HEAD_SHA="$(gh pr view "${PULL_REQUEST}" --json headRefOid --jq .headRefOid)"
           fi
+          if [[ -z "${HEAD_SHA}" ]]; then
+            echo "::error::No head SHA for pull request #${PULL_REQUEST}."
+            exit 1
+          fi
+
+          # Only pass workflows that actually produced bottle artifacts. A
+          # formula may skip the hosted/CUDA builders entirely, and brew
+          # pr-pull aborts on the first configured workflow with no artifacts.
+          workflows=""
+          for workflow in build-hosted.yml build-cuda.yml build-rocm.yml; do
+            run_id="$(gh run list --workflow "${workflow}" --commit "${HEAD_SHA}" \
+              --json databaseId --jq '.[0].databaseId // empty')"
+            if [[ -z "${run_id}" ]]; then
+              echo "No ${workflow} run for ${HEAD_SHA}; skipping."
+              continue
+            fi
+            artifact_count="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts" \
+              --jq '.total_count')"
+            if [[ "${artifact_count}" -gt 0 ]]; then
+              workflows="${workflows:+${workflows},}${workflow}"
+              echo "${workflow} has ${artifact_count} artifact(s)."
+            else
+              echo "${workflow} has no artifacts; skipping."
+            fi
+          done
+
+          if [[ -z "${workflows}" ]]; then
+            echo "::error::No bottle artifacts found for ${HEAD_SHA}."
+            exit 1
+          fi
+
+          echo "Pulling bottles from: ${workflows}"
+          brew pr-pull --debug --retain-bottle-dir --workflows="${workflows}" \
+            --tap="${GITHUB_REPOSITORY}" --head-sha="${HEAD_SHA}" "${PULL_REQUEST}"
 
       - name: Detect retained bottles
         id: bottles
