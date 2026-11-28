@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] review-only; never checks out or runs PR head code
     types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
@@ -38,4 +38,4 @@ permissions:
 jobs:
   review:
     uses: Heretek-AI/.github/.github/workflows/ocr-review.yml@5dce2b4ea9ba28333b1424da680d375873018a28 # main
-    secrets: inherit
+    secrets: inherit # zizmor: ignore[secrets-inherit] org-owned reusable workflow needs the LLM secrets

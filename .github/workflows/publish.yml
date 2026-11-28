@@ -58,8 +58,10 @@ jobs:
 
       - name: Detect retained bottles
         id: bottles
+        env:
+          BOTTLE_DIR: ${{ steps.pull_bottles.outputs.bottle_path }}
         run: |
-          bottle_dir="${{ steps.pull_bottles.outputs.bottle_path }}"
+          bottle_dir="${BOTTLE_DIR}"
           shopt -s nullglob
           archives=("${bottle_dir}"/*.tar.gz)
           if (( ${#archives[@]} > 0 ))
