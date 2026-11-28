@@ -193,7 +193,7 @@
       "repo": "gufo-org/gufo",
       "branch": "main",
       "track": "commit",
-      "formula_sha256": "217fea3d042960cb69272fec4d19d67ebf4f0af9e3fd3f57f372bf7513123b21",
+      "formula_sha256": "8f19b047495e56a17ad0c92e6e8300d8e9aaf8bc27314d2756bf7c480a423027",
       "variants": {
         "rocm": {
           "status": "enabled",

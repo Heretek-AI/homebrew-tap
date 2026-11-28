@@ -1,9 +1,9 @@
 class Gufo < Formula
   desc "Pure C11/C++20/HIP multimodal inference engine for AMD Strix Halo (gfx1151)"
   homepage "https://github.com/gufo-org/gufo"
-  url "https://github.com/gufo-org/gufo/archive/56ed8f4d2308da6ff30b4502a850b4e5d2113d94.tar.gz"
-  version "0.28.1-git56ed8f4"
-  sha256 "093ad26cfbd73330a9e810df8f24b12a9dd8ee2c54b85ac3ea3443ed56286019"
+  url "https://github.com/gufo-org/gufo/archive/45486593ef7a62d3e12a249833e644585efdff00.tar.gz"
+  version "0.28.1-git4548659"
+  sha256 "acc79a5be10996ca8c22ad25413e1407740b8d20a32ece474ffc666e0d3f5818"
   license "Apache-2.0"
   head "https://github.com/gufo-org/gufo.git", branch: "main"
 
