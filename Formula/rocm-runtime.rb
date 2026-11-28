@@ -10,6 +10,13 @@ class RocmRuntime < Formula
     regex(/therock-dist-linux-gfx1151-(\d+(?:\.\d+)+a\d+)(?:\.tar\.gz)/i)
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    rebuild 1
+    manifest_sha256 "477c72c31fb06ee75430daad6d512fda8665445ab488eaeaa46f717c4c5effc3"
+    sha256 cellar: :any, x86_64_linux: "a1ca431d32abf83fd8b2cad264024f41b6ed10557bb5ed184efd3a2c939d545e"
+  end
+
   keg_only "it is a shared runtime that engines link against via opt_lib"
 
   depends_on arch: :x86_64
