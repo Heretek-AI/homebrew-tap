@@ -101,10 +101,12 @@ class TestRepoConsistency(unittest.TestCase):
     def test_rocm_builds_use_the_prefix_sdk_path(self) -> None:
         workflow = (WORKFLOWS_DIR / "build-rocm.yml").read_text(encoding="utf-8")
         self.assertIn(
-            "ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk",
+            "ROCM_PATH: /home/linuxbrew/.linuxbrew/opt/rocm-sdk",
             workflow,
-            "ROCm builds must use the real prefix path, not the /opt/rocm symlink",
+            "ROCm builds must use a sandbox-visible opt path, not /opt/rocm",
         )
+        self.assertIn("Materialize ROCm SDK under Homebrew opt", workflow)
+        self.assertIn("cp -al", workflow)
         self.assertNotIn("ROCM_PATH: /opt/rocm", workflow)
 
     def test_publish_workflow_serializes_pr_pull_runs(self) -> None:
