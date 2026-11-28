@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Filter heavy CI paths
         id: filter
@@ -134,6 +136,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -248,11 +252,12 @@ jobs:
         if: steps.formulae.outputs.formulae != ''
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+          TESTING_FORMULAE: ${{ steps.formulae.outputs.formulae }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
             --only-formulae \
-            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --testing-formulae="${TESTING_FORMULAE}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
       - name: Fail on skipped or failed macOS formulae
@@ -383,11 +388,12 @@ jobs:
         if: steps.formulae.outputs.formulae != ''
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+          TESTING_FORMULAE: ${{ steps.formulae.outputs.formulae }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
             --only-formulae \
-            --testing-formulae="${{ steps.formulae.outputs.formulae }}" \
+            --testing-formulae="${TESTING_FORMULAE}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
       - name: Fail on skipped or failed Linux formulae
@@ -449,6 +455,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check for published brew-cuda and brew-rocm images
         id: check
@@ -731,11 +738,12 @@ jobs:
       - name: Build CUDA bottle
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+          TESTING_FORMULAE: ${{ matrix.formula }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
             --only-formulae \
-            --testing-formulae="${{ matrix.formula }}" \
+            --testing-formulae="${TESTING_FORMULAE}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
       - name: Fail on skipped or failed CUDA formula
@@ -986,11 +994,12 @@ jobs:
       - name: Build ROCm bottle
         env:
           HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
+          TESTING_FORMULAE: ${{ matrix.formula }}
         run: |
           cd "${TAP_DIR}"
           brew test-bot \
             --only-formulae \
-            --testing-formulae="${{ matrix.formula }}" \
+            --testing-formulae="${TESTING_FORMULAE}" \
             --root-url=https://ghcr.io/v2/heretek-ai/tap
 
       - name: Fail on skipped or failed ROCm formula

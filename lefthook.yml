@@ -1,0 +1,39 @@
+# Standardized Lefthook v2 configuration — Profile: universal (Docs, Skills, Docker, Config repos)
+# Managed by Heretek-AI/.github fleet-sync. Local overrides belong in lefthook-local.yml.
+min_version: 1.10.0
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: no-local-paths
+      run: |
+        PATTERN='file:///(home|Users|root)/|/(home|Users)/[^/[:space:]"'"'"'`<>]+/(Projects|Documents|Desktop|Downloads|\.gemini|\.claude|\.codex|\.cursor)(/|[^A-Za-z0-9_-]|$)'
+        if git grep -nIE "$PATTERN" -- {staged_files}; then
+          echo "ERROR: Machine-local paths found in staged files. Use repo-relative paths or owner/name."
+          exit 1
+        fi
+
+    - name: gitleaks
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks protect --staged --redact --no-banner
+        fi
+
+    - name: json-validate
+      glob: "*.json"
+      run: jq empty {staged_files}
+
+    - name: shellcheck
+      glob: "*.sh"
+      run: |
+        if command -v shellcheck >/dev/null 2>&1; then
+          shellcheck {staged_files}
+        else
+          bash -n {staged_files}
+        fi
+
+    - name: workflow-audit
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: |
+        if command -v actionlint >/dev/null 2>&1; then actionlint {staged_files}; fi
+        if command -v zizmor >/dev/null 2>&1; then zizmor --format=plain {staged_files}; fi

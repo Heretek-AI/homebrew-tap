@@ -10,7 +10,7 @@ name: brew auto-publish
 #   repository to be this repository, and a same-repo head SHA is needed for
 #   `brew pr-pull`.
 on:
-  workflow_run:
+  workflow_run: # zizmor: ignore[dangerous-triggers] same-repo pr-pull only; never checks out PR head
     workflows: ["brew test-bot"]
     types: [completed]
 
