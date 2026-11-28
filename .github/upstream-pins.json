@@ -281,61 +281,6 @@
         }
       }
     },
-    "strata": {
-      "formula": "strata",
-      "remote": "https://github.com/Niko1221/Strata.git",
-      "repo": "Niko1221/Strata",
-      "branch": "main",
-      "track": "commit",
-      "formula_sha256": "e1b53ae48c5ae511026eb0b9f51050cd26e95c979eb52de74c742e77b528380a",
-      "variants": {
-        "rocm": {
-          "status": "enabled",
-          "backend": "rocm",
-          "default": true,
-          "runner": "stx-halo",
-          "bottle_tag": "x86_64_linux",
-          "amdgpu_targets": "gfx1100;gfx1150;gfx1151",
-          "rocm_family": "gfx1151",
-          "hw_validate": true,
-          "last_built_commit": "ffa80d73133ea5c548aefe57889a16e8085a938f",
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "metal": {
-          "status": "enabled",
-          "backend": "metal",
-          "default": true,
-          "runner": "macos-14",
-          "bottle_tag": "arm64_sonoma",
-          "hw_validate": true,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "cuda": {
-          "status": "enabled",
-          "backend": "cuda",
-          "default": false,
-          "runner": "ubuntu-24.04",
-          "bottle_tag": "x86_64_linux",
-          "brew_flags": "--with-cuda",
-          "cuda_version": "12.8",
-          "hw_validate": false,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "No Vulkan backend upstream in Strata CMakeLists"
-        },
-        "cpu": {
-          "status": "excluded",
-          "reason": "Strata engine targets accelerated platforms"
-        }
-      }
-    },
     "strixite": {
       "formula": "strixite",
       "remote": "https://github.com/shawnshekari/strixite.git",
@@ -412,54 +357,6 @@
         "cpu": {
           "status": "excluded",
           "reason": "Hardware register level tuning requires gfx1151 APU"
-        }
-      }
-    },
-    "lucebox": {
-      "formula": "lucebox",
-      "remote": "https://github.com/Luce-Org/lucebox.git",
-      "repo": "Luce-Org/lucebox",
-      "branch": "main",
-      "track": "commit",
-      "formula_sha256": "1c35124296031b97943286b2a2f6db0ced7f9d70dec4b6c59c77522345d7edc8",
-      "variants": {
-        "cuda": {
-          "status": "enabled",
-          "backend": "cuda",
-          "default": true,
-          "runner": "ubuntu-24.04",
-          "bottle_tag": "x86_64_linux",
-          "cuda_version": "12.8",
-          "hw_validate": false,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "rocm": {
-          "status": "enabled",
-          "backend": "rocm",
-          "default": false,
-          "runner": "stx-halo",
-          "bottle_tag": "x86_64_linux",
-          "brew_flags": "--with-rocm",
-          "amdgpu_targets": "gfx1150;gfx1151",
-          "rocm_family": "gfx1151",
-          "hw_validate": true,
-          "last_built_commit": null,
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "metal": {
-          "status": "excluded",
-          "reason": "No Metal speculative server pipeline in Lucebox"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "No Vulkan backend upstream"
-        },
-        "cpu": {
-          "status": "excluded",
-          "reason": "Server architecture requires GPU device acceleration"
         }
       }
     },
@@ -604,44 +501,6 @@
         "cpu": {
           "status": "excluded",
           "reason": "Requires AMD gfx1151 APU architecture"
-        }
-      }
-    },
-    "xolotl": {
-      "formula": "xolotl",
-      "remote": "https://github.com/Indras-Mirror/Xolotl.git",
-      "repo": "Indras-Mirror/Xolotl",
-      "branch": "main",
-      "track": "commit",
-      "formula_sha256": "e3f17167563e88edd36fb58837d604acd4c27ea7d9ee9194c6e8acd21a5bd859",
-      "variants": {
-        "cuda": {
-          "status": "enabled",
-          "backend": "cuda",
-          "default": true,
-          "runner": "ubuntu-24.04",
-          "bottle_tag": "x86_64_linux",
-          "cuda_version": "12.8",
-          "hw_validate": false,
-          "last_built_commit": "52cf6b89eb9a4b6e2730e935bc384100c6151b45",
-          "last_rocm_stamp": null,
-          "last_success_at": null
-        },
-        "rocm": {
-          "status": "excluded",
-          "reason": "Upstream Xolotl targets NVIDIA CUDA; Strix Halo HIP port is packaged as strixolotl"
-        },
-        "metal": {
-          "status": "excluded",
-          "reason": "No Metal backend in Xolotl"
-        },
-        "vulkan": {
-          "status": "excluded",
-          "reason": "No Vulkan backend in Xolotl"
-        },
-        "cpu": {
-          "status": "excluded",
-          "reason": "Tiered GPU inference engine requires CUDA"
         }
       }
     },

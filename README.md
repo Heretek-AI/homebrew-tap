@@ -1,6 +1,6 @@
 # Heretek-AI Homebrew Tap
 
-A Homebrew tap for 26 accelerator-focused inference runtimes, servers, and kernel harnesses, two keg-only shared runtime formulae (`rocm-runtime` and `cuda-runtime`), and two macOS GUI casks. Most formulae target AMD ROCm on Linux; the tap also covers NVIDIA CUDA, Apple Metal, Vulkan, SYCL, and CPU paths where the pinned upstream project supports them.
+A Homebrew tap for 22 accelerator-focused inference runtimes, servers, and kernel harnesses, two keg-only shared runtime formulae (`rocm-runtime` and `cuda-runtime`), and two macOS GUI casks. Most formulae target AMD ROCm on Linux; the tap also covers NVIDIA CUDA, Apple Metal, Vulkan, and CPU paths where the pinned upstream project supports them.
 
 [![brew test-bot](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/tests.yml)
 [![brew pr-pull](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/publish.yml/badge.svg)](https://github.com/Heretek-AI/homebrew-tap/actions/workflows/publish.yml)
@@ -169,7 +169,6 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | [`infr`](#infr) | [kryptic-sh/infr](https://github.com/kryptic-sh/infr) | Vulkan-first and Metal-native LLM inference engine | Linux + macOS, Metal/Vulkan |
 | [`kyojin`](#kyojin) | [Yamz-Labs/kyojin](https://github.com/Yamz-Labs/kyojin) | Strix Halo (gfx1151) & RDNA4 EXL3/GGUF inference engine with 5 model servers | Linux, ROCm/CUDA |
 | [`libosmos`](#libosmos) | [mrsirg97-rgb/libosmos](https://github.com/mrsirg97-rgb/libosmos) | HIP inference engine and OpenAI-compatible server for AMD Strix Halo | Linux x86_64, ROCm |
-| [`lucebox`](#lucebox) | [Luce-Org/lucebox](https://github.com/Luce-Org/lucebox) | LLM speculative inference server for heterogeneous hardware & consumer GPUs | Linux, ROCm/CUDA |
 | [`magnitude`](#magnitude) | [magnitudedev/magnitude](https://github.com/magnitudedev/magnitude) | Local inference runtime and agent harness | Linux + macOS, Metal/CPU |
 | [`nib`](#nib) | [Chromadera/nib](https://github.com/Chromadera/nib) | C++17 HIP inference engine for Inkling 2 Mini on AMD RDNA3 | Linux x86_64, ROCm |
 | [`project-maya`](#project-maya) | [mw00/project-maya](https://github.com/mw00/project-maya) | Tiered MoE engine for GLM-5.3-Flash, Qwen-3.8, DeepSeek-V4.1 & MiniMax | Linux + macOS, ROCm/CUDA/Metal |
@@ -179,11 +178,9 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | [`shimmy`](#shimmy) | [Michael-A-Kuykendall/shimmy](https://github.com/Michael-A-Kuykendall/shimmy) | Pure-Rust WebGPU & CUDA LLM inference engine | Linux + macOS, Metal/CPU |
 | [`snowllm`](#snowllm) | [snowllm/snowllm](https://github.com/snowllm/snowllm) | Hand-written HIP kernels and embedded LLM runner for AMD Ryzen AI Max | Linux, ROCm |
 | [`stable-diffusion-cpp`](#stable-diffusion-cpp) | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | Fast Stable Diffusion, SDXL, Flux, SD3 & Wan inference in C/C++ | Linux + macOS, ROCm/Metal/Vulkan/CPU |
-| [`strata`](#strata) | [Niko1221/Strata](https://github.com/Niko1221/Strata) | Tiered MoE engine for Qwen3.8-Flash-Next, Qwen3.6 & DeepSeek-V4.1 | Linux + macOS, ROCm/CUDA/Metal/SYCL |
 | [`strixite`](#strixite) | [shawnshekari/strixite](https://github.com/shawnshekari/strixite) | Zero-dependency C++20/HIP inference engine for AMD Strix Halo (gfx1151) | Linux, ROCm |
 | [`strixolotl`](#strixolotl) | [snowsh1ne/strixolotl](https://github.com/snowsh1ne/strixolotl) | AMD Strix Halo HIP port of Xolotl for DeepSeek-V4.1-Flash (GSQ-217) | Linux, ROCm |
 | [`uzu`](#uzu) | [trymirai/uzu](https://github.com/trymirai/uzu) | Apple Silicon inference engine and Mirai CLI | macOS, Metal/CPU |
-| [`xolotl`](#xolotl) | [Indras-Mirror/Xolotl](https://github.com/Indras-Mirror/Xolotl) | Tiered CUDA MoE engine for DeepSeek-V4.1, GLM-5.3, Qwen3.8 & Inkling | Linux, CUDA |
 | [`zinc`](#zinc) | [zolotukhin/zinc](https://github.com/zolotukhin/zinc) | Zig inference engine with ROCm, Vulkan, and Metal backends | Linux x86_64, ROCm/Vulkan |
 <!-- END GENERATED: formula-catalog -->
 
@@ -211,7 +208,6 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | `infr` | `infr` | None |
 | `kyojin` | `kyojin-serve`, `kyojin-bench`, `kyojin-convert`, `kyojin-chat` | `--with-rdna4`, `--with-cuda` |
 | `libosmos` | `osmos-api`, `osmos-serve` | `--with-npu` |
-| `lucebox` | `lucebox-server`, `lucebox` | `--with-rocm` |
 | `magnitude` | `magnitude` | None |
 | `nib` | `nib` | None |
 | `project-maya` | Linux build outputs: `maya`, `maya-ds4`, `maya-mm3`, `maya-vision`; macOS: `maya`, `maya-metal`, `maya-vision`; all: `maya-server`, `maya-cli`, `maya-chat`, `maya-setup`; Linux tools when built: `maya-tune-hipblaslt`, `maya-peer-probe`, `maya-plan`, `maya-device`, `maya-gguf`, `maya-dequant`, `maya-load`, `maya-concurrent`, `maya-overlap` | `--with-wave64`, `--with-all-amdgpu`, `--with-cuda`, `--with-native` |
@@ -221,11 +217,9 @@ The catalog is alphabetical. Each subsection lists the upstream project, purpose
 | `shimmy` | `shimmy` | None |
 | `snowllm` | `snowllm`; upstream also declares `snowllm-mineru` (optional MinerU dependencies are not installed by this formula) | None |
 | `stable-diffusion-cpp` | `sd-cli`, `sd-server`, `stable-diffusion` | `--with-rocm`, `--with-cpu` |
-| `strata` | `strata`, `strata-cli`, `strata-server`, `strata-chat`, `strata-setup`; engines/tools when built: `strata-q36`, `strata-dsv41`, `strata-split-2`, `strata-split-3`, `strata-split-4`, `strata-device`, `strata-plan`, `strata-gguf`, `strata-dequant`, `strata-load`, `strata-concurrent`, `strata-overlap`, `strata-vision` or `strata-vision-hip` | `--with-all-amdgpu`, `--with-cuda`, `--with-sycl`, `--with-native` |
 | `strixite` | `strixite-server`, `strixite`, `strixite-convert-qwen4exp`, `strixite-convert-ngram-table`, `strixite-transcode-ngram-table`, `strixite-inspect-strixw`, `strixite-check-stream-calls` | `--with-portable-cpu` |
 | `strixolotl` | `strixolotl`, `strixolotl-serve` | None |
 | `uzu` | `mirai` | None |
-| `xolotl` | `xolotl`, `xolotl-ds41`, `xolotl-dense`, `xolotl-glm`, `xolotl-inkling`, `xolotl-ernie`, `xolotl-vision`, `xolotl-serve` | None |
 | `zinc` | `zinc`, `zinc-tokenize` | `--with-vulkan` |
 
 ### basalt
@@ -422,21 +416,6 @@ osmos-serve --model /path/to/pack/first-shard.gguf
 
 The formula installs `osmos-api`, `osmos-serve`, the static `libosmos.a`/`libosmos_hip.a` libraries, and the public `osmos` headers. The release tarball bundles `third_party/libevt`, so no submodule checkout is needed.
 
-### lucebox
-
-**Upstream:** [Luce-Org/lucebox](https://github.com/Luce-Org/lucebox)
-**Purpose:** Speculative LLM inference server for consumer GPUs.
-**Platforms/backends:** Linux. The default build uses CUDA (`75;80;86;89;90;120` compute architectures); `--with-rocm` builds the HIP backend for `gfx1150;gfx1151` instead.
-**Options:**
-- `--with-rocm` builds with AMD ROCm/HIP instead of NVIDIA CUDA.
-
-```bash
-lucebox --help
-lucebox-server --help
-```
-
-`lucebox` is a symlink to `lucebox-server`.
-
 ### magnitude
 
 **Upstream:** [magnitudedev/magnitude](https://github.com/magnitudedev/magnitude)
@@ -583,27 +562,6 @@ sd-server --host 127.0.0.1 --port 18008
 
 `stable-diffusion` is this tap's alias for `sd-cli`. It is not homebrew-core's `sd`, which is an unrelated find-and-replace CLI.
 
-### strata
-
-**Upstream:** [Niko1221/Strata](https://github.com/Niko1221/Strata)
-**Purpose:** Tiered MoE engine for Qwen3.8-Flash-Next, Qwen3.6, and DeepSeek-V4.1, with Python orchestration and C++ engines.
-**Platforms/backends:** Linux ROCm (default), Linux CUDA, Linux Intel oneAPI SYCL, or macOS Metal. Linux HIP targets default to `gfx1100;gfx1150;gfx1151`. CUDA builds use `75;80;86;89;90;100;120`.
-**Options:**
-- `--with-all-amdgpu` compiles HIP kernels for all supported AMD GPUs; the upstream option describes the range as `gfx906` through `gfx1201`.
-- `--with-cuda` builds the NVIDIA CUDA backend instead of AMD ROCm/HIP.
-- `--with-sycl` builds the Intel Arc/Xe oneAPI SYCL backend.
-- `--with-native` enables `-march=native` in `ggml-cpu`; the default uses portable AVX2 with runtime AVX-512 dispatch.
-
-```bash
-strata-cli --help
-strata-cli --model qwen38 --host 127.0.0.1 --port 18006
-strata-server --help
-strata-q36 --help
-strata-dsv41 --help
-```
-
-`strata` and `strata-cli` are launcher entrypoints for the Python orchestrator; `strata-server`, `strata-chat`, and `strata-setup` are the server, chat, and setup wrappers. The C++ engine variants and tools are linked when the build produces them.
-
 ### strixite
 
 **Upstream:** [shawnshekari/strixite](https://github.com/shawnshekari/strixite)
@@ -648,21 +606,6 @@ mirai server --model trymirai/Qwen3.5-4B-M
 ```
 
 The server defaults to `127.0.0.1:8000` and accepts `--host` and `--port`. The CLI downloads and converts models on first use; the GUI `.dmg` is not installed by this formula.
-
-### xolotl
-
-**Upstream:** [Indras-Mirror/Xolotl](https://github.com/Indras-Mirror/Xolotl)
-**Purpose:** Tiered CUDA MoE and dense inference engine built on Strata for DeepSeek-V4.1-Flash (552B), GLM-5.3-Flash (320B), Qwen3.8-Flash-Next (125B), Qwen3.8-27B, Inkling-2-Mini, Muse Glimmer 30B, LFM3-Omni, and ERNIE-5.5-Flash.
-**Platforms/backends:** Linux only; NVIDIA CUDA (`sm_80` through `sm_120`).
-**Options:** None.
-
-```bash
-xolotl-ds41 --help
-xolotl-dense --selftest
-xolotl-serve --config /path/to/model.json --port 8090
-```
-
-All binaries are namespaced (`xolotl`, `xolotl-ds41`, `xolotl-dense`, `xolotl-glm`, `xolotl-inkling`, `xolotl-ernie`, `xolotl-vision`, `xolotl-serve`) so `xolotl` installs cleanly alongside `strata`.
 
 ### zinc
 
@@ -711,7 +654,7 @@ The tap avoids linking upstream generic names that would collide with other pack
 - **No bare `sd`.** `stable-diffusion-cpp` installs the upstream names `sd-cli` and `sd-server`, plus the tap alias `stable-diffusion` for `sd-cli`. Homebrew-core's `sd` is a different program and is not replaced.
 - **No bare engine or daemon names.** `colibri` links only its `coli` launcher; the `colibri`, `colibri-tui`, and per-family engine binaries stay under `libexec/colibri`. `hipfire` links only `hipfire`; its `daemon` helper stays at `libexec/bin/daemon`. `magnitude` installs its upstream `magnitude-cli` archive as `magnitude`, and `uzu` installs its `mirai-*-apple-darwin` archive as `mirai`.
 - **No bare `gufo` from extensions.** `gufo-ds41` renames upstream `gufo` to `gufo-ds41`, so it installs side-by-side with `gufo`.
-- **Formula-prefixed helpers.** Kyojin, Project Maya, Strata, Xolotl, Strixolotl, Qwenox, Strixite, and HyperQwen install their helper tools with formula-specific prefixes (`kyojin-*`, `maya-*`, `strata-*`, `xolotl-*`, `strixolotl-*`, `qwenox-*`, `strixite-*`, `hyperqwen-*`).
+- **Formula-prefixed helpers.** Kyojin, Project Maya, Strixolotl, Qwenox, Strixite, and HyperQwen install their helper tools with formula-specific prefixes (`kyojin-*`, `maya-*`, `strixolotl-*`, `qwenox-*`, `strixite-*`, `hyperqwen-*`).
 
 If a short name is ambiguous with a core formula, use the fully qualified tap name: `brew install heretek-ai/tap/<formula>`.
 
@@ -722,12 +665,12 @@ This generated matrix combines the pinned variant ledger, the validation specs, 
 <!-- BEGIN GENERATED: hardware-matrix -->
 | Hardware family | Recommended formulae / install commands |
 | :--- | :--- |
-| AMD Strix Halo (`gfx1151`) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install heretek-ai/tap/crucible-strix-halo`<br>`brew install heretek-ai/tap/gufo`<br>`brew install heretek-ai/tap/gufo-ds41`<br>`brew install heretek-ai/tap/hipfire`<br>`brew install heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/libosmos`<br>`brew install --with-rocm heretek-ai/tap/lucebox`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/qwenox`<br>`brew install heretek-ai/tap/rulith-inference`<br>`brew install heretek-ai/tap/snowllm`<br>`brew install heretek-ai/tap/strata`<br>`brew install heretek-ai/tap/strixite`<br>`brew install heretek-ai/tap/strixolotl` |
-| AMD RDNA3 (`gfx1100` family) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install --with-gfx1100 heretek-ai/tap/hipfire`<br>`brew install heretek-ai/tap/nib`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/strata` |
-| AMD RDNA4 (`gfx1200` family) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install --with-gfx1201 heretek-ai/tap/hipfire`<br>`brew install --with-rdna4 heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/strata` |
-| NVIDIA Blackwell (CUDA `sm_120`/`sm_121`) | Runtime: `brew install heretek-ai/tap/cuda-runtime`<br>`brew install heretek-ai/tap/basalt`<br>`brew install heretek-ai/tap/hyperqwen`<br>`brew install --with-cuda heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/lucebox`<br>`brew install --with-cuda heretek-ai/tap/project-maya`<br>`brew install --with-cuda heretek-ai/tap/strata`<br>`brew install heretek-ai/tap/xolotl` |
-| NVIDIA CUDA (`sm_80`-`sm_90`) | Runtime: `brew install heretek-ai/tap/cuda-runtime`<br>`brew install heretek-ai/tap/hyperqwen`<br>`brew install --with-cuda heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/lucebox`<br>`brew install --with-cuda heretek-ai/tap/project-maya`<br>`brew install --with-cuda heretek-ai/tap/strata`<br>`brew install heretek-ai/tap/xolotl` |
-| Apple Silicon (macOS) | Runtime: none<br>`brew install heretek-ai/tap/colibri`<br>`brew install heretek-ai/tap/infr`<br>`brew install heretek-ai/tap/magnitude`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/shimmy`<br>`brew install heretek-ai/tap/stable-diffusion-cpp`<br>`brew install heretek-ai/tap/strata`<br>`brew install heretek-ai/tap/uzu` |
+| AMD Strix Halo (`gfx1151`) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install heretek-ai/tap/crucible-strix-halo`<br>`brew install heretek-ai/tap/gufo`<br>`brew install heretek-ai/tap/gufo-ds41`<br>`brew install heretek-ai/tap/hipfire`<br>`brew install heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/libosmos`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/qwenox`<br>`brew install heretek-ai/tap/rulith-inference`<br>`brew install heretek-ai/tap/snowllm`<br>`brew install heretek-ai/tap/strixite`<br>`brew install heretek-ai/tap/strixolotl` |
+| AMD RDNA3 (`gfx1100` family) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install --with-gfx1100 heretek-ai/tap/hipfire`<br>`brew install heretek-ai/tap/nib`<br>`brew install heretek-ai/tap/project-maya` |
+| AMD RDNA4 (`gfx1200` family) | Runtime: `brew install heretek-ai/tap/rocm-runtime`<br>`brew install --with-gfx1201 heretek-ai/tap/hipfire`<br>`brew install --with-rdna4 heretek-ai/tap/kyojin`<br>`brew install heretek-ai/tap/project-maya` |
+| NVIDIA Blackwell (CUDA `sm_120`/`sm_121`) | Runtime: `brew install heretek-ai/tap/cuda-runtime`<br>`brew install heretek-ai/tap/basalt`<br>`brew install heretek-ai/tap/hyperqwen`<br>`brew install --with-cuda heretek-ai/tap/kyojin`<br>`brew install --with-cuda heretek-ai/tap/project-maya` |
+| NVIDIA CUDA (`sm_80`-`sm_90`) | Runtime: `brew install heretek-ai/tap/cuda-runtime`<br>`brew install heretek-ai/tap/hyperqwen`<br>`brew install --with-cuda heretek-ai/tap/kyojin`<br>`brew install --with-cuda heretek-ai/tap/project-maya` |
+| Apple Silicon (macOS) | Runtime: none<br>`brew install heretek-ai/tap/colibri`<br>`brew install heretek-ai/tap/infr`<br>`brew install heretek-ai/tap/magnitude`<br>`brew install heretek-ai/tap/project-maya`<br>`brew install heretek-ai/tap/shimmy`<br>`brew install heretek-ai/tap/stable-diffusion-cpp`<br>`brew install heretek-ai/tap/uzu` |
 | CPU / Vulkan fallback | Runtime: none<br>`brew install heretek-ai/tap/colibri`<br>`brew install heretek-ai/tap/infr`<br>`brew install heretek-ai/tap/magnitude`<br>`brew install heretek-ai/tap/shimmy`<br>`brew install heretek-ai/tap/stable-diffusion-cpp`<br>`brew install --with-vulkan heretek-ai/tap/zinc` |
 <!-- END GENERATED: hardware-matrix -->
 
@@ -735,16 +678,16 @@ This generated matrix combines the pinned variant ledger, the validation specs, 
 
 - `gfx1151` is AMD Strix Halo / Ryzen AI Max. `gfx1150` is Strix Point. `gfx1100` and `gfx110X` are RDNA3 families; `gfx1200`, `gfx1201`, and `gfx120X` are RDNA4; `gfx103X` is RDNA2. `gfx908` is Instinct MI100 and `gfx90a` is Instinct MI210/MI250X.
 - `gfx906`, `gfx942`, and `gfx950` are available through Project Maya's `--with-wave64` option. `hipfire` also ships a `gfx906` kernel-pack option.
-- macOS support covers `colibri` (arm64 only), `infr` (arm64 and Intel), `magnitude` (arm64 and Intel), `project-maya`, `strata`, `shimmy`, `stable-diffusion-cpp`, and `uzu` (arm64 and Intel); the two casks are macOS GUI applications. The other formulae declare Linux only. `colibri` declares an arm64 requirement on macOS because upstream publishes no Intel archive.
-- CUDA support covers `basalt`, `hyperqwen`, `kyojin --with-cuda`, `lucebox` (default), `project-maya --with-cuda`, `strata --with-cuda`, and `xolotl`. `shimmy`'s pinned upstream CUDA feature is not enabled here.
-- Vulkan is supported by `colibri` (Linux archive), `infr` (Linux archive), `stable-diffusion-cpp` (default Linux artifact), and `zinc --with-vulkan`. SYCL is supported by `strata --with-sycl`. The CPU-only paths are `shimmy` on Linux and `stable-diffusion-cpp --with-cpu`; `infr`, `colibri`, and `uzu` include a CPU fallback, and Project Maya and Strata compile a CPU fallback into their GPU builds but do not offer a standalone CPU option.
+- macOS support covers `colibri` (arm64 only), `infr` (arm64 and Intel), `magnitude` (arm64 and Intel), `project-maya`, `shimmy`, `stable-diffusion-cpp`, and `uzu` (arm64 and Intel); the two casks are macOS GUI applications. The other formulae declare Linux only. `colibri` declares an arm64 requirement on macOS because upstream publishes no Intel archive.
+- CUDA support covers `basalt`, `hyperqwen`, `kyojin --with-cuda`, and `project-maya --with-cuda`. `shimmy`'s pinned upstream CUDA feature is not enabled here.
+- Vulkan is supported by `colibri` (Linux archive), `infr` (Linux archive), `stable-diffusion-cpp` (default Linux artifact), and `zinc --with-vulkan`. The CPU-only paths are `shimmy` on Linux and `stable-diffusion-cpp --with-cpu`; `infr`, `colibri`, and `uzu` include a CPU fallback, and Project Maya compiles a CPU fallback into its GPU builds but does not offer a standalone CPU option.
 - `basalt`, `colibri`, `infr`, and `magnitude` publish different archives per platform/architecture. `basalt` is the only one that pairs a prebuilt x86_64 archive with a source build on arm64; the other three install prebuilt archives for every supported target.
 
 ### Prebuilt artifacts and source builds
 
 - **Always prebuilt:** `stable-diffusion-cpp` installs upstream release zips for Vulkan, ROCm, CPU, or macOS Metal; `colibri`, `hipfire`, `infr`, `magnitude`, `uzu`, and `zinc` install upstream CLI/engine archives. None of these needs a compiler for its default artifact.
 - **Hybrid:** `basalt` installs the upstream Blackwell archive on Linux x86_64 and builds the verified source tag on Linux arm64 (DGX Spark).
-- **Source by default:** the remaining formulae install from pinned source revisions, including `gufo-ds41`, `rulith-inference`, `strixolotl`, `xolotl`, and `nib`, which build with CMake against the host ROCm or CUDA SDK. Homebrew may pour a matching CI bottle; if no bottle matches your OS/architecture/variant, it builds from source.
+- **Source by default:** the remaining formulae install from pinned source revisions, including `gufo-ds41`, `rulith-inference`, `strixolotl`, and `nib`, which build with CMake against the host ROCm or CUDA SDK. Homebrew may pour a matching CI bottle; if no bottle matches your OS/architecture/variant, it builds from source.
 - **Toolchain coupling:** source-built binaries link against the ROCm or CUDA installation present at build time. Prebuilt ROCm binaries such as `hipfire` and `zinc` load the host ROCm runtime dynamically and need a compatible SDK on the loader path. Rebuild or reinstall if that SDK moves. The tap's `rocm-runtime` and `cuda-runtime` formulae provide shared runtimes without compilers; `basalt`'s x86_64 archive expects the CUDA 13 runtime on the loader path.
 - **Bottles are platform- and variant-specific.** There is no universal bottle for a formula with `gfx` or backend options. Use `--build-from-source` when you need a non-default option.
 
@@ -755,7 +698,7 @@ This generated matrix combines the pinned variant ledger, the validation specs, 
 - Homebrew on Linux x86_64, Linux arm64 (DGX Spark for `basalt`), or macOS.
 - Homebrew installs the declared build dependencies (for example `cmake`, `ninja`, `pkgconf`, `python@3.12`, `rust`, `gcc`, or `lld`) as part of the install.
 - macOS source builds need the Xcode Command Line Tools and a Metal-capable toolchain.
-- Some formulae use Python 3.12 virtualenvs (`project-maya`, `strata`, `snowllm`, `hyperqwen`, `kyojin`); the formula handles the virtualenv, but the ROCm or CUDA SDK is still external. `basalt`'s Python server dependencies are installed by the user into the formula's `libexec/.venv` as shown in its caveats.
+- Some formulae use Python 3.12 virtualenvs (`project-maya`, `snowllm`, `hyperqwen`, `kyojin`); the formula handles the virtualenv, but the ROCm or CUDA SDK is still external. `basalt`'s Python server dependencies are installed by the user into the formula's `libexec/.venv` as shown in its caveats.
 
 ### AMD ROCm
 
@@ -787,18 +730,18 @@ CUDA formulae probe `HOMEBREW_CUDA_PATH`, `CUDA_HOME`, `CUDA_PATH`, and `/usr/lo
 
 ```bash
 export HOMEBREW_CUDA_PATH=/usr/local/cuda
-brew install --build-from-source heretek-ai/tap/lucebox
+brew install --build-from-source heretek-ai/tap/hyperqwen
 ```
 
-`hyperqwen` compiles `liblsa.so` only when `nvcc` is found; without it, the package still installs but the helper library is skipped. `lucebox` builds CUDA by default, so AMD users must pass `--with-rocm`.
+`hyperqwen` compiles `liblsa.so` only when `nvcc` is found; without it, the package still installs but the helper library is skipped.
 
 `basalt` is CUDA 13 only. On Linux x86_64 it installs upstream's prebuilt Blackwell `sm_120` archive, and the formula depends on `cuda-runtime`; its wrappers prepend `Formula["cuda-runtime"].opt_lib` to `LD_LIBRARY_PATH`, so the CUDA 13 runtime libraries (`libcudart.so.13`, `libcublas.so.13`, `libcublasLt.so.13`) come from the shared runtime instead of a hard-coded toolkit path. On Linux arm64 (DGX Spark GB10) the formula builds the same tag from source for `sm_121` and requires a CUDA 13 toolkit with `nvcc` plus GCC 13+; set `HOMEBREW_CUDA_PATH` if the toolkit is not at `/usr/local/cuda`.
 
-Two formulae need extra care in the current revision: `project-maya` and `strata` resolve a ROCm root before selecting `--with-cuda` or `--with-sycl`, so those source builds still need a ROCm SDK with HIP headers available even when they compile a non-HIP backend. The formula file is authoritative if this changes.
+`project-maya` needs extra care in the current revision: it resolves a ROCm root before selecting `--with-cuda`, so the source build still needs a ROCm SDK with HIP headers available even when it compiles the CUDA backend. The formula file is authoritative if this changes.
 
 ### macOS Metal
 
-Only `colibri`, `infr`, `magnitude`, `project-maya`, `strata`, `shimmy`, `stable-diffusion-cpp`, and `uzu` support macOS in this tap, and the `kokon` and `hatchlight` casks install macOS GUI applications. There is no ROCm or CUDA path on macOS. Prebuilt CI bottles target `arm64_sonoma`. `colibri` installs an upstream arm64 Metal archive and requires `libomp`; `infr` installs arm64 or Intel archives; `magnitude` installs arm64 or Intel CLI archives; `uzu` installs the arm64 Metal or Intel CPU CLI archive. `project-maya`, `strata`, and `shimmy` can build from source on macOS; `stable-diffusion-cpp` currently declares only an arm64 macOS artifact.
+Only `colibri`, `infr`, `magnitude`, `project-maya`, `shimmy`, `stable-diffusion-cpp`, and `uzu` support macOS in this tap, and the `kokon` and `hatchlight` casks install macOS GUI applications. There is no ROCm or CUDA path on macOS. Prebuilt CI bottles target `arm64_sonoma`. `colibri` installs an upstream arm64 Metal archive and requires `libomp`; `infr` installs arm64 or Intel archives; `magnitude` installs arm64 or Intel CLI archives; `uzu` installs the arm64 Metal or Intel CPU CLI archive. `project-maya` and `shimmy` can build from source on macOS; `stable-diffusion-cpp` currently declares only an arm64 macOS artifact.
 
 ## CI and publishing pipeline
 
@@ -927,13 +870,6 @@ basalt serve --config "$(brew --prefix)/etc/basalt/basalt_config.json" --host 12
 ### Tiered, multimodal, and CUDA servers
 
 ```bash
-# Strata
-strata-cli --help
-strata-cli --model qwen38 --host 127.0.0.1 --port 18006
-strata-server --help
-strata-q36 --help
-strata-dsv41 --help
-
 # Project Maya
 maya-cli --help
 maya-cli --model glm51 --host 127.0.0.1 --port 18005
@@ -951,9 +887,6 @@ hyperqwen serve
 hyperqwen bench --url http://127.0.0.1:18020 -c 1 4 8 16
 hyperqwen chat --help
 
-# Lucebox
-lucebox --help
-lucebox-server --help
 ```
 
 ## Services
@@ -972,11 +905,10 @@ Only the formulae below declare a `service` block. Start a service with `brew se
 | `rulith-inference` | `rulith-server` | `127.0.0.1:18014` | Linux ROCm `gfx1151` `llama-server` endpoint |
 | `shimmy` | `shimmy serve` | `127.0.0.1:11434` | Retains the upstream/Ollama-compatible port `11434` |
 | `stable-diffusion-cpp` | `sd-server` | `127.0.0.1:18008` | Diffusion HTTP server |
-| `strata` | `strata-cli --port 18006` | `127.0.0.1:18006` | The launcher defaults to loopback; the service changes the port |
 | `strixite` | `strixite-server --config ...` | `127.0.0.1:18004` | Shipped config and service use port `18004` |
 | `zinc` | `zinc serve --port 18009` | all interfaces on port `18009` | Upstream has no `--host` flag; configure an active model first |
 
-`colibri`, `crucible-strix-halo`, `infr`, `libosmos`, `lucebox`, `magnitude`, `nib`, `qwenox`, `snowllm`, `strixolotl`, `uzu`, and `xolotl` have no service block and must be launched manually.
+`colibri`, `crucible-strix-halo`, `infr`, `libosmos`, `magnitude`, `nib`, `qwenox`, `snowllm`, `strixolotl`, and `uzu` have no service block and must be launched manually.
 
 ```bash
 brew services list
@@ -1002,7 +934,6 @@ The table between the generated markers is maintained from the registry. `zinc` 
 | [`gufo-ds41`](#gufo-ds41) | `gufo-ds41 serve` | `127.0.0.1:18003` | Set with --host 127.0.0.1 --port 18003 in the service block. Replaces gufo-franzmoca. Upstream default is 8080. |
 | [`strixite`](#strixite) | `strixite-server` | `127.0.0.1:18004` | Configured by host/port in etc/strixite/strix_server.conf and overridden explicitly with --host 127.0.0.1 --port 18004 in the service block. Upstream default is 5300. |
 | [`project-maya`](#project-maya) | `maya-cli` | `127.0.0.1:18005` | Set with --host 127.0.0.1 --port 18005 in the service block. maya-server upstream default is 8080. |
-| [`strata`](#strata) | `strata-cli` | `127.0.0.1:18006` | Port changed to 18006 in the existing strata-cli service invocation. The launcher and server default to 127.0.0.1; that command shape exposes no --host flag, so this service relies on the default loopback bind. |
 | [`stable-diffusion-cpp`](#stable-diffusion-cpp) | `sd-server` | `127.0.0.1:18008` | Set with --host 127.0.0.1 --port 18008 in the service block. Upstream default is 8080. |
 | [`zinc`](#zinc) | `zinc serve` | `0.0.0.0:18009` | Set with --port 18009. Upstream has no --host flag and always binds 0.0.0.0, so the registry bind_host cannot be enforced for this service; use a host firewall or an isolating network namespace. |
 | [`kyojin`](#kyojin) | `kyojin-serve qwen` | `127.0.0.1:18010` | Set with --host 127.0.0.1 --port 18010 in the service block; the service starts the qwen engine. Upstream default is 8000. |
@@ -1059,7 +990,7 @@ A fully qualified `brew install heretek-ai/tap/gufo` trusts only `gufo`. Aliases
 
 - **ROCm:** verify that `$HOMEBREW_ROCM_PATH/include/hip/hip_runtime.h` exists, or that `/opt/rocm-nightly` or `/opt/rocm` contains it. Then reinstall with `HOMEBREW_ROCM_PATH` set.
 - **CUDA:** verify that `nvcc --version` works and that the toolkit is at `/usr/local/cuda` or pointed to by `HOMEBREW_CUDA_PATH`, `CUDA_HOME`, or `CUDA_PATH`. `basalt`'s prebuilt x86_64 archive needs the CUDA 13 runtime (`libcudart.so.13`, `libcublas.so.13`, `libcublasLt.so.13`).
-- **Wrong backend:** `lucebox` defaults to CUDA; use `--with-rocm` on AMD. `stable-diffusion-cpp` defaults to Vulkan on Linux; use `--with-rocm` or `--with-cpu` for those artifacts.
+- **Wrong backend:** `stable-diffusion-cpp` defaults to Vulkan on Linux; use `--with-rocm` or `--with-cpu` for those artifacts.
 - **Options ignored:** if a bottle was poured, reinstall with `--build-from-source` and the option.
 
 ### Service and linkage issues
@@ -1134,10 +1065,10 @@ The tap's own code and automation are licensed under the [MIT License](LICENSE).
 
 | License | Formulae |
 | :--- | :--- |
-| `Apache-2.0` | `colibri`, `crucible-strix-halo`, `gufo`, `gufo-ds41`, `hipfire`, `lucebox`, `magnitude`, `nib`, `shimmy`, `snowllm` |
-| `MIT` | `basalt`, `infr`, `kyojin`, `libosmos`, `rocm-runtime`, `rulith-inference`, `stable-diffusion-cpp`, `strixolotl`, `uzu`, `xolotl`, `zinc` |
+| `Apache-2.0` | `colibri`, `crucible-strix-halo`, `gufo`, `gufo-ds41`, `hipfire`, `magnitude`, `nib`, `shimmy`, `snowllm` |
+| `MIT` | `basalt`, `infr`, `kyojin`, `libosmos`, `rocm-runtime`, `rulith-inference`, `stable-diffusion-cpp`, `strixolotl`, `uzu`, `zinc` |
 | `AGPL-3.0-only` | `qwenox`, `strixite` |
-| `:cannot_represent` | `cuda-runtime`, `hyperqwen`, `project-maya`, `strata` |
+| `:cannot_represent` | `cuda-runtime`, `hyperqwen`, `project-maya` |
 
 Casks do not carry a Homebrew license stanza in the same way as formulae. Upstream licensing is `AGPL-3.0` for `kokon` and `MIT` for `hatchlight`; consult each upstream repository for the full terms.
 

@@ -1,7 +1,10 @@
 {
   "version": 1,
   "bind_host": "127.0.0.1",
-  "reserved_range": [18000, 18099],
+  "reserved_range": [
+    18000,
+    18099
+  ],
   "services": {
     "basalt": {
       "port": 18012,
@@ -32,12 +35,6 @@
       "executable": "maya-cli",
       "configurable": true,
       "notes": "Set with --host 127.0.0.1 --port 18005 in the service block. maya-server upstream default is 8080."
-    },
-    "strata": {
-      "port": 18006,
-      "executable": "strata-cli",
-      "configurable": true,
-      "notes": "Port changed to 18006 in the existing strata-cli service invocation. The launcher and server default to 127.0.0.1; that command shape exposes no --host flag, so this service relies on the default loopback bind."
     },
     "stable-diffusion-cpp": {
       "port": 18008,

@@ -95,18 +95,6 @@ def load_config_from_ledger():
             "branch": "main",
             "formulae": ["strixolotl.rb"],
         },
-        "strata": {
-            "type": "upstream_commit",
-            "repo": "Niko1221/Strata",
-            "branch": "main",
-            "formulae": ["strata.rb"],
-        },
-        "xolotl": {
-            "type": "upstream_commit",
-            "repo": "Indras-Mirror/Xolotl",
-            "branch": "main",
-            "formulae": ["xolotl.rb"],
-        },
         "project-maya": {
             "type": "upstream_commit",
             "repo": "mw00/project-maya",

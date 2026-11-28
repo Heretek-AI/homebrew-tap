@@ -7,7 +7,6 @@ tap "heretek-ai/tap", trusted: { formulae: [
   "project-maya",
   "rocm-runtime",
   "stable-diffusion-cpp",
-  "strata",
   "zinc",
 ] }
 
@@ -17,5 +16,4 @@ brew "hipfire", args: ["with-gfx1100"]
 brew "nib"
 brew "project-maya"
 brew "stable-diffusion-cpp", args: ["with-rocm"]
-brew "strata"
 brew "zinc"

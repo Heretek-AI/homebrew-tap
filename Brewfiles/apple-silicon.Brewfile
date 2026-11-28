@@ -8,7 +8,6 @@ tap "heretek-ai/tap", trusted: { formulae: [
   "project-maya",
   "shimmy",
   "stable-diffusion-cpp",
-  "strata",
   "uzu",
 ] }
 
@@ -18,5 +17,4 @@ brew "magnitude"
 brew "project-maya"
 brew "shimmy"
 brew "stable-diffusion-cpp"
-brew "strata"
 brew "uzu"

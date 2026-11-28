@@ -48,7 +48,7 @@ CUDA_MARKERS = (
 # self-hosted ROCm bottle/validation job.
 PREBUILT_ROCM_FORMULAE = frozenset({"hipfire", "zinc"})
 # Formulae that contain both backend markers but build CUDA by default.
-CUDA_DEFAULT_FORMULAE = frozenset({"lucebox"})
+CUDA_DEFAULT_FORMULAE = frozenset()
 # Runtime-only formula that downloads prebuilt CUDA libraries and needs no
 # toolkit, so it can be bottled on ordinary hosted Linux.
 HOSTED_LINUX_FORMULAE = frozenset({"cuda-runtime"})
@@ -215,7 +215,13 @@ def main() -> int:
     parser.add_argument(
         "--runner",
         required=True,
-        choices=["hosted-linux", "hosted-macos", "hosted-cuda", "hosted-rocm", "stx-halo"],
+        choices=[
+            "hosted-linux",
+            "hosted-macos",
+            "hosted-cuda",
+            "hosted-rocm",
+            "stx-halo",
+        ],
     )
     parser.add_argument("--base", help="Base revision for the diff")
     parser.add_argument("--head", default="HEAD", help="Head revision (default: HEAD)")

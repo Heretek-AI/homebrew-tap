@@ -69,14 +69,6 @@ class TestClassifyChangedFormulae(unittest.TestCase):
             classifier.classify(["basalt"], "hosted-cuda"), ["cuda-runtime", "basalt"]
         )
         self.assertEqual(classifier.classify(["basalt"], "stx-halo"), [])
-        self.assertEqual(
-            classifier.classify(["xolotl"], "hosted-cuda"), ["cuda-runtime", "xolotl"]
-        )
-        self.assertEqual(classifier.classify(["xolotl"], "stx-halo"), [])
-        self.assertEqual(
-            classifier.classify(["lucebox"], "hosted-cuda"), ["cuda-runtime", "lucebox"]
-        )
-        self.assertEqual(classifier.classify(["lucebox"], "stx-halo"), [])
 
     def test_macos_only_formula_is_linux_excluded(self) -> None:
         self.assertEqual(classifier.classify(["uzu"], "hosted-macos"), ["uzu"])
@@ -129,7 +121,9 @@ class TestClassifyChangedFormulae(unittest.TestCase):
         )
         self.assertEqual(classifier.classify(["cuda-runtime"], "hosted-cuda"), [])
 
-    def test_skip_bottled_runtime_respects_bottle_block_and_direct_changes(self) -> None:
+    def test_skip_bottled_runtime_respects_bottle_block_and_direct_changes(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             os.chdir(directory)
             (Path("Formula")).mkdir()
@@ -163,9 +157,7 @@ class TestClassifyChangedFormulae(unittest.TestCase):
 
             # Unchanged bottled rocm-runtime is skipped when skip_bottled_runtime=True
             self.assertEqual(
-                classifier.classify(
-                    ["gufo"], "hosted-rocm", skip_bottled_runtime=True
-                ),
+                classifier.classify(["gufo"], "hosted-rocm", skip_bottled_runtime=True),
                 ["gufo"],
             )
             # Directly changed bottled rocm-runtime is still built

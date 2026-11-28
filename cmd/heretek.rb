@@ -28,7 +28,6 @@ module Homebrew
         nib
         project-maya
         stable-diffusion-cpp
-        strata
         zinc
       ].freeze
 
@@ -36,21 +35,16 @@ module Homebrew
         hipfire
         kyojin
         project-maya
-        strata
       ].freeze
 
       BLACKWELL_FORMULAE = %w[
         basalt
         hyperqwen
-        lucebox
-        xolotl
       ].freeze
 
       CUDA_8_9_FORMULAE = %w[
         hyperqwen
-        lucebox
         shimmy
-        xolotl
       ].freeze
 
       APPLE_SILICON_FORMULAE = %w[
@@ -60,7 +54,6 @@ module Homebrew
         project-maya
         shimmy
         stable-diffusion-cpp
-        strata
         uzu
       ].freeze
 

@@ -297,84 +297,6 @@
         "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
       }
     },
-    "strata": {
-      "binaries": [
-        "bin/strata",
-        "bin/strata-server"
-      ],
-      "rocm": {
-        "required_libs": [
-          "libamdhip64.so"
-        ],
-        "version_cmd": [
-          "bin/strata",
-          "--version"
-        ],
-        "help_cmd": [
-          "bin/strata",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/strata",
-          "--info"
-        ],
-        "device_ok_regex": "(?i)(gfx1100|gfx1150|gfx1151|radeon|rocm|device)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice|cpu fallback)",
-        "golden_cmd": [
-          "bin/strata",
-          "--dry-eval"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
-      },
-      "cuda": {
-        "required_libs": [
-          "libcudart.so"
-        ],
-        "version_cmd": [
-          "bin/strata",
-          "--version"
-        ],
-        "help_cmd": [
-          "bin/strata",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/strata",
-          "--info"
-        ],
-        "device_ok_regex": "(?i)(cuda|nvidia|device)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|cudaError|driver)",
-        "golden_cmd": [
-          "bin/strata",
-          "--dry-eval"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
-      },
-      "metal": {
-        "required_libs": [
-          "Metal.framework"
-        ],
-        "version_cmd": [
-          "bin/strata",
-          "--version"
-        ],
-        "help_cmd": [
-          "bin/strata",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/strata",
-          "--info"
-        ],
-        "device_ok_regex": "(?i)(apple|metal|m1|m2|m3|m4)",
-        "no_device_ok_regex": "(?i)(no metal device|cpu mode)",
-        "golden_cmd": [
-          "bin/strata",
-          "--dry-eval"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
-      }
-    },
     "strixite": {
       "binaries": [
         "bin/strixite-server",
@@ -432,59 +354,6 @@
           "bin/crucible-strix-halo",
           "test",
           "--mock"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
-      }
-    },
-    "lucebox": {
-      "binaries": [
-        "bin/lucebox-server"
-      ],
-      "cuda": {
-        "required_libs": [
-          "libcudart.so"
-        ],
-        "version_cmd": [
-          "bin/lucebox-server",
-          "--version"
-        ],
-        "help_cmd": [
-          "bin/lucebox-server",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/lucebox-server",
-          "--info"
-        ],
-        "device_ok_regex": "(?i)(cuda|nvidia|device)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|cudaError|driver)",
-        "golden_cmd": [
-          "bin/lucebox-server",
-          "--dry-eval"
-        ],
-        "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
-      },
-      "rocm": {
-        "required_libs": [
-          "libamdhip64.so"
-        ],
-        "version_cmd": [
-          "bin/lucebox-server",
-          "--version"
-        ],
-        "help_cmd": [
-          "bin/lucebox-server",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/lucebox-server",
-          "--info"
-        ],
-        "device_ok_regex": "(?i)(gfx1151|gfx1150|radeon|rocm|device)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice)",
-        "golden_cmd": [
-          "bin/lucebox-server",
-          "--dry-eval"
         ],
         "throughput_regex": "(?i)([0-9.]+)\\s*(tok/s|t/s|tokens/sec)"
       }
@@ -1018,36 +887,6 @@
           "--version"
         ],
         "throughput_regex": "(?i)(gufo version|[0-9.]+\\s*(tok/s|t/s))"
-      }
-    },
-    "xolotl": {
-      "binaries": [
-        "bin/xolotl-ds41",
-        "bin/xolotl-serve"
-      ],
-      "cuda": {
-        "required_libs": [
-          "libcudart.so"
-        ],
-        "version_cmd": [
-          "bin/xolotl-ds41",
-          "--help"
-        ],
-        "help_cmd": [
-          "bin/xolotl-ds41",
-          "--help"
-        ],
-        "device_cmd": [
-          "bin/xolotl-ds41",
-          "--help"
-        ],
-        "device_ok_regex": "(?i)(usage|model|xolotl|strata)",
-        "no_device_ok_regex": "(?i)(usage|model|cuda|no (gpu|device))",
-        "golden_cmd": [
-          "bin/xolotl-ds41",
-          "--help"
-        ],
-        "throughput_regex": "(?i)(usage|model|[0-9.]+\\s*(tok/s|t/s))"
       }
     },
     "strixolotl": {
