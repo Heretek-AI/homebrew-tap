@@ -11,12 +11,42 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: brew-pr-pull
+  cancel-in-progress: false
+
 defaults:
   run:
     shell: bash -xeuo pipefail {0}
 
 jobs:
+  preflight:
+    name: Check pull request is open
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      open: ${{ steps.state.outputs.open }}
+    steps:
+      - name: Check pull request state
+        id: state
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          state="$(gh pr view "${PULL_REQUEST}" --json state --jq .state)"
+          if [[ "${state}" == "OPEN" ]]; then
+            echo "open=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "open=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::Pull request #${PULL_REQUEST} is ${state}; skipping brew pr-pull."
+          fi
+
   pr-pull:
+    needs: preflight
+    if: needs.preflight.outputs.open == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -27,11 +57,26 @@ jobs:
       issues: read
       packages: write
       pull-requests: write
+    env:
+      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        if: env.APP_CONFIGURED == 'true'
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Set up git
         id: git_setup
@@ -40,9 +85,10 @@ jobs:
       - name: Pull bottles
         id: pull_bottles
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
           HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          # GHCR uploads keep using GITHUB_TOKEN: the autobump App has no packages permission.
           HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
           HEAD_SHA: ${{ inputs.head_sha }}

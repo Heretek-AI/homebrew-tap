@@ -7,11 +7,18 @@ import re
 import unittest
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FORMULA_DIR = REPO_ROOT / "Formula"
 PINS_PATH = REPO_ROOT / ".github" / "upstream-pins.json"
 SPECS_PATH = REPO_ROOT / ".github" / "validation-specs.json"
 PORTS_PATH = REPO_ROOT / "scripts" / "port_registry.json"
+WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
+
+
+def load_workflow(name: str) -> dict:
+    return yaml.safe_load((WORKFLOWS_DIR / name).read_text(encoding="utf-8"))
 
 
 class TestRepoConsistency(unittest.TestCase):
@@ -83,6 +90,29 @@ class TestRepoConsistency(unittest.TestCase):
                 r"ghcr\.io/heretek-ai/brew-(?:rocm|cuda):[0-9]",
                 f"{wf.name} should resolve toolchain tags from .github/upstream-pins.json",
             )
+
+    def test_publish_workflow_serializes_pr_pull_runs(self) -> None:
+        workflow = load_workflow("publish.yml")
+        concurrency = workflow.get("concurrency")
+        self.assertIsInstance(
+            concurrency,
+            dict,
+            "publish.yml must define a workflow-level concurrency mapping",
+        )
+        self.assertEqual(concurrency["group"], "brew-pr-pull")
+        self.assertIs(concurrency["cancel-in-progress"], False)
+
+    def test_publish_workflow_skips_closed_pull_requests(self) -> None:
+        workflow = load_workflow("publish.yml")
+        jobs = workflow["jobs"]
+        self.assertIn("preflight", jobs)
+        self.assertEqual(
+            jobs["preflight"]["outputs"]["open"], "${{ steps.state.outputs.open }}"
+        )
+        self.assertEqual(jobs["pr-pull"]["needs"], "preflight")
+        self.assertEqual(
+            jobs["pr-pull"]["if"], "needs.preflight.outputs.open == 'true'"
+        )
 
 
 if __name__ == "__main__":
