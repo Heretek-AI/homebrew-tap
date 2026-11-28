@@ -279,7 +279,6 @@ def main():
     matrix_includes = []
     hw_matrix_includes = []
     changed_formulas = set()
-    rocmfpx_needed = False
     audit_table = []
 
     force_all = (args.force == "all")
@@ -323,8 +322,6 @@ def main():
 
             if reasons:
                 changed_formulas.add(formula)
-                if formula == "rocmfpx":
-                    rocmfpx_needed = True
 
                 matrix_entry = {
                     "formula": formula,
@@ -380,14 +377,13 @@ def main():
     for row in audit_table:
         print(f"{row['formula']:<22} {row['variant']:<10} {row['status']:<12} {row['action']:<8} {row['reason']}")
     print("=" * 80)
-    print(f"Total jobs to execute: {len(matrix_includes)} | ROCmFPX builder needed: {rocmfpx_needed}")
+    print(f"Total jobs to execute: {len(matrix_includes)}")
 
     # Generate step summary markdown
     summary_lines = [
         "### Heretek-AI Tap Nightly Matrix Change Gate",
         f"- **Resolved ROCm Nightly**: `{current_rocm_filename or 'N/A'}` (Stamp: `{current_rocm_stamp or 'N/A'}`)",
         f"- **Active Jobs Scheduled**: `{len(matrix_includes)}`",
-        f"- **ROCmFPX Re-build Required**: `{rocmfpx_needed}`",
         "",
         "| Formula | Variant | Status | Action | Reasons / Details |",
         "| :--- | :--- | :--- | :--- | :--- |"
@@ -406,7 +402,6 @@ def main():
     if github_output_path and not args.dry_run:
         with open(github_output_path, "a", encoding="utf-8") as f:
             f.write(f"has_work={'true' if has_work else 'false'}\n")
-            f.write(f"rocmfpx_needed={'true' if rocmfpx_needed else 'false'}\n")
             f.write(f"changed_formulas={','.join(sorted(changed_formulas))}\n")
             f.write(f"matrix={json.dumps(matrix_output)}\n")
             f.write(f"hw_matrix={json.dumps(hw_matrix_output)}\n")

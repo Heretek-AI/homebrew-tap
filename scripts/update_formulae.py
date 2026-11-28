@@ -56,12 +56,6 @@ def load_config_from_ledger():
             pass
 
     return {
-        "rocmfpx": {
-            "type": "upstream_commit",
-            "repo": "charlie12345/ROCmFPX",
-            "branch": "main",
-            "formulae": ["rocmfpx.rb"],
-        },
         "shimmy": {
             "type": "upstream_release",
             "repo": "Michael-A-Kuykendall/shimmy",
@@ -72,23 +66,22 @@ def load_config_from_ledger():
             "repo": "leejet/stable-diffusion.cpp",
             "formulae": ["stable-diffusion-cpp.rb"],
         },
-        "gufetto": {
-            "type": "upstream_commit",
-            "repo": "community-token-labs/gufetto",
-            "branch": "main",
-            "formulae": ["gufetto.rb"],
-        },
         "gufo": {
             "type": "upstream_commit",
             "repo": "gufo-org/gufo",
             "branch": "main",
             "formulae": ["gufo.rb"],
         },
-        "gufo-franzmoca": {
+        "gufo-ds41": {
+            "type": "upstream_release",
+            "repo": "franzmoca/ds41-gufo-extension",
+            "formulae": ["gufo-ds41.rb"],
+        },
+        "rulith-inference": {
             "type": "upstream_commit",
-            "repo": "franzmoca/gufo",
-            "branch": "main",
-            "formulae": ["gufo-franzmoca.rb"],
+            "repo": "rulith-dev/llama.cpp",
+            "branch": "rulith",
+            "formulae": ["rulith-inference.rb"],
         },
         "strixite": {
             "type": "upstream_commit",
@@ -96,11 +89,11 @@ def load_config_from_ledger():
             "branch": "main",
             "formulae": ["strixite.rb"],
         },
-        "strata": {
+        "strixolotl": {
             "type": "upstream_commit",
-            "repo": "Niko1221/Strata",
+            "repo": "snowsh1ne/strixolotl",
             "branch": "main",
-            "formulae": ["strata.rb"],
+            "formulae": ["strixolotl.rb"],
         },
         "project-maya": {
             "type": "upstream_commit",
@@ -414,15 +407,16 @@ def update_upstream_release_formula(
 
     original_content = content
 
-    # Replace URL and SHA256
-    content = re.sub(
-        r'url\s+"https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+"',
-        f'url "{tarball_url}"',
-        content,
+    # Replace the tag-archive URL together with the sha256 that immediately
+    # follows it. Rewriting the first sha256 in the file independently would
+    # corrupt formulae whose first checksum belongs to a different URL (e.g.
+    # gufo-ds41, whose main archive is pinned to a commit while the tag archive
+    # belongs to a resource block).
+    url_and_sha = re.compile(
+        r'(url\s+")https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+("\s*\n\s*sha256\s+")[a-fA-F0-9]+(")'
     )
-    content = re.sub(
-        r'sha256\s+"[a-fA-F0-9]+"',
-        f'sha256 "{sha256_digest}"',
+    content, replacements = url_and_sha.subn(
+        lambda m: f"{m.group(1)}{tarball_url}{m.group(2)}{sha256_digest}{m.group(3)}",
         content,
         count=1,
     )

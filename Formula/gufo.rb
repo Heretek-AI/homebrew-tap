@@ -21,14 +21,15 @@ class Gufo < Formula
   depends_on "ffmpeg"
   depends_on "giflib"
   depends_on "heretek-ai/tap/rocm-runtime"
-  depends_on "icu4c"
+  depends_on "icu4c@79"
   depends_on "jpeg-turbo"
   depends_on "libpng"
   depends_on "libsndfile"
   depends_on "libsoxr"
   depends_on :linux
-  depends_on "openssl@3"
+  depends_on "openssl@4"
   depends_on "webp"
+  depends_on "zlib-ng-compat"
 
   def rocm_root
     [ENV["HOMEBREW_ROCM_PATH"], ENV["ROCM_PATH"], "/opt/rocm-nightly", "/opt/rocm"]
@@ -38,6 +39,12 @@ class Gufo < Formula
 
   def install
     rocm_path = rocm_root
+    # Newer ROCm ships hipCUB in include/hipccl and requires libhipcxx from that
+    # same root. Prefer it over the bare include directory so the hipCUB headers
+    # can find <hip/std/version> during the HIP compilation.
+    hipcub_dir = ["#{rocm_path}/include/hipccl", "#{rocm_path}/include"].find do |path|
+      File.exist?("#{path}/hip/std/version") || File.exist?("#{path}/cuda/std/version")
+    end
     ENV["ROCM_PATH"] = rocm_path
     ENV["HIP_PATH"] = rocm_path
     ENV.prepend_path "PATH", "#{rocm_path}/bin"
@@ -72,14 +79,15 @@ class Gufo < Formula
     end
 
     # 3. Allow building on Zen 4 CI runners while preserving required AVX-512 intrinsics
-    if build.with?("znver4")
+    if (build.bottle? || build.with?("znver4")) &&
+       File.read("CMakeLists.txt").include?('set(GUFO_MARCH_FLAG "-march=znver5")')
       inreplace "CMakeLists.txt",
                 'set(GUFO_MARCH_FLAG "-march=znver5")',
                 'set(GUFO_MARCH_FLAG "-march=znver4 -mavx512f -mavx512bf16 -mavx512bw -mavx512dq -mavx512vl")'
     end
 
-    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c")/"pkgconfig"
-    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@3")/"pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("icu4c@79")/"pkgconfig"
+    ENV.prepend_path "PKG_CONFIG_PATH", formula_opt_lib("openssl@4")/"pkgconfig"
 
     enable_tools = build.with?("tools")
     tools_flag = enable_tools ? "ON" : "OFF"
@@ -100,12 +108,19 @@ class Gufo < Formula
       -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     ]
     args << "-DCMAKE_HIP_COMPILER=#{hip_compiler}" if hip_compiler
+    # gufo uses find_path(HIPCUB_INCLUDE_DIR ...) rather than the hipCUB CMake
+    # package, so it would otherwise find /opt/rocm/include and miss libhipcxx.
+    args << "-DHIPCUB_INCLUDE_DIR=#{hipcub_dir}" if hipcub_dir
+    if (sccache = ENV["HOMEBREW_SCCACHE_PATH"]) && File.executable?(sccache)
+      ENV["SCCACHE_DIR"] = ENV["HOMEBREW_SCCACHE_DIR"] if ENV["HOMEBREW_SCCACHE_DIR"]
+      %w[C CXX HIP].each { |lang| args << "-DCMAKE_#{lang}_COMPILER_LAUNCHER=#{sccache}" }
+    end
 
     prefix_paths = [
       rocm_path,
       HOMEBREW_PREFIX,
-      formula_opt_prefix("icu4c"),
-      formula_opt_prefix("openssl@3"),
+      formula_opt_prefix("icu4c@79"),
+      formula_opt_prefix("openssl@4"),
     ].join(";")
 
     system "cmake", "-S", ".", "-B", "build", *std_cmake_args, *args,
@@ -158,11 +173,12 @@ class Gufo < Formula
     assert_match(/libamdhip64\.so/, out)
 
     # 2. CLI Introspection
-    assert_match "gufo version", shell_output("#{bin}/gufo version")
-    assert_match "Usage: gufo", shell_output("#{bin}/gufo --help")
+    assert_match "gufo version", shell_output("#{bin}/gufo --version")
+    assert_match(/Usage: .*gufo/, shell_output("#{bin}/gufo --help"))
 
     # 3. Device Discovery Smoke Test
-    probe = shell_output("#{bin}/gufo info 2>&1", nil)
-    assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
+    probe = shell_output("#{bin}/gufo probe")
+    assert_match "Hello, Strix Halo!", probe
+    assert_match "OK", probe
   end
 end

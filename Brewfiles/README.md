@@ -9,7 +9,7 @@ trust the whole tap.
 | :--- | :--- | :--- |
 | [`strix-halo.Brewfile`](strix-halo.Brewfile) | AMD Strix Halo / Ryzen AI Max (`gfx1151`) on Linux | Installs `rocm-runtime` and the Strix Halo engine set. |
 | [`rdna3.Brewfile`](rdna3.Brewfile) | AMD RDNA3 (`gfx1100`, `gfx1101`, `gfx1102`) on Linux | Installs `rocm-runtime`, the `gfx1100` hipfire kernel pack, and RDNA3 code paths. |
-| [`blackwell.Brewfile`](blackwell.Brewfile) | NVIDIA Blackwell (`sm_120`) and DGX Spark (`sm_121`) on Linux | Installs `cuda-runtime`, `basalt`, `hyperqwen`, and `lucebox`. |
+| [`blackwell.Brewfile`](blackwell.Brewfile) | NVIDIA Blackwell (`sm_120`) and DGX Spark (`sm_121`) on Linux | Installs `cuda-runtime`, `basalt`, and `hyperqwen`. |
 | [`apple-silicon.Brewfile`](apple-silicon.Brewfile) | Apple Silicon macOS | Metal and CPU engines; no ROCm or CUDA runtime. |
 
 ## Usage

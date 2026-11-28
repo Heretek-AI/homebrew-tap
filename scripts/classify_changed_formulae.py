@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Classify changed tap formulae for the CI runner that can build them.
 
-The tap has three build classes:
+The tap has four build classes:
 
 * ``hosted-linux`` / ``hosted-macos``: CPU, Metal, Vulkan and prebuilt
   formulae that need no GPU toolchain.
 * ``hosted-cuda``: CUDA formulae that only need ``nvcc`` (no GPU at build
   time), built in the ``brew-cuda`` toolchain image.
-* ``stx-halo``: ROCm source builds and hardware validation on the trusted
-  self-hosted ``stx-halo`` runner.
+* ``hosted-rocm``: the active ROCm bottle class, built on hosted Linux.
+* ``stx-halo``: optional/legacy hardware-validation class for the
+  self-hosted ``stx-halo`` runner. The active workflow no longer schedules
+  a ``stx-halo`` job; the class is kept for manual dispatch and testing.
 
 The script intentionally uses the formula source text and git diff rather
 than Homebrew internals so it can run before ``brew test-bot --only-setup``.
@@ -20,6 +22,7 @@ It prints a comma-separated list suitable for
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -47,7 +50,7 @@ CUDA_MARKERS = (
 # self-hosted ROCm bottle/validation job.
 PREBUILT_ROCM_FORMULAE = frozenset({"hipfire", "zinc"})
 # Formulae that contain both backend markers but build CUDA by default.
-CUDA_DEFAULT_FORMULAE = frozenset({"lucebox"})
+CUDA_DEFAULT_FORMULAE = frozenset()
 # Runtime-only formula that downloads prebuilt CUDA libraries and needs no
 # toolkit, so it can be bottled on ordinary hosted Linux.
 HOSTED_LINUX_FORMULAE = frozenset({"cuda-runtime"})
@@ -120,7 +123,28 @@ def is_cuda(source: str) -> bool:
     return any(marker in source for marker in CUDA_MARKERS)
 
 
-def classify(names: list[str], runner: str) -> list[str]:
+def has_x86_64_linux_bottle(name: str) -> bool:
+    """Return True when Formula/<name>.rb declares an x86_64_linux bottle."""
+    path = FORMULA_DIR / f"{name}.rb"
+    if not path.is_file():
+        return False
+    source = path.read_text(encoding="utf-8")
+    return (
+        re.search(
+            r"^\s*bottle\s+do\b.*?\bx86_64_linux\s*:.*?^\s*end\b",
+            source,
+            re.MULTILINE | re.DOTALL,
+        )
+        is not None
+    )
+
+
+def classify(
+    names: list[str],
+    runner: str,
+    *,
+    skip_bottled_runtime: bool = False,
+) -> list[str]:
     selected = []
     for name in names:
         if not (FORMULA_DIR / f"{name}.rb").is_file():
@@ -132,7 +156,7 @@ def classify(names: list[str], runner: str) -> list[str]:
         prebuilt_rocm = name in PREBUILT_ROCM_FORMULAE
         cuda_default = name in CUDA_DEFAULT_FORMULAE
         macos_only = is_macos_only(source)
-        if runner == "stx-halo":
+        if runner in ("hosted-rocm", "stx-halo"):
             keep = (rocm or prebuilt_rocm) and not cuda_default and not macos_only
         elif runner == "hosted-cuda":
             keep = not macos_only and (
@@ -161,21 +185,31 @@ def classify(names: list[str], runner: str) -> list[str]:
         if keep:
             selected.append(name)
 
-    runtime = {"hosted-cuda": "cuda-runtime", "stx-halo": "rocm-runtime"}.get(runner)
+    runtime = {
+        "hosted-cuda": "cuda-runtime",
+        "hosted-rocm": "rocm-runtime",
+        "stx-halo": "rocm-runtime",
+    }.get(runner)
     if runtime and any(
         f"heretek-ai/tap/{runtime}" in read_formula(name) for name in selected
     ):
-        selected = [runtime] + [name for name in selected if name != runtime]
+        if not (
+            skip_bottled_runtime
+            and runtime not in names
+            and has_x86_64_linux_bottle(runtime)
+        ):
+            selected = [runtime] + [name for name in selected if name != runtime]
     return selected
 
 
-def emit(names: list[str]) -> None:
-    value = ",".join(names)
+def emit(names: list[str], fmt: str = "csv") -> None:
+    value = json.dumps(names) if fmt == "json" else ",".join(names)
     print(value)
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a", encoding="utf-8") as handle:
             handle.write(f"formulae={value}\n")
+            handle.write(f"non_empty={'true' if names else 'false'}\n")
 
 
 def main() -> int:
@@ -183,12 +217,34 @@ def main() -> int:
     parser.add_argument(
         "--runner",
         required=True,
-        choices=["hosted-linux", "hosted-macos", "hosted-cuda", "stx-halo"],
+        choices=[
+            "hosted-linux",
+            "hosted-macos",
+            "hosted-cuda",
+            "hosted-rocm",
+            "stx-halo",
+        ],
     )
     parser.add_argument("--base", help="Base revision for the diff")
     parser.add_argument("--head", default="HEAD", help="Head revision (default: HEAD)")
     parser.add_argument("--formulae", help="Explicit comma-separated formula list")
     parser.add_argument("--all", action="store_true", help="Classify every formula")
+    parser.add_argument(
+        "--exclude-runtime",
+        action="store_true",
+        help="Omit rocm-runtime/cuda-runtime from the emitted list",
+    )
+    parser.add_argument(
+        "--skip-bottled-runtime",
+        action="store_true",
+        help="Do not auto-prepend an unchanged runtime that already has an x86_64_linux bottle",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["csv", "json"],
+        default="csv",
+        help="Output format (default: csv)",
+    )
     args = parser.parse_args()
 
     if args.formulae:
@@ -202,7 +258,12 @@ def main() -> int:
             parser.error("--base is required unless --all or --formulae is used")
         names = git_changed_formulae(args.base, args.head)
 
-    emit(classify(names, args.runner))
+    selected = classify(
+        names, args.runner, skip_bottled_runtime=args.skip_bottled_runtime
+    )
+    if args.exclude_runtime:
+        selected = [n for n in selected if n not in ("rocm-runtime", "cuda-runtime")]
+    emit(selected, fmt=args.format)
     return 0
 
 

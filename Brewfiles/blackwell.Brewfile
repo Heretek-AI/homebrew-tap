@@ -5,11 +5,9 @@ tap "heretek-ai/tap", trusted: { formulae: [
   "basalt",
   "cuda-runtime",
   "hyperqwen",
-  "lucebox",
 ] }
 
 brew "cuda-runtime"
 
 brew "basalt"
 brew "hyperqwen"
-brew "lucebox"
