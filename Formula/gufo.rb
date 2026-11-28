@@ -1,9 +1,9 @@
 class Gufo < Formula
   desc "Pure C11/C++20/HIP multimodal inference engine for AMD Strix Halo (gfx1151)"
   homepage "https://github.com/gufo-org/gufo"
-  url "https://github.com/gufo-org/gufo/archive/56ed8f4d2308da6ff30b4502a850b4e5d2113d94.tar.gz"
-  version "0.28.1-git56ed8f4"
-  sha256 "093ad26cfbd73330a9e810df8f24b12a9dd8ee2c54b85ac3ea3443ed56286019"
+  url "https://github.com/gufo-org/gufo/archive/45486593ef7a62d3e12a249833e644585efdff00.tar.gz"
+  version "0.28.1-git4548659"
+  sha256 "acc79a5be10996ca8c22ad25413e1407740b8d20a32ece474ffc666e0d3f5818"
   license "Apache-2.0"
   head "https://github.com/gufo-org/gufo.git", branch: "main"
 
@@ -13,10 +13,12 @@ class Gufo < Formula
 
   option "with-tools", "Build and install developer tools (simple_chat, bench_q8_1, tune_hipblaslt, verify_*)"
   option "with-znver4", "Compile host code with -march=znver4 + AVX-512 instead of -march=znver5"
+  option "with-npu", "Require the XRT-based NPU backend (fails if Xilinx XRT is not installed)"
 
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "pkgconf" => :build
+  depends_on "rust" => :build
   depends_on "curl"
   depends_on "ffmpeg"
   depends_on "giflib"
@@ -38,6 +40,113 @@ class Gufo < Formula
   end
 
   def install
+    xrt_path = [
+      ENV.fetch("XILINX_XRT", nil),
+      "/opt/xilinx/xrt",
+      *Dir.glob("/opt/xilinx/xrt*"),
+      HOMEBREW_PREFIX,
+      "/usr/local",
+      "/usr",
+    ].compact.find { |path| File.exist?("#{path}/include/xrt/xrt_bo.h") }
+    if build.with?("npu") && !xrt_path
+      odie <<~EOS
+        gufo: --with-npu requires Xilinx XRT, but no XRT installation was found.
+        Install XRT (providing include/xrt/xrt_bo.h and libxrt_coreutil.so), or
+        point XILINX_XRT at the XRT prefix, then retry.
+      EOS
+    end
+    unless xrt_path
+      top_level = "CMakeLists.txt"
+      npu_level = "src/core/npu/CMakeLists.txt"
+      upstream_xrt = <<~CMAKE
+        find_path(GUFO_XRT_INCLUDE_DIR NAMES xrt/xrt_bo.h
+          HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES include REQUIRED)
+        if(WIN32)
+          find_library(GUFO_XRT_COREUTIL_LIBRARY NAMES xrt_coreutil
+            HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES lib lib64 REQUIRED)
+          add_library(XRT::xrt_coreutil UNKNOWN IMPORTED)
+        else()
+          # Production XRT is dynamically linked; do not fall back to a static archive.
+          set(_GUFO_SAVED_FIND_LIBRARY_SUFFIXES "${CMAKE_FIND_LIBRARY_SUFFIXES}")
+          set(CMAKE_FIND_LIBRARY_SUFFIXES .so)
+          find_library(GUFO_XRT_COREUTIL_LIBRARY NAMES xrt_coreutil
+            HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES lib lib64 REQUIRED)
+          set(CMAKE_FIND_LIBRARY_SUFFIXES "${_GUFO_SAVED_FIND_LIBRARY_SUFFIXES}")
+          unset(_GUFO_SAVED_FIND_LIBRARY_SUFFIXES)
+          add_library(XRT::xrt_coreutil SHARED IMPORTED)
+        endif()
+        set_target_properties(XRT::xrt_coreutil PROPERTIES
+          IMPORTED_LOCATION "${GUFO_XRT_COREUTIL_LIBRARY}"
+          INTERFACE_INCLUDE_DIRECTORIES "${GUFO_XRT_INCLUDE_DIR}")
+        if(NOT WIN32)
+          set_property(TARGET XRT::xrt_coreutil PROPERTY INTERFACE_LINK_LIBRARIES uuid)
+        endif()
+      CMAKE
+      optional_xrt = <<~CMAKE
+        find_path(GUFO_XRT_INCLUDE_DIR NAMES xrt/xrt_bo.h
+          HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES include)
+        if(GUFO_XRT_INCLUDE_DIR)
+          if(WIN32)
+            find_library(GUFO_XRT_COREUTIL_LIBRARY NAMES xrt_coreutil
+              HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES lib lib64)
+          else()
+            # Production XRT is dynamically linked; do not fall back to a static archive.
+            set(_GUFO_SAVED_FIND_LIBRARY_SUFFIXES "${CMAKE_FIND_LIBRARY_SUFFIXES}")
+            set(CMAKE_FIND_LIBRARY_SUFFIXES .so)
+            find_library(GUFO_XRT_COREUTIL_LIBRARY NAMES xrt_coreutil
+              HINTS ${_GUFO_XRT_PREFIXES} PATH_SUFFIXES lib lib64)
+            set(CMAKE_FIND_LIBRARY_SUFFIXES "${_GUFO_SAVED_FIND_LIBRARY_SUFFIXES}")
+            unset(_GUFO_SAVED_FIND_LIBRARY_SUFFIXES)
+          endif()
+          if(GUFO_XRT_COREUTIL_LIBRARY)
+            if(WIN32)
+              add_library(XRT::xrt_coreutil UNKNOWN IMPORTED)
+            else()
+              add_library(XRT::xrt_coreutil SHARED IMPORTED)
+            endif()
+            set_target_properties(XRT::xrt_coreutil PROPERTIES
+              IMPORTED_LOCATION "${GUFO_XRT_COREUTIL_LIBRARY}"
+              INTERFACE_INCLUDE_DIRECTORIES "${GUFO_XRT_INCLUDE_DIR}")
+            if(NOT WIN32)
+              set_property(TARGET XRT::xrt_coreutil PROPERTY INTERFACE_LINK_LIBRARIES uuid)
+            endif()
+          endif()
+        endif()
+      CMAKE
+
+      upstream_module = <<~CMAKE
+        if(WIN32)
+          # Use the xrt_coreutil.dll the NPU driver installs in System32; a copy
+      CMAKE
+      guarded_module = <<~CMAKE
+        if(GUFO_XRT_INCLUDE_DIR AND GUFO_XRT_COREUTIL_LIBRARY)
+        if(WIN32)
+          # Use the xrt_coreutil.dll the NPU driver installs in System32; a copy
+      CMAKE
+      upstream_end = <<~CMAKE
+        endif()
+        # Host operators: AVX2 + FMA (every Strix Halo and development x86 CPU).
+      CMAKE
+      guarded_end = <<~CMAKE
+        endif()
+        endif()
+        # Host operators: AVX2 + FMA (every Strix Halo and development x86 CPU).
+      CMAKE
+
+      { top_level => [[upstream_xrt, optional_xrt]],
+        npu_level => [[upstream_module, guarded_module], [upstream_end, guarded_end]] }.each do |path, edits|
+        content = File.read(path)
+        edits.each do |before, after|
+          unless content.include?(before)
+            raise "gufo: unexpected upstream CMake in #{path}; refusing to disable the XRT backend"
+          end
+
+          inreplace path, before, after
+        end
+      end
+    end
+    ENV["XILINX_XRT"] = xrt_path if xrt_path
+
     rocm_path = rocm_root
     # Newer ROCm ships hipCUB in include/hipccl and requires libhipcxx from that
     # same root. Prefer it over the bare include directory so the hipCUB headers
@@ -143,6 +252,7 @@ class Gufo < Formula
       variant:      "rocm",
       rocm_root:    rocm_path,
       hip_compiler: hip_compiler,
+      npu_xrt:      xrt_path,
       cmake_args:   args,
     )
   end
