@@ -643,7 +643,7 @@ brew install --cask heretek-ai/tap/hatchlight
 **Upstream:** [GabrieleLozupone/kokon](https://github.com/GabrieleLozupone/kokon)
 **Purpose:** Local AI photo editor that generates and edits images on the user's own GPU, with brush-based change/remove/replace/add operations and an optional browser-based remote mode.
 **Platforms:** macOS 15 (Sequoia) or newer on Apple Silicon. Upstream publishes only an `aarch64` macOS disk image in the pinned release, so the cask declares an arm64 requirement.
-**Artifact:** `Kokon_0.12.1_aarch64.dmg` from the `v0.12.1` GitHub release.
+**Artifact:** `Kokon_0.13.0_aarch64.dmg` from the `v0.13.0` GitHub release.
 
 ```bash
 brew install --cask heretek-ai/tap/kokon
