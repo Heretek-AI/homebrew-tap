@@ -10,6 +10,6 @@ permissions:
 
 jobs:
   hygiene:
-    uses: Heretek-AI/.github/.github/workflows/hygiene.yml@2a30dcf73061ceee5e04496dcf2c7ac066e0fec3 # main
+    uses: Heretek-AI/.github/.github/workflows/hygiene.yml@eccd9605395fa6dc993a3e95bc2b92cc369daf6c # main
     with:
       audit_workflows: true
