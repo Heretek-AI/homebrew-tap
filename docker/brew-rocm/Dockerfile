@@ -39,12 +39,12 @@ RUN ln -s /home/linuxbrew/.linuxbrew/rocm-sdk /opt/rocm \
     && test -f /opt/rocm/include/hip/hip_runtime_api.h \
     && test -x /opt/rocm/bin/hipcc
 
-ENV ROCM_PATH=/opt/rocm \
-    HIP_PATH=/opt/rocm \
-    HOMEBREW_ROCM_PATH=/opt/rocm \
-    ROCM_KPACK_PATH=/opt/rocm/.kpack \
-    PATH=/opt/rocm/bin:/opt/rocm/llvm/bin:$PATH \
-    LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib/rocm_sysdeps/lib
+ENV ROCM_PATH=/home/linuxbrew/.linuxbrew/rocm-sdk \
+    HIP_PATH=/home/linuxbrew/.linuxbrew/rocm-sdk \
+    HOMEBREW_ROCM_PATH=/home/linuxbrew/.linuxbrew/rocm-sdk \
+    ROCM_KPACK_PATH=/home/linuxbrew/.linuxbrew/rocm-sdk/.kpack \
+    PATH=/home/linuxbrew/.linuxbrew/rocm-sdk/bin:/home/linuxbrew/.linuxbrew/rocm-sdk/llvm/bin:$PATH \
+    LD_LIBRARY_PATH=/home/linuxbrew/.linuxbrew/rocm-sdk/lib:/home/linuxbrew/.linuxbrew/rocm-sdk/lib/rocm_sysdeps/lib
 
 USER linuxbrew
 WORKDIR /home/linuxbrew

@@ -98,6 +98,15 @@ class TestRepoConsistency(unittest.TestCase):
         self.assertIn("/home/linuxbrew/.linuxbrew/rocm-sdk", dockerfile)
         self.assertIn("ln -s /home/linuxbrew/.linuxbrew/rocm-sdk /opt/rocm", dockerfile)
 
+    def test_rocm_builds_use_the_prefix_sdk_path(self) -> None:
+        workflow = (WORKFLOWS_DIR / "build-rocm.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "ROCM_PATH: /home/linuxbrew/.linuxbrew/rocm-sdk",
+            workflow,
+            "ROCm builds must use the real prefix path, not the /opt/rocm symlink",
+        )
+        self.assertNotIn("ROCM_PATH: /opt/rocm", workflow)
+
     def test_publish_workflow_serializes_pr_pull_runs(self) -> None:
         workflow = load_workflow("publish.yml")
         concurrency = workflow.get("concurrency")
