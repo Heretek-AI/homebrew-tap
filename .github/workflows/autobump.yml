@@ -101,13 +101,16 @@ jobs:
 
           brew bump --formula --no-fork --open-pr --bump-synced \
             "${formulae[@]}" 2>&1 | tee bump-output.txt
-          brew bump --no-fork --open-pr --cask --tap="${TAP_NAME}" 2>&1 | tee -a bump-output.txt
 
       - name: Label opened pull requests
+        if: always()
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
+          if [[ ! -f bump-output.txt ]]; then
+            exit 0
+          fi
           mapfile -t pr_numbers < <(
             awk 'match($0, /https:\/\/github\.com\/[^[:space:]]+\/pull\/[0-9]+/) {
               url = substr($0, RSTART, RLENGTH)
@@ -123,6 +126,73 @@ jobs:
 
           for pr in "${pr_numbers[@]}"; do
             echo "Adding 'autobump' label to pull request #${pr}"
+            gh pr edit "${pr}" --add-label autobump
+          done
+
+  cask-bump:
+    name: Cask release bumps (macOS)
+    # Runs on macos-26 so `brew audit` has `hdiutil` available for `.dmg` casks.
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '17 */6 * * *') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.target || 'all') == 'all')
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        if: env.APP_CONFIGURED == 'true'
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+
+      - name: Bump casks
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
+          HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: |
+          brew bump --no-fork --open-pr --cask --tap="${TAP_NAME}" 2>&1 | tee cask-bump-output.txt
+
+      - name: Label opened cask pull requests
+        if: always()
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ ! -f cask-bump-output.txt ]]; then
+            exit 0
+          fi
+          mapfile -t pr_numbers < <(
+            awk 'match($0, /https:\/\/github\.com\/[^[:space:]]+\/pull\/[0-9]+/) {
+              url = substr($0, RSTART, RLENGTH)
+              sub(/.*\//, "", url)
+              print url
+            }' cask-bump-output.txt | sort -u
+          )
+
+          for pr in "${pr_numbers[@]}"; do
+            echo "Adding 'autobump' label to cask pull request #${pr}"
             gh pr edit "${pr}" --add-label autobump
           done
 
