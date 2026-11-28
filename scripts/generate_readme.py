@@ -484,6 +484,18 @@ def formula_cuda_arches(formula: dict) -> set[int]:
             if token:
                 arches.add(int(token))
 
+    # Arch lists are often held in a variable (e.g. cuda_archs) so the ci-fast
+    # mode can swap in a single arch; parse the full semicolon-separated list
+    # and drop CMake's -real/-virtual suffixes.
+    for match in re.findall(
+        r"[\"']([0-9]+(?:-(?:real|virtual))?(?:;[0-9]+(?:-(?:real|virtual))?)+)[\"']",
+        source,
+    ):
+        for token in match.split(";"):
+            token = re.sub(r"-(?:real|virtual)$", "", token)
+            if token.isdigit():
+                arches.add(int(token))
+
     for match in re.findall(
         r"TORCH_CUDA_ARCH_LIST[^=]*=\s*[\"']([^\"']+)[\"']", source
     ):

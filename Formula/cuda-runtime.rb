@@ -35,14 +35,15 @@ class CudaRuntime < Formula
   end
 
   def install
+    # Runtime-only package: do not install CUDA headers. The cudart archive's
+    # cuda_runtime.h includes crt/host_config.h, which is only present in the
+    # full toolkit; exposing it here shadows the toolkit headers during builds.
     lib.install Dir["lib/libcudart.so*"]
-    include.install Dir["include/*"]
     (prefix/"LICENSE").install "LICENSE" if (buildpath/"LICENSE").exist?
 
     resource("cublas").stage do
       lib.install Dir["lib/libcublas.so*"]
       lib.install Dir["lib/libcublasLt.so*"]
-      include.install Dir["include/*"]
       (prefix/"LICENSE.cublas").install "LICENSE" if File.exist?("LICENSE")
     end
   end
@@ -58,7 +59,8 @@ class CudaRuntime < Formula
         export LD_LIBRARY_PATH="#{opt_prefix}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
       NVCC and the rest of the CUDA toolkit are NOT included. Building CUDA
-      code from source still requires the full NVIDIA CUDA toolkit.
+      code from source still requires the full NVIDIA CUDA toolkit, including
+      its headers; none are installed by this runtime-only formula.
     EOS
   end
 

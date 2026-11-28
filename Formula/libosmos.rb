@@ -1,8 +1,8 @@
 class Libosmos < Formula
   desc "HIP inference engine and OpenAI-compatible server for AMD Strix Halo"
   homepage "https://github.com/mrsirg97-rgb/libosmos"
-  url "https://github.com/mrsirg97-rgb/libosmos/releases/download/v0.18.0/osmos-0.18.0.tar.gz"
-  sha256 "df1bf65dac73ffc50f7b2d2b597488cb681315ca095cab141214670c209eb642"
+  url "https://github.com/mrsirg97-rgb/libosmos/releases/download/v0.18.1/osmos-0.18.1.tar.gz"
+  sha256 "6a6e89c82eb2aa3910db8fc9871e0b5ccaa5e3de6f93517e7b53790466069e88"
   license "MIT"
 
   livecheck do

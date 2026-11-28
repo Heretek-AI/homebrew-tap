@@ -3,27 +3,27 @@
 
 tap "heretek-ai/tap", trusted: { formulae: [
   "crucible-strix-halo",
-  "gufetto",
   "gufo",
-  "gufo-franzmoca",
+  "gufo-ds41",
   "kyojin",
   "libosmos",
   "qwenox",
   "rocm-runtime",
-  "rocmfpx",
+  "rulith-inference",
   "snowllm",
   "strixite",
+  "strixolotl",
 ] }
 
 brew "rocm-runtime"
 
 brew "crucible-strix-halo"
-brew "gufetto"
 brew "gufo"
-brew "gufo-franzmoca"
+brew "gufo-ds41"
 brew "kyojin"
 brew "libosmos"
 brew "qwenox"
-brew "rocmfpx"
+brew "rulith-inference"
 brew "snowllm"
 brew "strixite"
+brew "strixolotl"
