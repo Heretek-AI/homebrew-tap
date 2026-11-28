@@ -114,6 +114,29 @@ class TestRepoConsistency(unittest.TestCase):
             jobs["pr-pull"]["if"], "needs.preflight.outputs.open == 'true'"
         )
 
+    def test_pins_define_positive_build_timeouts(self) -> None:
+        packages = json.loads(PINS_PATH.read_text(encoding="utf-8"))["packages"]
+        for name, package in packages.items():
+            self.assertIsInstance(
+                package.get("timeout_minutes"),
+                int,
+                f"{name} must define an integer timeout_minutes in upstream-pins.json",
+            )
+            self.assertGreater(
+                package["timeout_minutes"],
+                0,
+                f"{name} must have a positive timeout_minutes",
+            )
+
+    def test_build_workflows_use_pinned_timeouts(self) -> None:
+        for name in ("build-hosted.yml", "build-cuda.yml", "build-rocm.yml"):
+            workflow_text = (WORKFLOWS_DIR / name).read_text(encoding="utf-8")
+            self.assertIn(
+                "matrix.item.timeout_minutes",
+                workflow_text,
+                f"{name} must use matrix.item.timeout_minutes for job timeouts",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

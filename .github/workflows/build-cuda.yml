@@ -171,7 +171,7 @@ jobs:
       needs.plan.outputs.cuda_non_empty == 'true' &&
       (needs.bottles-cuda-runtime.result == 'success' || needs.bottles-cuda-runtime.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: ${{ matrix.item.timeout_minutes || 120 }}
     strategy:
       fail-fast: false
       matrix:
