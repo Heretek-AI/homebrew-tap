@@ -121,6 +121,19 @@ class TestRepoConsistency(unittest.TestCase):
             jobs["pr-pull"]["if"], "needs.preflight.outputs.open == 'true'"
         )
 
+    def test_publish_uses_scoped_token_for_github_api(self) -> None:
+        text = (WORKFLOWS_DIR / "publish.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+            text,
+            "brew pr-pull needs actions/checks read; the API token must be GITHUB_TOKEN",
+        )
+        self.assertIn(
+            "token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}",
+            text,
+            "the App token should still authenticate the setup/git push",
+        )
+
     def test_pins_define_positive_build_timeouts(self) -> None:
         packages = json.loads(PINS_PATH.read_text(encoding="utf-8"))["packages"]
         for name, package in packages.items():
