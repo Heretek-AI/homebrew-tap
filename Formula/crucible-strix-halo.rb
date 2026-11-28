@@ -92,7 +92,7 @@ class CrucibleStrixHalo < Formula
     assert_match(/crucible|usage/i, pipe_output("#{bin}/crucible-strix-halo --help 2>&1"))
 
     # 3. Device Discovery Smoke Test
-    probe = shell_output("#{bin}/crucible-strix-halo --list-devices 2>&1", nil)
+    probe = pipe_output("#{bin}/crucible-strix-halo --list-devices 2>&1")
     assert $CHILD_STATUS.exitstatus < 128, "Device probe crashed: #{probe}"
   end
 end
