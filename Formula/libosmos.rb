@@ -10,6 +10,12 @@ class Libosmos < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/heretek-ai/tap"
+    manifest_sha256 "1e83180d67d42bd6117fad47a0f97812238b61bef190bf0c39f2a3ca1297e9c8"
+    sha256 cellar: :any, x86_64_linux: "41bd263988bf41f8ca4e904ec77859ec1bb8c8d59e5775d35973c85d6828c256"
+  end
+
   option "with-npu", "Enable AMD XDNA NPU support (NPU=1)"
 
   depends_on "patchelf" => :build
