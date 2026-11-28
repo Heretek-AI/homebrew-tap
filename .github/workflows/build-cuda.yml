@@ -168,7 +168,7 @@ jobs:
       matrix:
         item: ${{ fromJSON(needs.plan.outputs.cuda_matrix) }}
     container:
-      image: ${{ needs.plan.outputs.cuda_image }}
+      image: ${{ needs.plan.outputs.cuda_image }} # zizmor: ignore[unpinned-images] resolved from upstream-pins.json and verified via docker manifest inspect
       options: --privileged
     permissions:
       actions: read

@@ -103,6 +103,7 @@ runs:
       uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
     - name: Export sccache path for Homebrew superenv
+      id: sccache-path
       if: inputs.use-sccache == 'true' && inputs.sccache-mode == 'disk'
       shell: bash
       run: |
@@ -110,15 +111,16 @@ runs:
         mkdir -p /tmp/sccache
         sccache_bin="${SCCACHE_PATH:-$(command -v sccache || true)}"
         if [[ -n "${sccache_bin}" && -x "${sccache_bin}" ]]; then
-          echo "HOMEBREW_SCCACHE_PATH=${sccache_bin}" >> "${GITHUB_ENV}"
+          echo "path=${sccache_bin}" >> "${GITHUB_OUTPUT}"
         fi
 
     - name: Locate tap checkout
+      id: tap-dir
       shell: bash
       run: |
         set -euo pipefail
         tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-        echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+        echo "path=${tap_dir}" >> "${GITHUB_OUTPUT}"
 
     - name: Prepare test-bot environment
       shell: bash
@@ -137,6 +139,8 @@ runs:
     - name: Install prebuilt runtime bottle
       if: inputs.runtime-artifact != ''
       shell: bash
+      env:
+        TAP_DIR: ${{ steps.tap-dir.outputs.path }}
       run: |
         set -euo pipefail
         shopt -s nullglob
@@ -163,6 +167,8 @@ runs:
     - name: Build bottle
       shell: bash
       env:
+        TAP_DIR: ${{ steps.tap-dir.outputs.path }}
+        HOMEBREW_SCCACHE_PATH: ${{ steps.sccache-path.outputs.path }}
         HOMEBREW_DOCKER_REGISTRY_TOKEN: ${{ steps.registry.outputs.token }}
         TESTING_FORMULAE: ${{ inputs.formula }}
       run: |
@@ -175,6 +181,8 @@ runs:
 
     - name: Fail on skipped or failed formula
       shell: bash
+      env:
+        TAP_DIR: ${{ steps.tap-dir.outputs.path }}
       run: |
         set -euo pipefail
         cd "${TAP_DIR}"
@@ -200,6 +208,7 @@ runs:
       if: inputs.validate-bottle == 'true' && inputs.variant != ''
       shell: bash
       env:
+        TAP_DIR: ${{ steps.tap-dir.outputs.path }}
         FORMULA: ${{ inputs.formula }}
         VARIANT: ${{ inputs.variant }}
       run: |
@@ -230,6 +239,7 @@ runs:
       if: always() && inputs.use-sccache == 'true'
       shell: bash
       env:
+        HOMEBREW_SCCACHE_PATH: ${{ steps.sccache-path.outputs.path }}
         FORMULA: ${{ inputs.formula }}
         BACKEND: ${{ inputs.backend }}
       run: |
@@ -251,8 +261,8 @@ runs:
         name: ${{ inputs.artifact-name }}
         if-no-files-found: ignore
         path: |
-          ${{ env.TAP_DIR }}/*.bottle*.tar.gz
-          ${{ env.TAP_DIR }}/*.bottle*.json
+          ${{ steps.tap-dir.outputs.path }}/*.bottle*.tar.gz
+          ${{ steps.tap-dir.outputs.path }}/*.bottle*.json
 
     - name: Save sccache disk directory
       if: >-

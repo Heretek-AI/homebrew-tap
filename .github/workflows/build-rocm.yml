@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     container:
-      image: ${{ needs.plan.outputs.rocm_image }}
+      image: ${{ needs.plan.outputs.rocm_image }} # zizmor: ignore[unpinned-images] resolved from upstream-pins.json and verified via docker manifest inspect
       options: --privileged
     permissions:
       actions: read
@@ -168,7 +168,7 @@ jobs:
       matrix:
         item: ${{ fromJSON(needs.plan.outputs.rocm_matrix) }}
     container:
-      image: ${{ needs.plan.outputs.rocm_image }}
+      image: ${{ needs.plan.outputs.rocm_image }} # zizmor: ignore[unpinned-images] resolved from upstream-pins.json and verified via docker manifest inspect
       options: --privileged
     permissions:
       actions: read
