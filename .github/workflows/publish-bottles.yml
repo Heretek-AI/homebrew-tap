@@ -1,0 +1,250 @@
+name: Publish Backfilled Bottles
+
+# `backfill-bottles.yml` dispatches ordinary `workflow_dispatch` builds, which
+# upload bottle artifacts but never publish them. This workflow consumes the
+# artifacts of one completed builder run, uploads them to GHCR with
+# `brew pr-upload`, and opens a `bottle-bootstrap` pull request containing the
+# generated `bottle do` blocks. The PR is deliberately not labelled `autobump`,
+# so it is reviewed and merged manually.
+#
+# The optional GitHub App (`vars.APP_ID` + `secrets.APP_PRIVATE_KEY`) needs
+# Contents, Pull requests and Issues write. GHCR uploads use `GITHUB_TOKEN`
+# because the autobump App does not have `packages: write`. Without the App the
+# workflow falls back to `GITHUB_TOKEN`, but pull requests opened with that
+# token do not trigger pull-request workflows.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Actions run ID whose bottle artifacts should be published"
+        required: true
+        type: string
+      root_url:
+        description: "Bottle root URL"
+        required: false
+        default: "https://ghcr.io/v2/heretek-ai/tap"
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-bottles-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish bottles from run ${{ inputs.run_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash -xeuo pipefail {0}
+    permissions:
+      actions: read
+      contents: write
+      packages: write
+      pull-requests: write
+      issues: write
+    env:
+      APP_CONFIGURED: ${{ vars.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+      RUN_ID: ${{ inputs.run_id }}
+      ROOT_URL: ${{ inputs.root_url }}
+    steps:
+      - name: Validate run ID
+        run: |
+          if [[ ! "${RUN_ID}" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_id must be a numeric Actions run ID, got '${RUN_ID}'."
+            exit 1
+          fi
+
+      - name: Generate GitHub App token
+        id: app-token
+        if: env.APP_CONFIGURED == 'true'
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Validate source run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          run_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}")"
+          status="$(jq -r '.status' <<< "${run_json}")"
+          conclusion="$(jq -r '.conclusion // ""' <<< "${run_json}")"
+          workflow_name="$(jq -r '.name' <<< "${run_json}")"
+          head_branch="$(jq -r '.head_branch // ""' <<< "${run_json}")"
+          head_repo="$(jq -r '.head_repository.full_name // ""' <<< "${run_json}")"
+
+          if [[ "${status}" != "completed" || "${conclusion}" != "success" ]]; then
+            echo "::error::Run ${RUN_ID} is ${status}/${conclusion}; only completed successful runs can be published."
+            exit 1
+          fi
+
+          case "${workflow_name}" in
+            "Build Hosted Bottles"|"Build CUDA Bottles"|"Build ROCm Bottles") ;;
+            *)
+              echo "::error::Run ${RUN_ID} is workflow '${workflow_name}', not a bottle builder."
+              exit 1
+              ;;
+          esac
+
+          if [[ "${head_repo}" != "${GITHUB_REPOSITORY}" ]]; then
+            echo "::error::Run ${RUN_ID} came from '${head_repo:-an unknown repository}'; only this repository is allowed."
+            exit 1
+          fi
+
+          case "${head_branch}" in
+            main|autobump/*|bump-*|bootstrap/*) ;;
+            *)
+              echo "::error::Run ${RUN_ID} is from branch '${head_branch}', which is not an approved bottle source."
+              exit 1
+              ;;
+          esac
+
+          echo "Source run ${RUN_ID}: ${workflow_name} on ${head_branch} (${head_repo})."
+
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+
+      - name: Download bottle artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh run view "${RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json databaseId >/dev/null; then
+            echo "::error::Run ${RUN_ID} was not found in ${GITHUB_REPOSITORY}."
+            exit 1
+          fi
+
+          download_dir="${RUNNER_TEMP}/bottles-download"
+          flat_dir="${RUNNER_TEMP}/bottles-flat"
+          rm -rf "${download_dir}" "${flat_dir}"
+          mkdir -p "${download_dir}" "${flat_dir}"
+
+          if ! gh run download "${RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir "${download_dir}"; then
+            echo "::error::Could not download artifacts from run ${RUN_ID}."
+            exit 1
+          fi
+
+          mapfile -t json_files < <(find "${download_dir}" -type f -name '*.bottle*.json' -print)
+          mapfile -t archive_files < <(find "${download_dir}" -type f -name '*.bottle*.tar.gz' -print)
+
+          if (( ${#json_files[@]} == 0 )); then
+            echo "::error::Run ${RUN_ID} has no *.bottle*.json artifacts; run the backfill/build workflows first."
+            exit 1
+          fi
+          if (( ${#archive_files[@]} == 0 )); then
+            echo "::error::Run ${RUN_ID} has no *.bottle*.tar.gz artifacts; nothing can be uploaded."
+            exit 1
+          fi
+
+          # Flatten the per-artifact directories so `brew pr-upload` sees every
+          # JSON file in one place (it globs `*.bottle.json` in the cwd).
+          cp -f -- "${json_files[@]}" "${archive_files[@]}" "${flat_dir}/"
+          echo "BOTTLES_FLAT=${flat_dir}" >> "${GITHUB_ENV}"
+          echo "Found ${#json_files[@]} bottle JSON file(s) and ${#archive_files[@]} archive(s) in run ${RUN_ID}."
+
+      - name: Prepare tap branch
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          if [[ ! -d "${tap_dir}/.git" ]]; then
+            echo "::error::Tap checkout not found at ${tap_dir}."
+            exit 1
+          fi
+
+          cd "${tap_dir}"
+          # setup-homebrew sets a global auth header for the token above, so the
+          # remote URL stays token-free.
+          git remote set-url origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          git fetch origin main
+          git checkout -B "bootstrap/bottles-${RUN_ID}" origin/main
+
+          # `brew pr-upload` reads `*.bottle.json` from the current directory and
+          # resolves each `formula.path` relative to HOMEBREW_REPOSITORY. The
+          # checkout is the tap root, and these files are gitignored.
+          cp -f -- "${BOTTLES_FLAT}"/*.bottle*.json "${BOTTLES_FLAT}"/*.bottle*.tar.gz .
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Publish bottles to GHCR
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          # GHCR uploads keep using GITHUB_TOKEN: the autobump App has no packages permission.
+          HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
+          HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
+          HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          cd "${TAP_DIR}"
+          brew pr-upload --root-url="${ROOT_URL}"
+
+      - name: Push bottle commit and open pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: bootstrap/bottles-${{ inputs.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ inputs.run_id }}
+        run: |
+          cd "${TAP_DIR}"
+
+          # For GHCR, `brew pr-upload` writes the `manifest_sha256` pins and
+          # commits each formula itself. Rewind those local, unpushed commits
+          # so only `Formula`/`Casks` changes are committed below.
+          git reset --quiet origin/main
+          git add -- Formula Casks
+          if git diff --cached --quiet; then
+            echo "::notice::Run ${RUN_ID} produced no bottle changes; the bottles are already published. Nothing to do."
+            exit 0
+          fi
+
+          git commit -m "chore(bottles): publish backfilled bottles from run ${RUN_ID}"
+
+          if ! git push origin "${BRANCH}"; then
+            echo "::error::Push of ${BRANCH} was rejected. Delete the stale branch or use a different run, then retry."
+            exit 1
+          fi
+
+          gh label create bottle-bootstrap --color 1d76db --description "Backfilled bottle publication" --force
+
+          body="Bottles from run ${RUN_ID} (${RUN_URL}) were uploaded to GHCR and pinned with brew pr-upload.
+
+          - Source run: ${RUN_URL}
+          - Root URL: ${ROOT_URL}
+          - Label: bottle-bootstrap (not autobump)
+
+          The bottle archives are already published. This pull request only carries the generated bottle do blocks and manifest digests. Review the formula diff and merge manually; auto-publish is intentionally not enabled for this branch."
+
+          if [[ "${APP_CONFIGURED}" != "true" ]]; then
+            body="${body}
+
+          Opened with the repository GITHUB_TOKEN because the GitHub App is not configured, so pull-request workflows will not run automatically. Re-run the checks manually or configure APP_ID and APP_PRIVATE_KEY."
+          fi
+
+          existing_pr="$(gh pr list --repo "${GH_REPO}" --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')"
+          if [[ -n "${existing_pr}" ]]; then
+            gh pr edit "${existing_pr}" \
+              --title "chore(bottles): backfill from run ${RUN_ID}" \
+              --body "${body}" \
+              --add-label bottle-bootstrap
+          else
+            gh pr create \
+              --repo "${GH_REPO}" \
+              --base main \
+              --head "${BRANCH}" \
+              --title "chore(bottles): backfill from run ${RUN_ID}" \
+              --label bottle-bootstrap \
+              --body "${body}"
+          fi
