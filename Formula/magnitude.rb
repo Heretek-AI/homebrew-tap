@@ -1,6 +1,7 @@
 class Magnitude < Formula
   desc "Local inference runtime and agent harness"
   homepage "https://github.com/magnitudedev/magnitude"
+  version "0.3.5"
   license "Apache-2.0"
 
   livecheck do
