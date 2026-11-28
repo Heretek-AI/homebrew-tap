@@ -1,0 +1,204 @@
+name: Build CUDA Bottles
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Formula/**"
+      - "scripts/classify_changed_formulae.py"
+      - ".github/upstream-pins.json"
+      - ".github/actions/brew-bottle-build/**"
+      - ".github/workflows/build-cuda.yml"
+  pull_request:
+    paths:
+      - "Formula/**"
+      - "scripts/classify_changed_formulae.py"
+      - ".github/upstream-pins.json"
+      - ".github/actions/brew-bottle-build/**"
+      - ".github/workflows/build-cuda.yml"
+  workflow_dispatch:
+    inputs:
+      formulae:
+        description: "Comma-separated CUDA formula names to force-build (empty: detect changes)"
+        required: false
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+jobs:
+  plan:
+    name: Check CUDA toolchain & plan matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      cuda_image: ${{ steps.check.outputs.cuda_image }}
+      cuda_major_minor: ${{ steps.check.outputs.cuda_major_minor }}
+      cuda_ok: ${{ steps.check.outputs.cuda_ok }}
+      cuda_matrix: ${{ steps.plan.outputs.cuda_matrix }}
+      cuda_non_empty: ${{ steps.plan.outputs.cuda_non_empty }}
+      cuda_runtime: ${{ steps.plan.outputs.cuda_runtime }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve and inspect brew-cuda toolchain image
+        id: check
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cuda_version="$(python3 -c 'import json; print(json.load(open(".github/upstream-pins.json"))["cuda"]["pinned_version"])')"
+          cuda_major_minor="${cuda_version%.*}"
+          cuda_image="ghcr.io/heretek-ai/brew-cuda:${cuda_version}"
+          cuda_ok=false
+
+          if ! printf '%s' "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null 2>&1; then
+            echo "::error::docker login to ghcr.io failed"
+            exit 1
+          fi
+
+          if cuda_output="$(docker manifest inspect "${cuda_image}" 2>&1)"; then
+            cuda_ok=true
+          elif [[ "${cuda_output}" == *"no such manifest"* || "${cuda_output}" == *"manifest unknown"* || "${cuda_output}" == *"not found"* ]]; then
+            echo "::notice::${cuda_image} is not published yet; CUDA bottles will be skipped."
+          else
+            printf '%s\n' "${cuda_output}"
+            echo "::error::docker manifest inspect failed for ${cuda_image}"
+            exit 1
+          fi
+
+          {
+            echo "cuda_image=${cuda_image}"
+            echo "cuda_major_minor=${cuda_major_minor}"
+            echo "cuda_ok=${cuda_ok}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Plan CUDA per-formula matrix
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          args=()
+          if [[ -n "${FORCED_FORMULAE}" ]]; then
+            args=(--formulae "${FORCED_FORMULAE}")
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]; then
+            args=(--base "${BASE_SHA}" --head HEAD)
+          else
+            args=(--all)
+          fi
+
+          cuda_all="$(python3 scripts/classify_changed_formulae.py --runner hosted-cuda --skip-bottled-runtime --format csv "${args[@]}")"
+          cuda_json="$(python3 scripts/classify_changed_formulae.py --runner hosted-cuda --exclude-runtime --format matrix "${args[@]}")"
+
+          cuda_non_empty=false
+          [[ "${cuda_json}" != "[]" ]] && cuda_non_empty=true
+          cuda_runtime=false
+          [[ ",${cuda_all}," == *",cuda-runtime,"* ]] && cuda_runtime=true
+
+          {
+            echo "cuda_matrix=${cuda_json}"
+            echo "cuda_non_empty=${cuda_non_empty}"
+            echo "cuda_runtime=${cuda_runtime}"
+          } >> "${GITHUB_OUTPUT}"
+
+  bottles-cuda-runtime:
+    name: CUDA runtime bottle (hosted)
+    needs: plan
+    if: needs.plan.outputs.cuda_ok == 'true' && needs.plan.outputs.cuda_runtime == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/homebrew/brew:main
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    steps:
+      - name: Check out action definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and validate cuda-runtime bottle
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
+        with:
+          formula: cuda-runtime
+          backend: cuda
+          variant: runtime
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          use-sccache: "false"
+          install-python: "true"
+          artifact-name: bottles_cuda_runtime
+          rubygems-cache-prefix: ubuntu-latest
+
+  bottles-cuda:
+    name: CUDA bottle (${{ matrix.item.formula }})
+    needs: [plan, bottles-cuda-runtime]
+    if: >-
+      always() &&
+      needs.plan.outputs.cuda_ok == 'true' &&
+      needs.plan.outputs.cuda_non_empty == 'true' &&
+      (needs.bottles-cuda-runtime.result == 'success' || needs.bottles-cuda-runtime.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        item: ${{ fromJSON(needs.plan.outputs.cuda_matrix) }}
+    container:
+      image: ${{ needs.plan.outputs.cuda_image }} # zizmor: ignore[unpinned-images] resolved from upstream-pins.json and verified via docker manifest inspect
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "false"
+      SCCACHE_DIR: /tmp/sccache
+      SCCACHE_CACHE_SIZE: "4G"
+      CUDA_HOME: /usr/local/cuda-${{ needs.plan.outputs.cuda_major_minor }}
+      HOMEBREW_CUDA_PATH: /usr/local/cuda-${{ needs.plan.outputs.cuda_major_minor }}
+      HOMEBREW_SCCACHE_DIR: /tmp/sccache
+    steps:
+      - name: Check out action definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and validate CUDA bottle
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
+        with:
+          formula: ${{ matrix.item.formula }}
+          backend: cuda
+          variant: ${{ matrix.item.variant }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          use-sccache: "true"
+          sccache-mode: disk
+          runtime-artifact: ${{ needs.bottles-cuda-runtime.result == 'success' && 'bottles_cuda_runtime' || '' }}
+          artifact-name: bottles_cuda_${{ matrix.item.formula }}
+          rubygems-cache-prefix: ubuntu-latest-cuda
+          free-disk-space: "true"

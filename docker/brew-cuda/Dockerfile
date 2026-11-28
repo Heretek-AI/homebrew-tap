@@ -13,6 +13,7 @@ RUN apt-get update \
         git \
         ninja-build \
         pkg-config \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=cuda /usr/local/cuda-13.5 /usr/local/cuda-13.5

@@ -1,0 +1,104 @@
+name: Backfill Bottles
+
+on:
+  workflow_dispatch:
+    inputs:
+      group:
+        description: "Group to backfill: runtimes, hosted, cuda, rocm, or a single formula name"
+        required: true
+        default: runtimes
+        type: string
+      max_dispatches:
+        description: "Maximum number of builder workflows to dispatch in this run"
+        required: false
+        default: "3"
+        type: string
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  backfill:
+    name: Dispatch builders for unbottled formulae
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GROUP: ${{ inputs.group }}
+      MAX_DISPATCHES: ${{ inputs.max_dispatches }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select unbottled formulae and dispatch independent builders
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          GROUP: ${{ env.GROUP }}
+          MAX_DISPATCHES: ${{ env.MAX_DISPATCHES }}
+        run: |
+          mapfile -t candidates < <(
+            python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          group = os.environ["GROUP"].strip()
+          max_count = int(os.environ.get("MAX_DISPATCHES", "3") or "3")
+
+          def has_bottle(name: str) -> bool:
+              p = Path("Formula") / f"{name}.rb"
+              return p.is_file() and "bottle do" in p.read_text(encoding="utf-8")
+
+          if group == "runtimes":
+              pool = ["cuda-runtime", "rocm-runtime"]
+          elif group == "hosted":
+              lin = subprocess.check_output(
+                  ["python3", "scripts/classify_changed_formulae.py", "--runner", "hosted-linux", "--exclude-runtime", "--all", "--format", "csv"],
+                  text=True,
+              ).strip().split(",")
+              mac = subprocess.check_output(
+                  ["python3", "scripts/classify_changed_formulae.py", "--runner", "hosted-macos", "--exclude-runtime", "--all", "--format", "csv"],
+                  text=True,
+              ).strip().split(",")
+              pool = sorted({x for x in lin + mac if x})
+          elif group == "cuda":
+              pool = [x for x in subprocess.check_output(
+                  ["python3", "scripts/classify_changed_formulae.py", "--runner", "hosted-cuda", "--exclude-runtime", "--all", "--format", "csv"],
+                  text=True,
+              ).strip().split(",") if x]
+          elif group == "rocm":
+              pool = [x for x in subprocess.check_output(
+                  ["python3", "scripts/classify_changed_formulae.py", "--runner", "hosted-rocm", "--exclude-runtime", "--all", "--format", "csv"],
+                  text=True,
+              ).strip().split(",") if x]
+          else:
+              pool = [group]
+
+          selected = [name for name in pool if (Path("Formula") / f"{name}.rb").is_file() and not has_bottle(name)]
+          for name in selected[:max_count]:
+              print(name)
+          PY
+          )
+
+          if (( ${#candidates[@]} == 0 )); then
+            echo "No unbottled formulae found for group '${GROUP}'."
+            exit 0
+          fi
+
+          for formula in "${candidates[@]}"; do
+            echo "Dispatching build-formula.yml for unbottled formula: ${formula}"
+            gh workflow run build-formula.yml \
+              --repo "${GH_REPO}" \
+              --ref "${REF_NAME}" \
+              -f formula="${formula}" \
+              -f backend=auto
+          done

@@ -38,6 +38,10 @@ def load_config_from_ledger():
                     ttype = "upstream_release"
                 elif track == "rolling_release":
                     ttype = "rolling_release"
+                elif track == "multi_asset_release":
+                    ttype = "multi_asset_release"
+                elif track == "runtime":
+                    ttype = "runtime"
                 elif track == "builder":
                     ttype = "builder"
                 else:
@@ -381,6 +385,96 @@ def update_builder_formula_content(
     return True
 
 
+def generic_asset_role(filename: str) -> str:
+    """Normalize a GitHub release asset filename into a version-independent role."""
+    name = _ARCHIVE_SUFFIX_RE.sub("", filename)
+    # Strip semver-like tokens such as v0.4.8, 0.7.5, 2.2.0
+    name = re.sub(r"(?:^|-)v?\d+\.\d+(?:\.\d+)*(?:-[0-9a-zA-Z.]+)?(?=-|$)", "", name)
+    return re.sub(r"-{2,}", "-", name).strip("-").lower()
+
+
+def _replace_release_assets_for_repo(
+    content: str,
+    repo: str,
+    tag_name: str,
+    asset_shas: Dict[str, str],
+) -> Tuple[str, int]:
+    """Update all releases/download/<tag>/<asset> + sha256 pairs for *repo*."""
+    matched_count = 0
+    role_map: Dict[str, Tuple[str, str]] = {}
+    for asset_name, sha in asset_shas.items():
+        if ".bottle." in asset_name or asset_name.endswith(".bottle.json"):
+            continue
+        role = generic_asset_role(asset_name)
+        if role and role not in role_map:
+            role_map[role] = (asset_name, sha)
+
+    expected_prefix = f"https://github.com/{repo}/releases/download/"
+
+    def replacer(match: re.Match) -> str:
+        nonlocal matched_count
+        url_prefix = match.group("url_prefix")
+        if expected_prefix not in url_prefix:
+            return match.group(0)
+        old_filename = match.group("filename")
+        if old_filename in asset_shas:
+            new_name, new_sha = old_filename, asset_shas[old_filename]
+        else:
+            role = generic_asset_role(old_filename)
+            if role not in role_map:
+                return match.group(0)
+            new_name, new_sha = role_map[role]
+        matched_count += 1
+        encoded_tag = tag_name.replace("@", "%40").replace("/", "%2F") if "@" in tag_name else tag_name
+        return (
+            f'url "{expected_prefix}{encoded_tag}/{new_name}"\n'
+            f"{match.group('extra')}"
+            f'{match.group("sha_indent")}sha256 "{new_sha}"'
+        )
+
+    updated = _RELEASE_URL_PAIR_RE.sub(replacer, content)
+    return updated, matched_count
+
+
+def update_multi_asset_release_formula(
+    formula_path: str,
+    repo: str,
+    token: str = None,
+    tag: str = "latest",
+    dry_run: bool = False,
+) -> bool:
+    if not os.path.exists(formula_path):
+        print(f"[-] Formula not found: {formula_path}")
+        return False
+
+    rel = get_latest_release(repo, token, tag)
+    tag_name = rel.get("tag_name", "")
+    if not tag_name:
+        print(f"[-] No release tag found for {repo}")
+        return False
+
+    asset_shas = _release_asset_shas(rel, token)
+    with open(formula_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    updated, matched = _replace_release_assets_for_repo(content, repo, tag_name, asset_shas)
+    if matched == 0:
+        print(f"[*] No matching multi-asset URLs for {formula_path}; left unchanged")
+        return False
+
+    if updated == content:
+        print(f"[*] No changes needed for {formula_path} (already at {tag_name})")
+        return False
+
+    if dry_run:
+        print(f"[DRY-RUN] Multi-asset release formula {formula_path} -> tag: {tag_name} ({matched} assets)")
+    else:
+        with open(formula_path, "w", encoding="utf-8") as f:
+            f.write(updated)
+        print(f"[OK] Updated {formula_path} to {tag_name} ({matched} assets)")
+    return True
+
+
 def update_upstream_release_formula(
     formula_path: str,
     repo: str,
@@ -415,11 +509,17 @@ def update_upstream_release_formula(
     url_and_sha = re.compile(
         r'(url\s+")https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+("\s*\n\s*sha256\s+")[a-fA-F0-9]+(")'
     )
-    content, replacements = url_and_sha.subn(
+    content, _replacements = url_and_sha.subn(
         lambda m: f"{m.group(1)}{tarball_url}{m.group(2)}{sha256_digest}{m.group(3)}",
         content,
         count=1,
     )
+
+    # Also update any paired GitHub release binary assets for the same repo
+    # (e.g. basalt, which uses a tag archive on arm64 and a release asset on x64).
+    if f"https://github.com/{repo}/releases/download/" in content and rel.get("assets"):
+        asset_shas = _release_asset_shas(rel, token)
+        content, _ = _replace_release_assets_for_repo(content, repo, tag_name, asset_shas)
 
     if content != original_content:
         if dry_run:
@@ -657,6 +757,22 @@ def _release_asset_shas(release, token):
     return asset_shas
 
 
+def sync_pin_entry(ledger_path: str, target: str, formula_path: str) -> None:
+    """Update formula_sha256 in .github/upstream-pins.json for an updated formula."""
+    if not os.path.exists(ledger_path) or not os.path.exists(formula_path):
+        return
+    with open(ledger_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    pkg = data.get("packages", {}).get(target)
+    if not isinstance(pkg, dict):
+        return
+    with open(formula_path, "rb") as f:
+        pkg["formula_sha256"] = hashlib.sha256(f.read()).hexdigest()
+    with open(ledger_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Update Homebrew Tap Formulae with new releases and commits"
@@ -697,12 +813,30 @@ def main():
     parser.add_argument(
         "--skip-upstream-releases",
         action="store_true",
-        help="Skip upstream release-tag formulae that are handled by brew bump",
+        help="Skip single-archive upstream release-tag formulae handled by brew bump",
+    )
+    parser.add_argument(
+        "--sync-pins",
+        action="store_true",
+        help="Update formula_sha256 in .github/upstream-pins.json for modified formulae",
+    )
+    parser.add_argument(
+        "--max-updates",
+        type=int,
+        default=0,
+        help="Optional cap on the number of updated formulae per run (0 = unlimited)",
+    )
+    parser.add_argument(
+        "--output-json",
+        default=None,
+        help="Optional path to write structured JSON list of updated targets",
     )
 
     args = parser.parse_args()
 
     targets = list(CONFIG.keys()) if args.repo == "all" else [args.repo]
+    if args.repo == "all":
+        targets = [t for t in targets if CONFIG[t]["type"] != "runtime"]
     if args.builders_only:
         targets = [target for target in targets if CONFIG[target]["type"] == "builder"]
     if args.skip_upstream_releases:
@@ -710,9 +844,17 @@ def main():
             target for target in targets if CONFIG[target]["type"] != "upstream_release"
         ]
 
+    ledger_path = os.path.join(
+        os.path.dirname(__file__), "..", ".github", "upstream-pins.json"
+    )
     updated_targets = []
+    updated_records = []
 
     for target in targets:
+        if args.max_updates and len(updated_targets) >= args.max_updates:
+            print(f"[*] Reached --max-updates={args.max_updates}; stopping.")
+            break
+
         cfg = CONFIG[target]
         target_type = cfg["type"]
         repo_name = cfg["repo"]
@@ -754,6 +896,16 @@ def main():
                         f"[-] Failed to update upstream release formula {formula_file}: {e}"
                     )
 
+            elif target_type == "multi_asset_release":
+                try:
+                    changed = update_multi_asset_release_formula(
+                        formula_path, repo_name, args.token, args.tag, args.dry_run
+                    )
+                except Exception as e:
+                    print(
+                        f"[-] Failed to update multi-asset release formula {formula_file}: {e}"
+                    )
+
             elif target_type == "rolling_release":
                 try:
                     changed = update_rolling_release_formula(
@@ -781,8 +933,29 @@ def main():
                         f"[-] Failed to update upstream commit formula {formula_file}: {e}"
                     )
 
-            if changed and target not in updated_targets:
-                updated_targets.append(target)
+            elif target_type == "runtime":
+                print(
+                    f"[*] Runtime formula {formula_file} uses coordinated toolchain updates; skipping."
+                )
+
+            if changed:
+                if args.sync_pins and not args.dry_run:
+                    sync_pin_entry(ledger_path, target, formula_path)
+                if target not in updated_targets:
+                    updated_targets.append(target)
+                    updated_records.append(
+                        {
+                            "target": target,
+                            "formula": os.path.splitext(formula_file)[0],
+                            "repo": repo_name,
+                            "type": target_type,
+                        }
+                    )
+
+    if args.output_json:
+        with open(args.output_json, "w", encoding="utf-8") as f:
+            json.dump(updated_records, f, indent=2)
+            f.write("\n")
 
     if "GITHUB_OUTPUT" in os.environ and os.path.exists(os.environ["GITHUB_OUTPUT"]):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:

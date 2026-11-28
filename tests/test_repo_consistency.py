@@ -1,0 +1,89 @@
+"""Repository-wide consistency and metadata invariant tests."""
+
+from __future__ import annotations
+
+import json
+import re
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+FORMULA_DIR = REPO_ROOT / "Formula"
+PINS_PATH = REPO_ROOT / ".github" / "upstream-pins.json"
+SPECS_PATH = REPO_ROOT / ".github" / "validation-specs.json"
+PORTS_PATH = REPO_ROOT / "scripts" / "port_registry.json"
+
+
+class TestRepoConsistency(unittest.TestCase):
+    def setUp(self) -> None:
+        self.formulae = sorted(p.stem for p in FORMULA_DIR.glob("*.rb"))
+        self.pins = json.loads(PINS_PATH.read_text(encoding="utf-8"))
+        self.specs = json.loads(SPECS_PATH.read_text(encoding="utf-8"))
+        self.ports = json.loads(PORTS_PATH.read_text(encoding="utf-8"))
+
+    def test_every_formula_tracked_in_upstream_pins_and_validation_specs(self) -> None:
+        pinned = sorted(self.pins.get("packages", {}).keys())
+        specced = sorted(self.specs.get("formulas", {}).keys())
+        self.assertEqual(
+            pinned,
+            self.formulae,
+            "Formula/*.rb and .github/upstream-pins.json packages must match 1:1",
+        )
+        self.assertEqual(
+            specced,
+            self.formulae,
+            "Formula/*.rb and .github/validation-specs.json formulas must match 1:1",
+        )
+
+    def test_service_ports_are_unique_and_registered(self) -> None:
+        services = self.ports.get("services", {})
+        seen_ports: dict[int, str] = {}
+        for name, cfg in services.items():
+            port = int(cfg["port"])
+            self.assertNotIn(
+                port,
+                seen_ports,
+                f"Port {port} duplicated between {seen_ports.get(port)} and {name}",
+            )
+            seen_ports[port] = name
+
+        for name in self.formulae:
+            source = (FORMULA_DIR / f"{name}.rb").read_text(encoding="utf-8")
+            if re.search(r"^\s*service\s+do\b", source, re.MULTILINE):
+                self.assertIn(
+                    name,
+                    services,
+                    f"Formula/{name}.rb defines a service block but is missing from scripts/port_registry.json",
+                )
+
+    def test_toolchain_versions_match_dockerfiles_and_runtime_formulae(self) -> None:
+        rocm_pin = self.pins["rocm"]["pinned_version"]
+        rocm_sha = self.pins["rocm"]["pinned_sha256"]
+        cuda_pin = self.pins["cuda"]["pinned_version"]
+
+        rocm_df = (REPO_ROOT / "docker" / "brew-rocm" / "Dockerfile").read_text(
+            encoding="utf-8"
+        )
+        cuda_df = (REPO_ROOT / "docker" / "brew-cuda" / "Dockerfile").read_text(
+            encoding="utf-8"
+        )
+        rocm_rb = (FORMULA_DIR / "rocm-runtime.rb").read_text(encoding="utf-8")
+
+        self.assertIn(f"ARG ROCM_VERSION={rocm_pin}", rocm_df)
+        self.assertIn(f"ARG ROCM_SHA256={rocm_sha}", rocm_df)
+        self.assertIn(f"nvidia/cuda:{cuda_pin}-devel-ubuntu24.04", cuda_df)
+        self.assertIn(rocm_pin, rocm_rb)
+        self.assertIn(rocm_sha, rocm_rb)
+
+    def test_workflows_do_not_hardcode_toolchain_image_tags(self) -> None:
+        for wf in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+            text = wf.read_text(encoding="utf-8")
+            self.assertNotRegex(
+                text,
+                r"ghcr\.io/heretek-ai/brew-(?:rocm|cuda):[0-9]",
+                f"{wf.name} should resolve toolchain tags from .github/upstream-pins.json",
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

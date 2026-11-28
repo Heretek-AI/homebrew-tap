@@ -48,12 +48,13 @@ jobs:
           HEAD_SHA: ${{ inputs.head_sha }}
           PULL_REQUEST: ${{ inputs.pull_request }}
         run: |
+          workflows="build-hosted.yml,build-cuda.yml,build-rocm.yml"
           if [[ -n "$HEAD_SHA" ]]
           then
-            brew pr-pull --debug --retain-bottle-dir --tap="$GITHUB_REPOSITORY" --head-sha="$HEAD_SHA" \
+            brew pr-pull --debug --retain-bottle-dir --workflows="$workflows" --tap="$GITHUB_REPOSITORY" --head-sha="$HEAD_SHA" \
               "$PULL_REQUEST"
           else
-            brew pr-pull --debug --retain-bottle-dir --tap="$GITHUB_REPOSITORY" "$PULL_REQUEST"
+            brew pr-pull --debug --retain-bottle-dir --workflows="$workflows" --tap="$GITHUB_REPOSITORY" "$PULL_REQUEST"
           fi
 
       - name: Detect retained bottles

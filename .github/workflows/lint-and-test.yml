@@ -1,0 +1,135 @@
+name: Lint and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+jobs:
+  syntax-audit:
+    name: Syntax, style and strict audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: ghcr.io/homebrew/brew:main
+      options: --privileged
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@61b401267256bb9c047d6d1481b176d5772a0ba7 # 2026.11.23.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ubuntu-latest-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ubuntu-latest-rubygems-
+
+      - name: Locate tap checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "TAP_DIR=${tap_dir}" >> "${GITHUB_ENV}"
+
+      - name: Prepare test-bot environment
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+
+      - name: Tap readall check
+        run: |
+          brew readall --aliases --os=all --arch=all heretek-ai/tap
+
+      - name: Formula, cask and command style
+        run: |
+          cd "${TAP_DIR}"
+          brew style Formula/ Casks/ cmd/
+
+      - name: Strict formula audit
+        run: |
+          cd "${TAP_DIR}"
+          brew audit --strict --tap=heretek-ai/tap
+
+      - name: Strict cask audit
+        run: |
+          cd "${TAP_DIR}"
+          brew audit --cask --strict --tap=heretek-ai/tap
+
+      - name: Install Python for README verification
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3
+
+      - name: Verify README is generated from current metadata
+        run: |
+          cd "${TAP_DIR}"
+          python3 scripts/generate_readme.py --check
+
+  test-scripts:
+    name: Scripts, YAML and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-cov pyyaml
+
+      - name: Run script and consistency unit tests
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python3 -m unittest discover -s tests/ -v
+          python3 -m pytest tests/ -q
+
+      - name: Lint shell scripts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends shellcheck
+          shellcheck .github/scripts/*.sh scripts/*.sh
+
+      - name: Validate workflow and action YAML
+        run: |
+          python3 - <<'PY'
+          import glob
+          import yaml
+          for path in sorted(glob.glob(".github/**/*.yml", recursive=True)):
+              with open(path, encoding="utf-8") as handle:
+                  yaml.safe_load(handle)
+              print(f"ok {path}")
+          PY
+
+      - name: Run actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint" -color

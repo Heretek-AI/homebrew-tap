@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "docker/**"
+      - ".github/upstream-pins.json"
       - ".github/workflows/toolchain-images.yml"
   push:
     branches:
       - main
     paths:
       - "docker/**"
+      - ".github/upstream-pins.json"
       - ".github/workflows/toolchain-images.yml"
   workflow_dispatch:
 
@@ -19,15 +21,42 @@ concurrency:
   group: toolchain-images-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  ROCM_VERSION: 10.3.0a20261126
-  ROCM_FAMILY: gfx1151
-  ROCM_SHA256: 874371b060a4ea2a8be617aee1107e7703628e28609642f706a691a690524abd
-  CUDA_VERSION: 13.5.0
-
 jobs:
+  config:
+    name: Resolve pinned toolchain versions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      rocm_version: ${{ steps.pins.outputs.rocm_version }}
+      rocm_family: ${{ steps.pins.outputs.rocm_family }}
+      rocm_sha256: ${{ steps.pins.outputs.rocm_sha256 }}
+      cuda_version: ${{ steps.pins.outputs.cuda_version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read toolchain pins from upstream-pins.json
+        id: pins
+        run: |
+          python3 - <<'PY' >> "${GITHUB_OUTPUT}"
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path(".github/upstream-pins.json").read_text(encoding="utf-8"))
+          rocm = data["rocm"]
+          cuda = data["cuda"]
+          print(f"rocm_version={rocm['pinned_version']}")
+          print(f"rocm_family={rocm['pinned_family']}")
+          print(f"rocm_sha256={rocm['pinned_sha256']}")
+          print(f"cuda_version={cuda['pinned_version']}")
+          PY
+
   rocm:
     name: brew-rocm
+    needs: config
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -60,7 +89,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=${{ env.ROCM_VERSION }}
+            type=raw,value=${{ needs.config.outputs.rocm_version }}
             type=raw,value=main,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
 
@@ -73,15 +102,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            ROCM_VERSION=${{ env.ROCM_VERSION }}
-            ROCM_FAMILY=${{ env.ROCM_FAMILY }}
-            ROCM_SHA256=${{ env.ROCM_SHA256 }}
+            ROCM_VERSION=${{ needs.config.outputs.rocm_version }}
+            ROCM_FAMILY=${{ needs.config.outputs.rocm_family }}
+            ROCM_SHA256=${{ needs.config.outputs.rocm_sha256 }}
           cache-from: type=gha,scope=brew-rocm
           cache-to: type=gha,mode=max,scope=brew-rocm
           provenance: true
 
   cuda:
     name: brew-cuda
+    needs: config
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -114,7 +144,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=${{ env.CUDA_VERSION }}
+            type=raw,value=${{ needs.config.outputs.cuda_version }}
             type=raw,value=main,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
 

@@ -1,0 +1,168 @@
+name: Build Hosted Bottles
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Formula/**"
+      - "scripts/classify_changed_formulae.py"
+      - ".github/actions/brew-bottle-build/**"
+      - ".github/workflows/build-hosted.yml"
+  pull_request:
+    paths:
+      - "Formula/**"
+      - "scripts/classify_changed_formulae.py"
+      - ".github/actions/brew-bottle-build/**"
+      - ".github/workflows/build-hosted.yml"
+  workflow_dispatch:
+    inputs:
+      formulae:
+        description: "Comma-separated formula names to force-build (empty: detect changes)"
+        required: false
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+jobs:
+  plan:
+    name: Plan hosted Linux & macOS matrices
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      macos_matrix: ${{ steps.plan.outputs.macos_matrix }}
+      macos_non_empty: ${{ steps.plan.outputs.macos_non_empty }}
+      linux_matrix: ${{ steps.plan.outputs.linux_matrix }}
+      linux_non_empty: ${{ steps.plan.outputs.linux_non_empty }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify hosted formulae
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          args=()
+          if [[ -n "${FORCED_FORMULAE}" ]]; then
+            args=(--formulae "${FORCED_FORMULAE}")
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]; then
+            args=(--base "${BASE_SHA}" --head HEAD)
+          else
+            args=(--all)
+          fi
+
+          macos_json="$(python3 scripts/classify_changed_formulae.py --runner hosted-macos --format matrix "${args[@]}")"
+          linux_json="$(python3 scripts/classify_changed_formulae.py --runner hosted-linux --format matrix "${args[@]}")"
+
+          macos_non_empty=false
+          [[ "${macos_json}" != "[]" ]] && macos_non_empty=true
+          linux_non_empty=false
+          [[ "${linux_json}" != "[]" ]] && linux_non_empty=true
+
+          {
+            echo "macos_matrix=${macos_json}"
+            echo "macos_non_empty=${macos_non_empty}"
+            echo "linux_matrix=${linux_json}"
+            echo "linux_non_empty=${linux_non_empty}"
+          } >> "${GITHUB_OUTPUT}"
+
+  bottles-macos:
+    name: macOS bottle (${{ matrix.item.formula }})
+    needs: plan
+    if: needs.plan.outputs.macos_non_empty == 'true'
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        item: ${{ fromJSON(needs.plan.outputs.macos_matrix) }}
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Check out action definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and validate macOS bottle
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
+        with:
+          formula: ${{ matrix.item.formula }}
+          backend: macos
+          variant: ${{ matrix.item.variant }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          use-sccache: "true"
+          sccache-mode: gha
+          artifact-name: bottles_macos_${{ matrix.item.formula }}
+          rubygems-cache-prefix: macos-26
+
+  bottles-linux:
+    name: Linux bottle (${{ matrix.item.formula }})
+    needs: plan
+    if: needs.plan.outputs.linux_non_empty == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        item: ${{ fromJSON(needs.plan.outputs.linux_matrix) }}
+    container:
+      image: ghcr.io/homebrew/brew:main
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Check out action definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and validate Linux bottle
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
+        with:
+          formula: ${{ matrix.item.formula }}
+          backend: linux
+          variant: ${{ matrix.item.variant }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          use-sccache: "true"
+          sccache-mode: gha
+          install-python: "true"
+          artifact-name: bottles_linux_${{ matrix.item.formula }}
+          rubygems-cache-prefix: ubuntu-latest

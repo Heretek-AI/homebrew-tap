@@ -7,8 +7,8 @@ This tap packages accelerator-focused inference runtimes. Changes land through p
 1. Start from the latest `main` and create a short, descriptive branch, for example `formula/gufo-0.9.1` or `docs/service-ports`.
 2. Keep one logical change per pull request. Formula version bumps include the formula and the matching [`.github/upstream-pins.json`](.github/upstream-pins.json) entry in the same commit.
 3. Do not push directly to `main`. Bottles are published to GHCR from green pull requests: the `brew auto-publish` workflow dispatches `brew pr-pull` for same-repository PRs labelled `autobump`, while human PRs are published by a maintainer.
-4. Open the pull request with the repository template and complete every applicable verification item. A passing pull request must be green in `brew test-bot` and the Python tests before review.
-5. Publish with the `publish` workflow (`brew pr-pull`) or locally with `brew pr-pull --tap=heretek-ai/tap --head-sha=<reviewed-head-sha> <pr-number>`. The `--head-sha` pin prevents publishing a moving branch.
+4. Open the pull request with the repository template and complete every applicable verification item. A passing pull request must be green in `Lint and Test` (`lint-and-test.yml`) and every applicable independent bottle builder (`build-hosted.yml`, `build-cuda.yml`, `build-rocm.yml`) before review.
+5. Publish with the `publish` workflow (`brew pr-pull`) or locally with `brew pr-pull --workflows=build-hosted.yml,build-cuda.yml,build-rocm.yml --tap=heretek-ai/tap --head-sha=<reviewed-head-sha> <pr-number>`. The `--head-sha` pin prevents publishing a moving branch. You can also trigger a single-formula build via `build-formula.yml` or bootstrap unbottled formulae via `backfill-bottles.yml`.
 
 Do not commit local scratch clones, review checkouts, or nested repositories. Every entry must be a regular file or directory in this repository, never a gitlink (mode `160000`).
 

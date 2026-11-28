@@ -357,6 +357,49 @@ class TestUpdateFormulae(unittest.TestCase):
                 "fallback_repo", entry, f"{name} still defines fallback_repo"
             )
 
+    def test_update_multi_asset_release_formula(self):
+        sample_colibri = """class Colibri < Formula
+  homepage "https://github.com/JustVugg/colibri"
+  on_macos do
+    url "https://github.com/JustVugg/colibri/releases/download/v2.2.0/colibri-v2.2.0-macos-arm64.tar.gz"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000001"
+  end
+  on_linux do
+    url "https://github.com/JustVugg/colibri/releases/download/v2.2.0/colibri-v2.2.0-linux-x86_64.tar.gz"
+    sha256 "0000000000000000000000000000000000000000000000000000000000000002"
+  end
+end
+"""
+        fake_release = {
+            "tag_name": "v2.3.0",
+            "assets": [
+                {
+                    "name": "colibri-v2.3.0-macos-arm64.tar.gz",
+                    "browser_download_url": "https://example.com/mac",
+                    "digest": "sha256:" + "a" * 64,
+                },
+                {
+                    "name": "colibri-v2.3.0-linux-x86_64.tar.gz",
+                    "browser_download_url": "https://example.com/lin",
+                    "digest": "sha256:" + "b" * 64,
+                },
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            formula_file = self._write_formula(tmpdir, "colibri.rb", sample_colibri)
+            with patch("update_formulae.get_latest_release", return_value=fake_release):
+                changed = update_formulae.update_multi_asset_release_formula(
+                    str(formula_file),
+                    "JustVugg/colibri",
+                    dry_run=False,
+                )
+            self.assertTrue(changed)
+            updated = formula_file.read_text(encoding="utf-8")
+            self.assertIn("v2.3.0/colibri-v2.3.0-macos-arm64.tar.gz", updated)
+            self.assertIn("a" * 64, updated)
+            self.assertIn("v2.3.0/colibri-v2.3.0-linux-x86_64.tar.gz", updated)
+            self.assertIn("b" * 64, updated)
+
 
 if __name__ == "__main__":
     unittest.main()

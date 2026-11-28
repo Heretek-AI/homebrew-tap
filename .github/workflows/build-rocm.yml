@@ -1,0 +1,204 @@
+name: Build ROCm Bottles
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Formula/**"
+      - "scripts/classify_changed_formulae.py"
+      - ".github/upstream-pins.json"
+      - ".github/actions/brew-bottle-build/**"
+      - ".github/workflows/build-rocm.yml"
+  pull_request:
+    paths:
+      - "Formula/**"
+      - "scripts/classify_changed_formulae.py"
+      - ".github/upstream-pins.json"
+      - ".github/actions/brew-bottle-build/**"
+      - ".github/workflows/build-rocm.yml"
+  workflow_dispatch:
+    inputs:
+      formulae:
+        description: "Comma-separated ROCm formula names to force-build (empty: detect changes)"
+        required: false
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+jobs:
+  plan:
+    name: Check ROCm toolchain & plan matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      rocm_image: ${{ steps.check.outputs.rocm_image }}
+      rocm_ok: ${{ steps.check.outputs.rocm_ok }}
+      rocm_matrix: ${{ steps.plan.outputs.rocm_matrix }}
+      rocm_non_empty: ${{ steps.plan.outputs.rocm_non_empty }}
+      rocm_runtime: ${{ steps.plan.outputs.rocm_runtime }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve and inspect brew-rocm toolchain image
+        id: check
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rocm_version="$(python3 -c 'import json; print(json.load(open(".github/upstream-pins.json"))["rocm"]["pinned_version"])')"
+          rocm_image="ghcr.io/heretek-ai/brew-rocm:${rocm_version}"
+          rocm_ok=false
+
+          if ! printf '%s' "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null 2>&1; then
+            echo "::error::docker login to ghcr.io failed"
+            exit 1
+          fi
+
+          if rocm_output="$(docker manifest inspect "${rocm_image}" 2>&1)"; then
+            rocm_ok=true
+          elif [[ "${rocm_output}" == *"no such manifest"* || "${rocm_output}" == *"manifest unknown"* || "${rocm_output}" == *"not found"* ]]; then
+            echo "::notice::${rocm_image} is not published yet; ROCm bottles will be skipped."
+          else
+            printf '%s\n' "${rocm_output}"
+            echo "::error::docker manifest inspect failed for ${rocm_image}"
+            exit 1
+          fi
+
+          {
+            echo "rocm_image=${rocm_image}"
+            echo "rocm_ok=${rocm_ok}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Plan ROCm per-formula matrix
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCED_FORMULAE: ${{ github.event.inputs.formulae }}
+        run: |
+          args=()
+          if [[ -n "${FORCED_FORMULAE}" ]]; then
+            args=(--formulae "${FORCED_FORMULAE}")
+          elif [[ -n "${BASE_SHA}" && ! "${BASE_SHA}" =~ ^0+$ ]]; then
+            args=(--base "${BASE_SHA}" --head HEAD)
+          else
+            args=(--all)
+          fi
+
+          rocm_all="$(python3 scripts/classify_changed_formulae.py --runner hosted-rocm --skip-bottled-runtime --format csv "${args[@]}")"
+          rocm_json="$(python3 scripts/classify_changed_formulae.py --runner hosted-rocm --exclude-runtime --format matrix "${args[@]}")"
+
+          rocm_non_empty=false
+          [[ "${rocm_json}" != "[]" ]] && rocm_non_empty=true
+          rocm_runtime=false
+          [[ ",${rocm_all}," == *",rocm-runtime,"* ]] && rocm_runtime=true
+
+          {
+            echo "rocm_matrix=${rocm_json}"
+            echo "rocm_non_empty=${rocm_non_empty}"
+            echo "rocm_runtime=${rocm_runtime}"
+          } >> "${GITHUB_OUTPUT}"
+
+  bottles-rocm-runtime:
+    name: ROCm runtime bottle (hosted)
+    needs: plan
+    if: needs.plan.outputs.rocm_ok == 'true' && needs.plan.outputs.rocm_runtime == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: ${{ needs.plan.outputs.rocm_image }} # zizmor: ignore[unpinned-images] resolved from upstream-pins.json and verified via docker manifest inspect
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      ROCM_PATH: /opt/rocm
+      HOMEBREW_ROCM_PATH: /opt/rocm
+    steps:
+      - name: Check out action definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and validate rocm-runtime bottle
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
+        with:
+          formula: rocm-runtime
+          backend: rocm
+          variant: runtime
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          use-sccache: "false"
+          artifact-name: bottles_rocm_runtime
+          rubygems-cache-prefix: ubuntu-latest-rocm
+          free-disk-space: "true"
+
+  bottles-rocm:
+    name: ROCm bottle (${{ matrix.item.formula }})
+    needs: [plan, bottles-rocm-runtime]
+    if: >-
+      always() &&
+      needs.plan.outputs.rocm_ok == 'true' &&
+      needs.plan.outputs.rocm_non_empty == 'true' &&
+      (needs.bottles-rocm-runtime.result == 'success' || needs.bottles-rocm-runtime.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 210
+    strategy:
+      fail-fast: false
+      matrix:
+        item: ${{ fromJSON(needs.plan.outputs.rocm_matrix) }}
+    container:
+      image: ${{ needs.plan.outputs.rocm_image }} # zizmor: ignore[unpinned-images] resolved from upstream-pins.json and verified via docker manifest inspect
+      options: --privileged
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: read
+      pull-requests: read
+    env:
+      SCCACHE_GHA_ENABLED: "false"
+      SCCACHE_DIR: /tmp/sccache
+      SCCACHE_CACHE_SIZE: "4G"
+      ROCM_PATH: /opt/rocm
+      HOMEBREW_ROCM_PATH: /opt/rocm
+      HOMEBREW_SCCACHE_DIR: /tmp/sccache
+    steps:
+      - name: Check out action definitions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and validate ROCm bottle
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
+        with:
+          formula: ${{ matrix.item.formula }}
+          backend: rocm
+          variant: ${{ matrix.item.variant }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          use-sccache: "true"
+          sccache-mode: disk
+          runtime-artifact: ${{ needs.bottles-rocm-runtime.result == 'success' && 'bottles_rocm_runtime' || '' }}
+          artifact-name: bottles_rocm_${{ matrix.item.formula }}
+          rubygems-cache-prefix: ubuntu-latest-rocm
+          free-disk-space: "true"
