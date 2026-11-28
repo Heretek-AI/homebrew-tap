@@ -91,6 +91,13 @@ class TestRepoConsistency(unittest.TestCase):
                 f"{wf.name} should resolve toolchain tags from .github/upstream-pins.json",
             )
 
+    def test_rocm_image_keeps_sdk_under_homebrew_prefix(self) -> None:
+        dockerfile = (REPO_ROOT / "docker" / "brew-rocm" / "Dockerfile").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("/home/linuxbrew/.linuxbrew/rocm-sdk", dockerfile)
+        self.assertIn("ln -s /home/linuxbrew/.linuxbrew/rocm-sdk /opt/rocm", dockerfile)
+
     def test_publish_workflow_serializes_pr_pull_runs(self) -> None:
         workflow = load_workflow("publish.yml")
         concurrency = workflow.get("concurrency")

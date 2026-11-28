@@ -21,12 +21,23 @@ RUN apt-get update \
         xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
+USER linuxbrew
+
+# Homebrew's superenv filters -I flags outside the Homebrew prefix. Extract the
+# SDK under the prefix and expose it through the conventional /opt/rocm path so
+# Homebrew formulae can keep using -I/opt/rocm/include.
 RUN curl -fsSL -o /tmp/rocm.tar.gz \
         "https://nightly.repo.amd.com/rocm/core/tarball/therock-dist-linux-${ROCM_FAMILY}-${ROCM_VERSION}.tar.gz" \
     && echo "${ROCM_SHA256}  /tmp/rocm.tar.gz" | sha256sum -c - \
-    && mkdir -p /opt/rocm \
-    && tar -xzf /tmp/rocm.tar.gz -C /opt/rocm \
+    && mkdir -p /home/linuxbrew/.linuxbrew/rocm-sdk \
+    && tar -xzf /tmp/rocm.tar.gz -C /home/linuxbrew/.linuxbrew/rocm-sdk \
     && rm -f /tmp/rocm.tar.gz
+
+USER root
+
+RUN ln -s /home/linuxbrew/.linuxbrew/rocm-sdk /opt/rocm \
+    && test -f /opt/rocm/include/hip/hip_runtime_api.h \
+    && test -x /opt/rocm/bin/hipcc
 
 ENV ROCM_PATH=/opt/rocm \
     HIP_PATH=/opt/rocm \
