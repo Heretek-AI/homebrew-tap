@@ -109,6 +109,16 @@ class TestRepoConsistency(unittest.TestCase):
         self.assertIn("cp -al", workflow)
         self.assertNotIn("ROCM_PATH: /opt/rocm", workflow)
 
+    def test_rocm_builds_skip_prefix_pruning(self) -> None:
+        workflow = (WORKFLOWS_DIR / "build-rocm.yml").read_text(encoding="utf-8")
+        self.assertIn('cleanup-before: "false"', workflow)
+        action = yaml.safe_load(
+            (
+                REPO_ROOT / ".github" / "actions" / "brew-bottle-build" / "action.yml"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertIn("cleanup-before", action["inputs"])
+
     def test_publish_workflow_serializes_pr_pull_runs(self) -> None:
         workflow = load_workflow("publish.yml")
         concurrency = workflow.get("concurrency")

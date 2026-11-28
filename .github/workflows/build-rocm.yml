@@ -170,6 +170,7 @@ jobs:
           gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
           gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
           free-disk-space: "true"
+          cleanup-before: "false"
 
   bottles-rocm:
     name: ROCm bottle (${{ matrix.item.formula }})
@@ -238,3 +239,4 @@ jobs:
           gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
           gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
           free-disk-space: "true"
+          cleanup-before: "false"
