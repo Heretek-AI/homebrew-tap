@@ -1,6 +1,6 @@
 cask "kokon" do
-  version "0.12.1"
-  sha256 "6fdff646145e53301e76aada296172cd2cdaf114719e980b07b090e6be769d3b"
+  version "0.13.0"
+  sha256 "a3b8dc70591bdefea63d3e4a46cf5db222bdf4d404b3550e400499df0c5315e7"
 
   url "https://github.com/GabrieleLozupone/kokon/releases/download/v#{version}/Kokon_#{version}_aarch64.dmg"
   name "Kokon"
