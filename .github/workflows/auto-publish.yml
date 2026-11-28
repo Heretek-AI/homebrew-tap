@@ -163,9 +163,16 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
+          state="$(gh pr view "${PR_NUMBER}" --json state --jq .state)"
+          if [[ "${state}" != "OPEN" ]]; then
+            echo "::notice::PR #${PR_NUMBER} is ${state}; skipping pr-pull dispatch."
+            exit 0
+          fi
+
           echo "All required workflows passed; dispatching brew pr-pull for PR #${PR_NUMBER} at ${HEAD_SHA}"
           gh workflow run publish.yml \
             --repo "${GITHUB_REPOSITORY}" \

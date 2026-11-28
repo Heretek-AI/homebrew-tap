@@ -749,6 +749,7 @@
       "repo": "Michael-A-Kuykendall/shimmy",
       "branch": "main",
       "track": "release",
+      "timeout_minutes": 60,
       "formula_sha256": "354cf06787eda26ab642fcc43b28663f88d753ebd7282717f45021b4b17e97be",
       "variants": {
         "cpu": {
@@ -833,6 +834,7 @@
       "repo": "leejet/stable-diffusion.cpp",
       "branch": "master",
       "track": "rolling_release",
+      "timeout_minutes": 180,
       "formula_sha256": "53b4f096d712426bbf8c598bf370714b8fce43f1e042fb342596bbf720e2e403",
       "variants": {
         "vulkan": {

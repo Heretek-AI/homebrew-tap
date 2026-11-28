@@ -171,7 +171,7 @@ jobs:
       needs.plan.outputs.rocm_non_empty == 'true' &&
       (needs.bottles-rocm-runtime.result == 'success' || needs.bottles-rocm-runtime.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 210
+    timeout-minutes: ${{ matrix.item.timeout_minutes || 210 }}
     strategy:
       fail-fast: false
       matrix:
