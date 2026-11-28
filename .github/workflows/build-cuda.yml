@@ -142,7 +142,7 @@ jobs:
           persist-credentials: false
 
       - name: Build and validate cuda-runtime bottle
-        uses: ./.github/actions/brew-bottle-build
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
         with:
           formula: cuda-runtime
           backend: cuda
@@ -190,7 +190,7 @@ jobs:
           persist-credentials: false
 
       - name: Build and validate CUDA bottle
-        uses: ./.github/actions/brew-bottle-build
+        uses: ./.github/actions/brew-bottle-build # zizmor: ignore[self-repository] actionlint 1.7.12 does not yet support $/... syntax
         with:
           formula: ${{ matrix.item.formula }}
           backend: cuda
