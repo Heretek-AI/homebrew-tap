@@ -94,6 +94,19 @@ jobs:
             esac
           done
 
+          cask_only=true
+          for file in "${changed_files[@]}"; do
+            case "${file}" in
+              Casks/*.rb) ;;
+              *) cask_only=false ;;
+            esac
+          done
+          if [[ "${cask_only}" == "true" ]]; then
+            echo "::notice::PR #${PR_NUMBER} only changes casks; there are no bottles to pull. Merge it manually."
+            echo "eligible=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
           echo "eligible=true" >> "${GITHUB_OUTPUT}"
 
       - name: Record builder failure on autobump PR
