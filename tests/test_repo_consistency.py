@@ -99,25 +99,43 @@ class TestRepoConsistency(unittest.TestCase):
         self.assertIn("ln -s /home/linuxbrew/.linuxbrew/rocm-sdk /opt/rocm", dockerfile)
 
     def test_rocm_builds_use_the_prefix_sdk_path(self) -> None:
-        workflow = (WORKFLOWS_DIR / "build-rocm.yml").read_text(encoding="utf-8")
-        self.assertIn(
-            "ROCM_PATH: /home/linuxbrew/.linuxbrew/opt/rocm-sdk",
-            workflow,
-            "ROCm builds must use a sandbox-visible opt path, not /opt/rocm",
-        )
-        self.assertIn("Materialize ROCm SDK under Homebrew opt", workflow)
-        self.assertIn("cp -al", workflow)
-        self.assertNotIn("ROCM_PATH: /opt/rocm", workflow)
+        workflow = load_workflow("build-rocm.yml")
+        jobs = workflow["jobs"]
+        for name in ("bottles-rocm-runtime", "bottles-rocm"):
+            with self.subTest(job=name):
+                job = jobs[name]
+                env = job.get("env", {})
+                self.assertEqual(
+                    env.get("ROCM_PATH"),
+                    "/home/linuxbrew/.linuxbrew/rocm-sdk",
+                    f"{name} must use the prefix-root SDK path that superenv keeps",
+                )
+                self.assertEqual(
+                    env.get("HOMEBREW_ROCM_PATH"),
+                    "/home/linuxbrew/.linuxbrew/rocm-sdk",
+                )
+                action_steps = [
+                    step
+                    for step in job.get("steps", [])
+                    if ".github/actions/brew-bottle-build" in step.get("uses", "")
+                ]
+                self.assertEqual(
+                    len(action_steps), 1, f"{name} must call the builder once"
+                )
+                self.assertEqual(
+                    action_steps[0].get("with", {}).get("cleanup-before"),
+                    "false",
+                    f"{name} must skip prefix pruning so the SDK survives",
+                )
 
     def test_rocm_builds_skip_prefix_pruning(self) -> None:
-        workflow = (WORKFLOWS_DIR / "build-rocm.yml").read_text(encoding="utf-8")
-        self.assertIn('cleanup-before: "false"', workflow)
         action = yaml.safe_load(
             (
                 REPO_ROOT / ".github" / "actions" / "brew-bottle-build" / "action.yml"
             ).read_text(encoding="utf-8")
         )
         self.assertIn("cleanup-before", action["inputs"])
+        self.assertEqual(action["inputs"]["cleanup-before"].get("default"), "true")
 
     def test_publish_workflow_serializes_pr_pull_runs(self) -> None:
         workflow = load_workflow("publish.yml")
