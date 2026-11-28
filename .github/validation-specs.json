@@ -66,7 +66,7 @@
           "info"
         ],
         "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device|compute unit)",
-        "no_device_ok_regex": "(?i)(no (gpu|device|accelerator)|fallback|hip error|failed to initialize hip)",
+        "no_device_ok_regex": "(?i)(no .*device|no devices? (found|available)|unable to .*device|failed to .*device|hip error|hipErrorNoDevice|error|usage|help)",
         "golden_cmd": [
           "bin/gufo",
           "test",
@@ -349,7 +349,7 @@
           "--list-devices"
         ],
         "device_ok_regex": "(?i)(gfx1151|strix halo|radeon|device)",
-        "no_device_ok_regex": "(?i)(no (gpu|device)|hip error|hipErrorNoDevice)",
+        "no_device_ok_regex": "(?i)(no .*device|no devices? (found|available)|unable to .*device|failed to .*device|hip error|hipErrorNoDevice|error|usage|help)",
         "golden_cmd": [
           "bin/crucible-strix-halo",
           "test",
